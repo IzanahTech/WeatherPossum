@@ -6,12 +6,12 @@ plugins {
 
 android {
     namespace = "com.weatherpossum.app"
-    compileSdk = 34
+    compileSdk = 35
 
     defaultConfig {
         applicationId = "com.weatherpossum.app"
         minSdk = 31
-        targetSdk = 34
+        targetSdk = 35
         versionCode = 1
         versionName = "1.0"
 
@@ -46,7 +46,7 @@ android {
     }
     
     composeOptions {
-        kotlinCompilerExtensionVersion = "1.5.8"
+        kotlinCompilerExtensionVersion = "1.5.14"
     }
     
     packaging {
@@ -57,7 +57,7 @@ android {
 }
 
 dependencies {
-    val composeBom = platform("androidx.compose:compose-bom:2024.02.00")
+    val composeBom = platform("androidx.compose:compose-bom:2025.04.01")
     implementation(composeBom)
     androidTestImplementation(composeBom)
 
@@ -77,7 +77,7 @@ dependencies {
     implementation("com.squareup.okhttp3:logging-interceptor:4.12.0")
     
     // Lottie for animations
-    implementation("com.airbnb.android:lottie-compose:6.3.0")
+    implementation("com.airbnb.android:lottie-compose:6.6.6")
     
     // JSoup for HTML parsing
     implementation("org.jsoup:jsoup:1.17.2")
@@ -87,7 +87,6 @@ dependencies {
     
     // Accompanist for placeholders
     implementation("com.google.accompanist:accompanist-placeholder-material:0.32.0")
-    implementation("com.google.accompanist:accompanist-swiperefresh:0.32.0")
     
     // DataStore
     implementation("androidx.datastore:datastore-preferences:1.0.0")
@@ -97,7 +96,7 @@ dependencies {
     implementation("io.insert-koin:koin-androidx-compose:3.5.3")
     
     // Official Compose Pull Refresh
-    // implementation("androidx.compose.material3:material3-pullrefresh:1.2.1")  // Removing this line as it's included in material3
+    implementation("androidx.compose.material:material:1.6.1")
     
     testImplementation("junit:junit:4.13.2")
     androidTestImplementation("androidx.test.ext:junit:1.1.5")

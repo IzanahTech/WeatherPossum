@@ -17,13 +17,16 @@ import com.airbnb.lottie.compose.*
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.foundation.background
-import com.google.accompanist.swiperefresh.SwipeRefresh
-import com.google.accompanist.swiperefresh.rememberSwipeRefreshState
+import androidx.compose.material.pullrefresh.PullRefreshIndicator
+import androidx.compose.material.pullrefresh.pullRefresh
+import androidx.compose.material.pullrefresh.rememberPullRefreshState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.material.ExperimentalMaterialApi
+import androidx.compose.material3.ExperimentalMaterial3Api
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterialApi::class, ExperimentalMaterial3Api::class)
 @Composable
 fun WeatherScreen(
     viewModel: WeatherViewModel = koinViewModel()
@@ -32,7 +35,10 @@ fun WeatherScreen(
     val userName by viewModel.userName.collectAsState()
     val synopsis by viewModel.synopsis.collectAsState()
     val uiState = viewModel.uiState.collectAsState().value
-    val swipeRefreshState = rememberSwipeRefreshState(isRefreshing)
+    val pullRefreshState = rememberPullRefreshState(
+        refreshing = isRefreshing,
+        onRefresh = { viewModel.loadWeather(forceRefresh = true) }
+    )
 
     Scaffold(
         topBar = {
@@ -49,35 +55,34 @@ fun WeatherScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
+                .pullRefresh(pullRefreshState)
         ) {
             when (uiState) {
                 is WeatherUiState.Loading -> {
                     SplashScreen()
                 }
                 is WeatherUiState.Success -> {
-                    SwipeRefresh(
-                        state = swipeRefreshState,
-                        onRefresh = {
-                            viewModel.loadWeather(forceRefresh = true)
-                        }
+                    LazyColumn(
+                        modifier = Modifier.fillMaxSize(),
+                        contentPadding = PaddingValues(vertical = 8.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        LazyColumn(
-                            modifier = Modifier.fillMaxSize(),
-                            contentPadding = PaddingValues(vertical = 8.dp),
-                            verticalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            item {
-                                GreetingCard(
-                                    userName = userName,
-                                    synopsis = synopsis ?: "Loading weather information...",
-                                    onNameSubmit = { name -> viewModel.saveUserName(name) }
-                                )
-                            }
-                            items(uiState.weatherCards, key = { it.title + it.value }) { card ->
-                                WeatherCard(card = card)
-                            }
+                        item {
+                            GreetingCard(
+                                userName = userName,
+                                synopsis = synopsis ?: "Loading weather information...",
+                                onNameSubmit = { name -> viewModel.saveUserName(name) }
+                            )
+                        }
+                        items(uiState.weatherCards, key = { it.title + it.value }) { card ->
+                            WeatherCard(card = card)
                         }
                     }
+                    PullRefreshIndicator(
+                        refreshing = isRefreshing,
+                        state = pullRefreshState,
+                        modifier = Modifier.align(Alignment.TopCenter)
+                    )
                 }
                 is WeatherUiState.Error -> {
                     ErrorContent(

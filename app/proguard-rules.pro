@@ -19,3 +19,21 @@
 # If you keep the line number information, uncomment this to
 # hide the original source file name.
 #-renamesourcefileattribute SourceFile
+
+# --- Lottie Proguard rules ---
+-keep class com.airbnb.lottie.** { *; }
+-dontwarn com.airbnb.lottie.**
+
+# --- Jetpack Compose Proguard rules ---
+-keep class androidx.compose.** { *; }
+-dontwarn androidx.compose.**
+-keep class androidx.activity.compose.** { *; }
+-dontwarn androidx.activity.compose.**
+-keep class androidx.lifecycle.compose.** { *; }
+-dontwarn androidx.lifecycle.compose.**
+-keep class androidx.savedstate.** { *; }
+-dontwarn androidx.savedstate.**
+-keep class androidx.customview.** { *; }
+-dontwarn androidx.customview.**
+-keep class androidx.compose.runtime.saveable.** { *; }
+-dontwarn androidx.compose.runtime.saveable.**
