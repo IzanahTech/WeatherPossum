@@ -25,6 +25,12 @@ class WeatherViewModel : ViewModel(), KoinComponent {
     private val _synopsis = MutableStateFlow<String?>(null)
     val synopsis: StateFlow<String?> = _synopsis.asStateFlow()
 
+    val isRefreshing: StateFlow<Boolean> = uiState.map { it is WeatherUiState.Loading }.stateIn(
+        viewModelScope,
+        SharingStarted.Eagerly,
+        false
+    )
+
     init {
         viewModelScope.launch(Dispatchers.IO) {
             // Load user name
@@ -53,21 +59,41 @@ class WeatherViewModel : ViewModel(), KoinComponent {
                     // Extract synopsis and other cards
                     val synopsisCard = cards.find { it.title.contains("Synopsis", ignoreCase = true) }
                     _synopsis.value = synopsisCard?.value
-                    // Filter out synopsis from other cards
-                    var otherCards = cards.filter { !it.title.contains("Synopsis", ignoreCase = true) }
+                    // Filter out synopsis and tomorrow forecasts from other cards
+                    var otherCards = cards.filter { 
+                        !it.title.contains("Synopsis", ignoreCase = true) &&
+                        !it.title.contains("Tomorrow", ignoreCase = true)
+                    }
+
+                    // Define 'now' once for use below
+                    val now = java.time.LocalTime.now()
 
                     // Custom logic for Forecast for Today/Tonight
-                    val todayIndex = otherCards.indexOfFirst { it.title.contains("Forecast for Today", ignoreCase = true) }
+                    val todayIndex = otherCards.indexOfFirst { it.title.contains("Forecast for Today", ignoreCase = true) || it.title.contains("Afternoon", ignoreCase = true) || it.title.contains("Morning", ignoreCase = true) }
                     val tonightIndex = otherCards.indexOfFirst { it.title.contains("Forecast for Tonight", ignoreCase = true) }
-                    if (todayIndex != -1 && tonightIndex != -1) {
-                        val now = java.time.LocalTime.now()
-                        val onePm = java.time.LocalTime.of(13, 0)
-                        otherCards = if (now.isBefore(onePm)) {
-                            // Before 1pm: show only 'Forecast for Today'
-                            otherCards.filterIndexed { idx, _ -> idx != tonightIndex }
+                    if (todayIndex != -1 || tonightIndex != -1) {
+                        val sixPm = java.time.LocalTime.of(18, 0)
+                        otherCards = otherCards.filterIndexed { idx, card ->
+                            when {
+                                card.title.contains("Forecast for Tonight", ignoreCase = true) -> now.isAfter(sixPm) || now == sixPm
+                                card.title.contains("Forecast for Today", ignoreCase = true) || card.title.contains("Afternoon", ignoreCase = true) || card.title.contains("Morning", ignoreCase = true) -> now.isBefore(sixPm)
+                                else -> true
+                            }
+                        }
+                    }
+
+                    // Assign default title if missing or if title is 'Forecast for Today and Tonight'
+                    val defaultTitle = when {
+                        now.isBefore(java.time.LocalTime.NOON) -> "Forecast for this Morning"
+                        now.isBefore(java.time.LocalTime.of(18, 0)) -> "Forecast for this Afternoon"
+                        else -> "Forecast for Tonight"
+                    }
+                    otherCards = otherCards.map { card ->
+                        val trimmedTitle = card.title.trim()
+                        if (trimmedTitle.isEmpty() || trimmedTitle.equals("Forecast for Today and Tonight", ignoreCase = true)) {
+                            card.copy(title = defaultTitle)
                         } else {
-                            // 1pm or after: show only 'Forecast for Tonight'
-                            otherCards.filterIndexed { idx, _ -> idx != todayIndex }
+                            card
                         }
                     }
 

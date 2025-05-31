@@ -80,10 +80,16 @@ fun WeatherCard(
                     .padding(16.dp)
             ) {
                 // Weather animation based on content and title
+                val animationSize = when {
+                    card.title.contains("Sun Times", ignoreCase = true) -> 120.dp
+                    card.title.contains("Wind Conditions", ignoreCase = true) -> 120.dp
+                    card.title.contains("Sea Conditions", ignoreCase = true) -> 120.dp
+                    else -> 100.dp
+                }
                 WeatherAnimation(
                     forecast = card.value,
                     title = card.title,
-                    modifier = Modifier.size(100.dp),
+                    modifier = Modifier.size(animationSize),
                     dimForDark = isDark
                 )
                 

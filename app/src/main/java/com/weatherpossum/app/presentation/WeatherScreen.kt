@@ -28,18 +28,11 @@ import androidx.compose.foundation.layout.PaddingValues
 fun WeatherScreen(
     viewModel: WeatherViewModel = koinViewModel()
 ) {
-    var isRefreshing by remember { mutableStateOf(false) }
+    val isRefreshing by viewModel.isRefreshing.collectAsState()
     val userName by viewModel.userName.collectAsState()
     val synopsis by viewModel.synopsis.collectAsState()
     val uiState = viewModel.uiState.collectAsState().value
     val swipeRefreshState = rememberSwipeRefreshState(isRefreshing)
-
-    // Handle refresh completion
-    LaunchedEffect(swipeRefreshState.isRefreshing) {
-        if (!swipeRefreshState.isRefreshing) {
-            isRefreshing = false
-        }
-    }
 
     Scaffold(
         topBar = {
@@ -65,7 +58,6 @@ fun WeatherScreen(
                     SwipeRefresh(
                         state = swipeRefreshState,
                         onRefresh = {
-                            isRefreshing = true
                             viewModel.loadWeather(forceRefresh = true)
                         }
                     ) {

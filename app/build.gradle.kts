@@ -19,9 +19,6 @@ android {
         vectorDrawables {
             useSupportLibrary = true
         }
-
-        // Add OpenAI API key
-        buildConfigField("String", "OPENAI_API_KEY", "\"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\"")
     }
 
     buildTypes {

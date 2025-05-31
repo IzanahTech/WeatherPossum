@@ -29,6 +29,8 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.border
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.withStyle
 
 private val ArialBlack = FontFamily(
     Font(resId = R.font.arial_bold, weight = FontWeight.Bold)
@@ -52,6 +54,8 @@ fun GreetingCard(
         }
     }
 
+    val textColor = if (isSystemInDarkTheme()) Color.White else Color(0xFF003826)
+
     Card(
         modifier = modifier
             .fillMaxWidth()
@@ -67,80 +71,56 @@ fun GreetingCard(
         ),
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
     ) {
-        Row(
+        Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(24.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
+                .padding(vertical = 32.dp, horizontal = 24.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Column(
-                modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
-            ) {
-                BoxWithConstraints(
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    val maxFontSize = with(LocalDensity.current) { (maxWidth * 0.12f).toSp() }
-                    Text(
-                        text = if (userName == null) greeting + "!" else "$greeting $userName!",
-                        fontFamily = ArialBlack,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = maxFontSize,
-                        color = MaterialTheme.colorScheme.onSurface,
-                        lineHeight = (maxFontSize.value * 1.2f).sp,
-                        modifier = Modifier.padding(bottom = 8.dp),
-                        maxLines = 2,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                }
-                
-                Text(
-                    text = "SYNOPSIS: $synopsis",
-                    fontFamily = ArialBlack,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 18.sp,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    lineHeight = 24.sp
-                )
-                
-                if (showNameInput) {
-                    OutlinedTextField(
-                        value = tempName,
-                        onValueChange = { tempName = it },
-                        label = { Text("Enter your name") },
-                        singleLine = true,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                    Button(
-                        onClick = {
-                            if (tempName.isNotBlank()) {
-                                onNameSubmit(tempName)
-                                showNameInput = false
-                            }
-                        },
-                        modifier = Modifier.align(Alignment.End)
-                    ) {
-                        Text("Save Name")
-                    }
-                }
-            }
-            
-            Spacer(modifier = Modifier.width(24.dp))
-            
-            // Lottie animation
-            val composition by rememberLottieComposition(LottieCompositionSpec.Asset("animations/$animationFile"))
-            LottieAnimation(
-                composition = composition,
-                iterations = LottieConstants.IterateForever,
-                modifier = if (isSystemInDarkTheme()) {
-                    Modifier
-                        .size(100.dp)
-                        .alpha(0.7f)
-                } else {
-                    Modifier.size(100.dp)
-                }
+            // Centered greeting and user name at the top
+            Text(
+                text = if (userName == null) greeting else "$greeting\n${userName}",
+                fontFamily = ArialBlack,
+                fontWeight = FontWeight.Bold,
+                fontSize = 28.sp,
+                color = textColor,
+                textAlign = TextAlign.Center,
+                lineHeight = 32.sp,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.fillMaxWidth()
             )
+            Spacer(modifier = Modifier.height(24.dp))
+            // Row with synopsis and animation
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                // AnnotatedString for bold 'SYNOPSIS:' and normal synopsis
+                Text(
+                    text = buildAnnotatedString {
+                        withStyle(style = androidx.compose.ui.text.SpanStyle(fontWeight = FontWeight.Bold)) {
+                            append("SYNOPSIS: ")
+                        }
+                        append(synopsis)
+                    },
+                    fontFamily = ArialBlack,
+                    fontSize = 18.sp,
+                    color = textColor,
+                    lineHeight = 24.sp,
+                    textAlign = TextAlign.Start,
+                    modifier = Modifier.weight(1f)
+                )
+                Spacer(modifier = Modifier.width(24.dp))
+                val composition by rememberLottieComposition(LottieCompositionSpec.Asset("animations/$animationFile"))
+                LottieAnimation(
+                    composition = composition,
+                    iterations = LottieConstants.IterateForever,
+                    modifier = Modifier
+                        .size(100.dp)
+                        .alpha(if (isSystemInDarkTheme()) 0.7f else 1f)
+                )
+            }
         }
     }
 } 

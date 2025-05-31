@@ -1,12 +1,8 @@
 package com.weatherpossum.app.data.api
 
 import retrofit2.http.GET
-import retrofit2.http.POST
-import retrofit2.http.Body
-import retrofit2.http.Header
 import retrofit2.Retrofit
 import retrofit2.converter.scalars.ScalarsConverterFactory
-import retrofit2.converter.gson.GsonConverterFactory
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
 import java.util.concurrent.TimeUnit
@@ -16,7 +12,6 @@ import java.io.IOException
 import android.content.Context
 import com.weatherpossum.app.BuildConfig
 import org.jsoup.Jsoup
-import com.google.gson.annotations.SerializedName
 import okhttp3.ConnectionPool
 import okhttp3.Protocol
 import java.net.SocketTimeoutException
@@ -104,58 +99,4 @@ interface WeatherForecastApi {
                 .create(WeatherForecastApi::class.java)
         }
     }
-}
-
-interface OpenAIApi {
-    @POST("v1/chat/completions")
-    suspend fun parseForecast(
-        @Header("Authorization") apiKey: String,
-        @Body request: OpenAIRequest
-    ): OpenAIResponse
-
-    companion object {
-        private const val TIMEOUT_SECONDS = 90L // Longer timeout for OpenAI
-
-        fun create(): OpenAIApi {
-            val loggingInterceptor = HttpLoggingInterceptor().apply {
-                level = HttpLoggingInterceptor.Level.BODY
-            }
-
-            val client = OkHttpClient.Builder()
-                .addInterceptor(loggingInterceptor)
-                .connectTimeout(TIMEOUT_SECONDS, TimeUnit.SECONDS)
-                .readTimeout(TIMEOUT_SECONDS, TimeUnit.SECONDS)
-                .writeTimeout(TIMEOUT_SECONDS, TimeUnit.SECONDS)
-                .retryOnConnectionFailure(true)
-                .build()
-
-            return Retrofit.Builder()
-                .baseUrl("https://api.openai.com/")
-                .client(client)
-                .addConverterFactory(GsonConverterFactory.create())
-                .build()
-                .create(OpenAIApi::class.java)
-        }
-    }
-}
-
-data class OpenAIRequest(
-    @SerializedName("model")
-    val model: String = "gpt-3.5-turbo",
-    @SerializedName("messages")
-    val messages: List<Message>,
-    @SerializedName("temperature")
-    val temperature: Double = 0.7
-)
-
-data class Message(
-    @SerializedName("role")
-    val role: String = "user",
-    @SerializedName("content")
-    val content: String
-)
-
-data class OpenAIResponse(
-    @SerializedName("choices")
-    val choices: List<Choice>
-) 
+} 
