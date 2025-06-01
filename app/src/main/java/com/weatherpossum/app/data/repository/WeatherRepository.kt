@@ -1,6 +1,8 @@
 package com.weatherpossum.app.data.repository
 
+import android.content.Context
 import android.util.Log
+import com.weatherpossum.app.R
 import com.weatherpossum.app.data.api.WeatherForecastApi
 import com.weatherpossum.app.data.model.Result
 import com.weatherpossum.app.data.model.WeatherCard
@@ -22,6 +24,7 @@ private const val MAX_RETRIES = 3
 private const val INITIAL_RETRY_DELAY = 2000L // 2 seconds
 
 class WeatherRepository(
+    private val context: Context,
     private val weatherApi: WeatherForecastApi,
     private val userPreferences: UserPreferences
 ) {
@@ -55,10 +58,11 @@ class WeatherRepository(
                 }
             } catch (e: Exception) {
                 lastException = e
+                // Using getString for error messages that might be passed up
                 val errorMessage = when (e) {
-                    is SocketTimeoutException -> "Socket timeout"
-                    is IOException -> "IO error: ${e.message}"
-                    else -> e.message ?: "Unknown error"
+                    is SocketTimeoutException -> context.getString(R.string.repository_error_socket_timeout)
+                    is IOException -> context.getString(R.string.repository_error_io, e.message ?: context.getString(R.string.unknown_error))
+                    else -> e.message ?: context.getString(R.string.unknown_error)
                 }
                 
                 Log.w(TAG, "Attempt $attempt/$maxRetries failed: $errorMessage")
@@ -76,7 +80,7 @@ class WeatherRepository(
             }
         }
         
-        throw lastException ?: IllegalStateException("All retries failed")
+        throw lastException ?: IllegalStateException(context.getString(R.string.repository_error_all_retries_failed))
     }
 
     private fun cleanText(text: String): String {
@@ -126,18 +130,18 @@ class WeatherRepository(
 
             // Parse Synopsis with multiple fallback selectors
             val synopsisSelectors = listOf(
-                "p:contains(Synopsis)",
-                "div:contains(Synopsis)",
+                "p:contains(Synopsis)", // Keyword
+                "div:contains(Synopsis)", // Keyword
                 "h2:contains(Synopsis) + p",
                 "h3:contains(Synopsis) + p",
                 "div.forecast_synopsis",
                 "div.synopsis"
             )
-            findElementWithFallbacks(doc, synopsisSelectors, "Synopsis")?.let { synopsis ->
-                val text = cleanText(synopsis.text())
+            findElementWithFallbacks(doc, synopsisSelectors, "Synopsis")?.let { synopsisEl -> // "Synopsis" is a keyword here
+                val text = cleanText(synopsisEl.text())
                 if (text.isNotBlank()) {
                     cards.add(WeatherCard(
-                        title = "Synopsis",
+                        title = context.getString(R.string.repository_title_synopsis),
                         value = text
                     ))
                     Log.d(TAG, "Successfully parsed Synopsis")
@@ -174,12 +178,13 @@ class WeatherRepository(
                         if (content.isNotBlank()) {
                             // Use the exact title for today/afternoon/morning, and always use 'Forecast for Tonight' for night
                             when {
-                                lowerTitle.contains("afternoon") || lowerTitle.contains("morning") || lowerTitle == "forecast for today".lowercase() -> {
-                                    forecasts[rawTitle] = content
+                                lowerTitle.contains("afternoon") || lowerTitle.contains("morning") || lowerTitle == context.getString(R.string.repository_title_forecast_today).lowercase() -> {
+                                    forecasts[rawTitle] = content // Keep rawTitle as key for now, will map to string resource if it's a direct title
                                     foundTodaySpecific = true
                                 }
                                 lowerTitle.contains("tonight") -> {
-                                    forecasts["Forecast for Tonight"] = content
+                                    // Use string resource for known titles
+                                    forecasts[context.getString(R.string.repository_title_forecast_tonight)] = content
                                 }
                                 else -> {
                                     // fallback: add any other forecast titles as-is
@@ -193,13 +198,14 @@ class WeatherRepository(
                 // If no specific today/afternoon/morning title was found, fallback to 'Forecast for Today'
                 if (!foundTodaySpecific) {
                     // Try to find a generic today forecast
-                    val todayForecast = forecastElements.find { cleanText(it.text()).lowercase().contains("today") }
+                    val todayForecastKeyword = "today" // Keep "today" as a keyword for searching
+                    val todayForecast = forecastElements.find { cleanText(it.text()).lowercase().contains(todayForecastKeyword) }
                     todayForecast?.let { strong ->
                         val nextParagraph = strong.parent()?.nextElementSibling()
                         if (nextParagraph != null && nextParagraph.tagName() == "p") {
                             val content = cleanText(nextParagraph.text())
                             if (content.isNotBlank()) {
-                                forecasts["Forecast for Today"] = content
+                                forecasts[context.getString(R.string.repository_title_forecast_today)] = content
                             }
                         }
                     }
@@ -229,31 +235,32 @@ class WeatherRepository(
                             .filter { it.isNotBlank() }
                         if (paragraphs.isNotEmpty()) {
                             cards.add(WeatherCard(
-                                title = "Forecast for Today and Tonight",
+                                title = context.getString(R.string.repository_title_forecast_today_tonight),
                                 value = paragraphs.joinToString("\n")
                             ))
                             Log.d(TAG, "Successfully parsed combined Forecast for Today and Tonight")
                         }
                     } else {
                         // Try to find separate today and tonight forecasts
-                        val todayForecast = findElementWithFallbacks(
+                        // Keep "Forecast for Today" and "Forecast for Tonight" as keywords for findElementWithFallbacks
+                        val todayForecastEl = findElementWithFallbacks(
                             doc,
                             forecastSelectors.filter { it.contains("Today") && !it.contains("Tonight") },
                             "Forecast for Today"
                         )
-                        val tonightForecast = findElementWithFallbacks(
+                        val tonightForecastEl = findElementWithFallbacks(
                             doc,
                             forecastSelectors.filter { it.contains("Tonight") && !it.contains("Today") },
                             "Forecast for Tonight"
                         )
 
                         // Process today's forecast
-                        todayForecast?.let { forecast ->
+                        todayForecastEl?.let { forecast ->
                             val paragraphs = forecast.select("p").map { cleanText(it.text()) }
                                 .filter { it.isNotBlank() }
                             if (paragraphs.isNotEmpty()) {
                                 cards.add(WeatherCard(
-                                    title = "Forecast for Today",
+                                    title = context.getString(R.string.repository_title_forecast_today),
                                     value = paragraphs.joinToString("\n")
                                 ))
                                 Log.d(TAG, "Successfully parsed Forecast for Today")
@@ -261,12 +268,12 @@ class WeatherRepository(
                         }
 
                         // Process tonight's forecast
-                        tonightForecast?.let { forecast ->
+                        tonightForecastEl?.let { forecast ->
                             val paragraphs = forecast.select("p").map { cleanText(it.text()) }
                                 .filter { it.isNotBlank() }
                             if (paragraphs.isNotEmpty()) {
                                 cards.add(WeatherCard(
-                                    title = "Forecast for Tonight",
+                                    title = context.getString(R.string.repository_title_forecast_tonight),
                                     value = paragraphs.joinToString("\n")
                                 ))
                                 Log.d(TAG, "Successfully parsed Forecast for Tonight")
@@ -278,17 +285,17 @@ class WeatherRepository(
 
             // Parse Wind Conditions with multiple fallback selectors
             val windSelectors = listOf(
-                "p:contains(Wind)",
-                "div:contains(Wind)",
+                "p:contains(Wind)", // Keyword
+                "div:contains(Wind)", // Keyword
                 "h3:contains(Wind) + p",
                 "div.wind-conditions",
                 "div.forecast_wind"
             )
-            findElementWithFallbacks(doc, windSelectors, "Wind")?.let { wind ->
-                val text = cleanText(wind.text())
+            findElementWithFallbacks(doc, windSelectors, "Wind")?.let { windEl -> // "Wind" is a keyword
+                val text = cleanText(windEl.text())
                 if (text.isNotBlank()) {
                     cards.add(WeatherCard(
-                        title = "Wind Conditions",
+                        title = context.getString(R.string.repository_title_wind_conditions),
                         value = text
                     ))
                     Log.d(TAG, "Successfully parsed Wind Conditions")
@@ -296,58 +303,59 @@ class WeatherRepository(
             }
 
             // Parse Sea Conditions with multiple fallback selectors
-            val seaConditions = mutableListOf<String>()
+            val seaConditionsList = mutableListOf<String>()
             val seaSelectors = listOf(
-                "p:contains(Sea Conditions)",
-                "div:contains(Sea Conditions)",
+                "p:contains(Sea Conditions)", // Keyword
+                "div:contains(Sea Conditions)", // Keyword
                 "h3:contains(Sea Conditions) + p",
                 "div.sea-conditions",
                 "div.forecast_sea"
             )
-            findElementWithFallbacks(doc, seaSelectors, "Sea Conditions")?.let { sea ->
-                seaConditions.add(cleanText(sea.text()))
+            findElementWithFallbacks(doc, seaSelectors, "Sea Conditions")?.let { seaEl -> // "Sea Conditions" is a keyword
+                seaConditionsList.add(cleanText(seaEl.text()))
             }
 
             val waveSelectors = listOf(
-                "p:contains(Waves)",
-                "div:contains(Waves)",
+                "p:contains(Waves)", // Keyword
+                "div:contains(Waves)", // Keyword
                 "h3:contains(Waves) + p",
                 "div.wave-conditions",
                 "div.forecast_waves"
             )
-            findElementWithFallbacks(doc, waveSelectors, "Waves")?.let { waves ->
-                seaConditions.add(cleanText(waves.text()))
+            findElementWithFallbacks(doc, waveSelectors, "Waves")?.let { wavesEl -> // "Waves" is a keyword
+                seaConditionsList.add(cleanText(wavesEl.text()))
             }
 
-            if (seaConditions.isNotEmpty()) {
+            if (seaConditionsList.isNotEmpty()) {
                 cards.add(WeatherCard(
-                    title = "Sea Conditions",
-                    value = seaConditions.joinToString("\n")
+                    title = context.getString(R.string.repository_title_sea_conditions),
+                    value = seaConditionsList.joinToString("\n")
                 ))
                 Log.d(TAG, "Successfully parsed Sea Conditions")
             }
 
             // Parse Sun Times with multiple fallback selectors
-            val sunTimes = mutableListOf<String>()
+            val sunTimesList = mutableListOf<String>()
             val sunSelectors = listOf(
-                "p:contains(Sunrise)",
-                "div:contains(Sunrise)",
+                "p:contains(Sunrise)", // Keyword
+                "div:contains(Sunrise)", // Keyword
                 "h3:contains(Sunrise) + p",
                 "div.sun-times",
                 "div.forecast_sun"
             )
-            findElementWithFallbacks(doc, sunSelectors, "Sunrise")?.let { sunrise ->
-                sunTimes.add(cleanText(sunrise.text()))
+            findElementWithFallbacks(doc, sunSelectors, "Sunrise")?.let { sunriseEl -> // "Sunrise" is a keyword
+                sunTimesList.add(cleanText(sunriseEl.text()))
             }
 
-            findElementWithFallbacks(doc, sunSelectors.map { it.replace("Sunrise", "Sunset") }, "Sunset")?.let { sunset ->
-                sunTimes.add(cleanText(sunset.text()))
+            // "Sunset" is a keyword
+            findElementWithFallbacks(doc, sunSelectors.map { it.replace("Sunrise", "Sunset") }, "Sunset")?.let { sunsetEl ->
+                sunTimesList.add(cleanText(sunsetEl.text()))
             }
 
-            if (sunTimes.isNotEmpty()) {
+            if (sunTimesList.isNotEmpty()) {
                 cards.add(WeatherCard(
-                    title = "Sun Times",
-                    value = sunTimes.joinToString(", ")
+                    title = context.getString(R.string.repository_title_sun_times),
+                    value = sunTimesList.joinToString(", ")
                 ))
                 Log.d(TAG, "Successfully parsed Sun Times")
             }
@@ -356,43 +364,38 @@ class WeatherRepository(
             val outlookSelectors = listOf(
                 "div.outlook_da_la",
                 "div.outlook_da_la.col-sm-6",
-                "div:contains(Weather Outlook for Dominica and the Lesser Antilles)",
+                "div:contains(Weather Outlook for Dominica and the Lesser Antilles)", // Keyword-ish, but long
                 "h4.no_padding:contains(Weather Outlook) + p",
                 "div.weather-outlook",
                 "div.forecast_outlook"
             )
-
-            findElementWithFallbacks(doc, outlookSelectors, "Weather Outlook")?.let { outlook ->
+            // "Weather Outlook" is a keyword for findElementWithFallbacks
+            findElementWithFallbacks(doc, outlookSelectors, "Weather Outlook")?.let { outlookEl ->
                 val outlookText = StringBuilder()
                 
-                // Get the valid from date if available
-                outlook.select("p:contains(Valid from:)").firstOrNull()?.let { validFrom ->
+                outlookEl.select("p:contains(Valid from:)").firstOrNull()?.let { validFrom ->
                     outlookText.append(cleanText(validFrom.text())).append("\n\n")
                 }
                 
-                // Get all paragraphs with text-align: justify
-                outlook.select("p[style*='text-align: justify']").forEach { paragraph ->
+                outlookEl.select("p[style*='text-align: justify']").forEach { paragraph ->
                     outlookText.append(cleanText(paragraph.text())).append("\n\n")
                 }
                 
-                // If no justified paragraphs found, try getting all paragraphs
                 if (outlookText.isEmpty()) {
-                    outlook.select("p").forEach { paragraph ->
-                        // Skip the valid from paragraph as it's already handled
+                    outlookEl.select("p").forEach { paragraph ->
                         if (!paragraph.text().contains("Valid from:")) {
                             outlookText.append(cleanText(paragraph.text())).append("\n\n")
                         }
                     }
                 }
                 
-                // If still empty, use the entire text
                 if (outlookText.isEmpty()) {
-                    outlookText.append(cleanText(outlook.text()))
+                    outlookText.append(cleanText(outlookEl.text()))
                 }
 
                 if (outlookText.isNotEmpty()) {
                     cards.add(WeatherCard(
-                        title = "Weather Outlook for Dominica and the Lesser Antilles",
+                        title = context.getString(R.string.repository_title_weather_outlook),
                         value = outlookText.toString().trim()
                     ))
                     Log.d(TAG, "Successfully parsed Weather Outlook")
@@ -402,7 +405,7 @@ class WeatherRepository(
             // Validate that we have at least some weather information
             if (cards.isEmpty()) {
                 Log.w(TAG, "No weather cards were parsed from the HTML")
-                throw IOException("No weather information found in the response")
+                throw IOException(context.getString(R.string.repository_error_no_info_in_response))
             }
 
             // Log the number of cards parsed
@@ -410,7 +413,7 @@ class WeatherRepository(
 
         } catch (e: Exception) {
             Log.e(TAG, "Error parsing weather cards from HTML", e)
-            throw IOException("Error parsing weather data: ${e.message}", e)
+            throw IOException(context.getString(R.string.repository_error_parsing_data, e.message ?: context.getString(R.string.unknown_error)), e)
         }
 
         return cards
@@ -441,11 +444,12 @@ class WeatherRepository(
             Result.Success(cards)
         } catch (e: Exception) {
             Log.e(TAG, "Error fetching weather data", e)
+            val errorMsg = e.message ?: context.getString(R.string.unknown_error)
             if (cachedCards != null) {
-                Log.w(TAG, "Using cached data due to error: ${e.message}")
-                Result.Error(Exception("Failed to fetch new data: ${e.message}. Showing cached data.", e))
+                Log.w(TAG, "Using cached data due to error: $errorMsg")
+                Result.Error(Exception(context.getString(R.string.repository_error_fetch_failed_showing_cache, errorMsg), e))
             } else {
-                Result.Error(e)
+                Result.Error(Exception(errorMsg, e)) // Ensure the exception passed up has a message
             }
         }
     }

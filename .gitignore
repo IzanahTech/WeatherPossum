@@ -1,15 +1,32 @@
+# Android Studio / IntelliJ IDEA
+/.idea/
 *.iml
-.gradle
-/local.properties
-/.idea/caches
-/.idea/libraries
-/.idea/modules.xml
-/.idea/workspace.xml
-/.idea/navEditor.xml
-/.idea/assetWizardSettings.xml
-.DS_Store
-/build
-/captures
-.externalNativeBuild
-.cxx
-local.properties
+.DS_Store # macOS
+
+# VSCode
+/.vscode/
+
+# Gradle
+.gradle/
+/build/
+*.lock # Gradle lock files, etc.
+local.properties # Matches only at the root. Kept /local.properties from original, this is more specific.
+
+# Android Build Outputs
+*.apk
+*.aab
+*.ap_
+*.dex
+gen/
+out/
+# *.jar # Uncomment if you are sure you don't need to commit any JAR files
+
+# Android Studio captures
+/captures/
+
+# Native Build
+.externalNativeBuild/
+.cxx/
+
+# Log files
+*.log
