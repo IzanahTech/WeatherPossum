@@ -17,16 +17,20 @@ import com.airbnb.lottie.compose.*
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.foundation.background
-import androidx.compose.material.pullrefresh.PullRefreshIndicator
-import androidx.compose.material.pullrefresh.pullRefresh
-import androidx.compose.material.pullrefresh.rememberPullRefreshState
+// M2 PullRefreshIndicator, pullRefresh, rememberPullRefreshState removed
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.lazy.LazyColumn
+// LazyColumn import was duplicated, ensure it's present once.
+// import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.material.ExperimentalMaterialApi
+// ExperimentalMaterialApi removed
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.pulltorefresh.PullToRefreshContainer
+import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
+import androidx.compose.ui.res.stringResource // Added import
+import com.weatherpossum.app.R // Added import
 
-@OptIn(ExperimentalMaterialApi::class, ExperimentalMaterial3Api::class)
+
+@OptIn(ExperimentalMaterial3Api::class) // ExperimentalMaterialApi removed
 @Composable
 fun WeatherScreen(
     viewModel: WeatherViewModel = koinViewModel()
@@ -35,15 +39,20 @@ fun WeatherScreen(
     val userName by viewModel.userName.collectAsState()
     val synopsis by viewModel.synopsis.collectAsState()
     val uiState = viewModel.uiState.collectAsState().value
-    val pullRefreshState = rememberPullRefreshState(
-        refreshing = isRefreshing,
-        onRefresh = { viewModel.loadWeather(forceRefresh = true) }
-    )
+
+    val pullToRefreshState = rememberPullToRefreshState()
+    LaunchedEffect(isRefreshing) {
+        if (isRefreshing) {
+            if (!pullToRefreshState.isRefreshing) pullToRefreshState.startRefresh()
+        } else {
+            if (pullToRefreshState.isRefreshing) pullToRefreshState.endRefresh()
+        }
+    }
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Weather Possum") },
+                title = { Text(stringResource(R.string.app_name_full)) },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.primaryContainer,
                     titleContentColor = MaterialTheme.colorScheme.onPrimaryContainer
@@ -51,26 +60,30 @@ fun WeatherScreen(
             )
         }
     ) { paddingValues ->
-        Box(
+        PullToRefreshContainer(
+            state = pullToRefreshState,
+            onRefresh = { viewModel.loadWeather(forceRefresh = true) },
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
-                .pullRefresh(pullRefreshState)
         ) {
+            // The Box that had .pullRefresh modifier is replaced by PullToRefreshContainer
+            // The content (when block) is now a direct child of PullToRefreshContainer
             when (uiState) {
                 is WeatherUiState.Loading -> {
-                    SplashScreen()
+                    SplashScreen() // SplashScreen typically fills the screen, suitable as direct child
                 }
                 is WeatherUiState.Success -> {
+                    // LazyColumn is the primary scrollable content for success state
                     LazyColumn(
-                        modifier = Modifier.fillMaxSize(),
+                        modifier = Modifier.fillMaxSize(), // LazyColumn should fill the container
                         contentPadding = PaddingValues(vertical = 8.dp),
                         verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         item {
                             GreetingCard(
                                 userName = userName,
-                                synopsis = synopsis ?: "Loading weather information...",
+                                synopsis = synopsis ?: stringResource(R.string.screen_greeting_loading_synopsis),
                                 onNameSubmit = { name -> viewModel.saveUserName(name) }
                             )
                         }
@@ -78,13 +91,10 @@ fun WeatherScreen(
                             WeatherCard(card = card)
                         }
                     }
-                    PullRefreshIndicator(
-                        refreshing = isRefreshing,
-                        state = pullRefreshState,
-                        modifier = Modifier.align(Alignment.TopCenter)
-                    )
+                    // PullRefreshIndicator is now implicitly handled by PullToRefreshContainer
                 }
                 is WeatherUiState.Error -> {
+                    // ErrorContent can also be a direct child
                     ErrorContent(
                         errorMessage = uiState.message,
                         onRetry = {
@@ -122,13 +132,13 @@ private fun SplashScreen() {
                 verticalArrangement = Arrangement.spacedBy(4.dp)
             ) {
                 Text(
-                    text = "WEATHER",
+                    text = stringResource(R.string.screen_splash_title_weather),
                     style = MaterialTheme.typography.displayMedium.copy(fontWeight = FontWeight.ExtraBold),
                     color = Color.Black,
                     letterSpacing = 2.sp
                 )
                 Text(
-                    text = "POSSUM",
+                    text = stringResource(R.string.screen_splash_title_possum),
                     style = MaterialTheme.typography.displayMedium.copy(fontWeight = FontWeight.ExtraBold),
                     color = Color.Black,
                     letterSpacing = 2.sp
@@ -136,7 +146,7 @@ private fun SplashScreen() {
             }
             
             Text(
-                text = "Consulting the possum's weather balloon…",
+                text = stringResource(R.string.screen_splash_subtitle),
                 style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
                 color = Color.Black
             )
@@ -180,7 +190,7 @@ private fun ErrorContent(
         )
         Spacer(modifier = Modifier.height(16.dp))
         Button(onClick = onRetry) {
-            Text("Retry")
+            Text(stringResource(R.string.button_retry))
         }
     }
 } 
