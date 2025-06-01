@@ -1,3 +1,40 @@
 <resources>
     <string name="app_name">WeatherPossum</string>
+    <!-- General -->
+    <string name="app_name_full">Weather Possum</string>
+    <string name="unknown_error">Unknown error</string>
+    <string name="button_retry">Retry</string>
+
+    <!-- WeatherRepository specific -->
+    <string name="repository_title_synopsis">Synopsis</string>
+    <string name="repository_title_wind_conditions">Wind Conditions</string>
+    <string name="repository_title_sea_conditions">Sea Conditions</string>
+    <string name="repository_title_sun_times">Sun Times</string>
+    <string name="repository_title_weather_outlook">Weather Outlook for Dominica and the Lesser Antilles</string>
+    <string name="repository_title_forecast_today">Forecast for Today</string>
+    <string name="repository_title_forecast_tonight">Forecast for Tonight</string>
+    <string name="repository_title_forecast_today_tonight">Forecast for Today and Tonight</string>
+    <string name="repository_error_no_info_in_response">No weather information found in the response</string>
+    <string name="repository_error_parsing_data">Error parsing weather data: %1$s</string>
+    <string name="repository_error_fetch_failed_showing_cache">Failed to fetch new data: %1$s. Showing cached data.</string>
+    <string name="repository_error_socket_timeout">Connection timed out. Please check your internet connection.</string>
+    <string name="repository_error_io">Network error: %1$s</string>
+    <string name="repository_error_all_retries_failed">Failed to retrieve weather data after multiple attempts.</string>
+
+    <!-- WeatherViewModel specific -->
+    <string name="viewmodel_forecast_morning">Forecast for this Morning</string>
+    <string name="viewmodel_forecast_afternoon">Forecast for this Afternoon</string>
+    <string name="viewmodel_forecast_tonight">Forecast for Tonight</string>
+
+    <!-- WeatherScreen specific -->
+    <string name="screen_greeting_loading_synopsis">Loading weather information...</string>
+    <string name="screen_splash_title_weather">WEATHER</string>
+    <string name="screen_splash_title_possum">POSSUM</string>
+    <string name="screen_splash_subtitle">Consulting the possum\'s weather balloon…</string>
+
+    <!-- GreetingCard component specific -->
+    <string name="greeting_good_morning">GOOD MORNING</string>
+    <string name="greeting_good_afternoon">GOOD AFTERNOON</string>
+    <string name="greeting_good_night">GOOD NIGHT</string>
+    <string name="greeting_card_synopsis_prefix">SYNOPSIS: </string>
 </resources>
