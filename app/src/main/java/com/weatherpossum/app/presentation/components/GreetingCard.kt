@@ -22,10 +22,11 @@ import com.airbnb.lottie.compose.*
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
 import androidx.compose.ui.res.fontResource
-import androidx.compose.ui.res.painterResource
-import com.weatherpossum.app.R
+// import androidx.compose.ui.res.painterResource // Not used
+import com.weatherpossum.app.R // Already present, ensure it's not duplicated by tool
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.res.stringResource // Added import
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.border
 import androidx.compose.ui.draw.alpha
@@ -46,13 +47,14 @@ fun GreetingCard(
     var showNameInput by remember { mutableStateOf(userName == null) }
     var tempName by remember { mutableStateOf("") }
     val now = remember { java.time.LocalTime.now() }
-    val (greeting, animationFile) = remember(now.hour) {
+    val (greetingResId, animationFile) = remember(now.hour) {
         when (now.hour) {
-            in 5..11 -> "GOOD MORNING" to "gmorning.json"
-            in 12..17 -> "GOOD AFTERNOON" to "afternoon.json"
-            else -> "GOOD NIGHT" to "night.json"
+            in 5..11 -> R.string.greeting_good_morning to "gmorning.json"
+            in 12..17 -> R.string.greeting_good_afternoon to "afternoon.json"
+            else -> R.string.greeting_good_night to "night.json"
         }
     }
+    val greetingText = stringResource(id = greetingResId)
 
     val textColor = if (isSystemInDarkTheme()) Color.White else Color(0xFF003826)
 
@@ -79,7 +81,7 @@ fun GreetingCard(
         ) {
             // Centered greeting and user name at the top
             Text(
-                text = if (userName == null) greeting else "$greeting\n${userName}",
+                text = if (userName == null) greetingText else "$greetingText\n${userName}",
                 fontFamily = ArialBlack,
                 fontWeight = FontWeight.Bold,
                 fontSize = 28.sp,
@@ -100,7 +102,7 @@ fun GreetingCard(
                 Text(
                     text = buildAnnotatedString {
                         withStyle(style = androidx.compose.ui.text.SpanStyle(fontWeight = FontWeight.Bold)) {
-                            append("SYNOPSIS: ")
+                            append(stringResource(R.string.greeting_card_synopsis_prefix))
                         }
                         append(synopsis)
                     },

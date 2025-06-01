@@ -69,3 +69,10 @@
 # rules for them. Consult their respective documentation for details.
 # For example, Gson often requires rules for @SerializedName and TypeAdapters.
 # OkHttp and Retrofit might need rules if using advanced features or with specific serialization libraries.
+
+# --- JSoup Proguard rules ---
+# JSoup - HTML Parser
+# Keep all classes in the org.jsoup package.
+# Review if more specific rules are needed or if issues arise in release builds.
+-keep class org.jsoup.** { *; }
+-dontwarn org.jsoup.**

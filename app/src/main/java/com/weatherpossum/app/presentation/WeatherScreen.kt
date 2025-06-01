@@ -26,6 +26,8 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.pulltorefresh.PullToRefreshContainer
 import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
+import androidx.compose.ui.res.stringResource // Added import
+import com.weatherpossum.app.R // Added import
 
 
 @OptIn(ExperimentalMaterial3Api::class) // ExperimentalMaterialApi removed
@@ -50,7 +52,7 @@ fun WeatherScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Weather Possum") },
+                title = { Text(stringResource(R.string.app_name_full)) },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.primaryContainer,
                     titleContentColor = MaterialTheme.colorScheme.onPrimaryContainer
@@ -81,7 +83,7 @@ fun WeatherScreen(
                         item {
                             GreetingCard(
                                 userName = userName,
-                                synopsis = synopsis ?: "Loading weather information...",
+                                synopsis = synopsis ?: stringResource(R.string.screen_greeting_loading_synopsis),
                                 onNameSubmit = { name -> viewModel.saveUserName(name) }
                             )
                         }
@@ -130,13 +132,13 @@ private fun SplashScreen() {
                 verticalArrangement = Arrangement.spacedBy(4.dp)
             ) {
                 Text(
-                    text = "WEATHER",
+                    text = stringResource(R.string.screen_splash_title_weather),
                     style = MaterialTheme.typography.displayMedium.copy(fontWeight = FontWeight.ExtraBold),
                     color = Color.Black,
                     letterSpacing = 2.sp
                 )
                 Text(
-                    text = "POSSUM",
+                    text = stringResource(R.string.screen_splash_title_possum),
                     style = MaterialTheme.typography.displayMedium.copy(fontWeight = FontWeight.ExtraBold),
                     color = Color.Black,
                     letterSpacing = 2.sp
@@ -144,7 +146,7 @@ private fun SplashScreen() {
             }
             
             Text(
-                text = "Consulting the possum's weather balloon…",
+                text = stringResource(R.string.screen_splash_subtitle),
                 style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
                 color = Color.Black
             )
@@ -188,7 +190,7 @@ private fun ErrorContent(
         )
         Spacer(modifier = Modifier.height(16.dp))
         Button(onClick = onRetry) {
-            Text("Retry")
+            Text(stringResource(R.string.button_retry))
         }
     }
 } 
