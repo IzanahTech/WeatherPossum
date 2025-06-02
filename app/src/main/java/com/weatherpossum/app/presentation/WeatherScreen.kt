@@ -24,6 +24,15 @@ import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.ui.res.stringResource
 import com.weatherpossum.app.R
 import kotlinx.coroutines.launch
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.gestures.snapping.rememberSnapFlingBehavior
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.runtime.derivedStateOf
+import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.animation.core.*
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.core.spring
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -38,13 +47,15 @@ fun WeatherScreen(
 
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = { Text(stringResource(R.string.app_name_full)) },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.primaryContainer,
-                    titleContentColor = MaterialTheme.colorScheme.onPrimaryContainer
+            if (uiState !is WeatherUiState.Loading) {
+                TopAppBar(
+                    title = { Text(stringResource(R.string.app_name_full)) },
+                    colors = TopAppBarDefaults.topAppBarColors(
+                        containerColor = MaterialTheme.colorScheme.primaryContainer,
+                        titleContentColor = MaterialTheme.colorScheme.onPrimaryContainer
+                    )
                 )
-            )
+            }
         }
     ) { paddingValues ->
         Box(
@@ -57,13 +68,14 @@ fun WeatherScreen(
                     SplashScreen()
                 }
                 is WeatherUiState.Success -> {
+                    val listState = rememberLazyListState()
+                    val snappingFlingBehavior = rememberSnapFlingBehavior(lazyListState = listState)
                     PullToRefreshBox(
                         isRefreshing = isRefreshing,
                         onRefresh = {
                             isRefreshing = true
                             scope.launch {
                                 viewModel.loadWeather(forceRefresh = true)
-                                // Wait for the UI state to update from Loading to Success/Error
                                 while (uiState is WeatherUiState.Loading) {
                                     kotlinx.coroutines.delay(100)
                                 }
@@ -73,19 +85,57 @@ fun WeatherScreen(
                         modifier = Modifier.fillMaxSize()
                     ) {
                         LazyColumn(
+                            state = listState,
+                            flingBehavior = snappingFlingBehavior,
                             modifier = Modifier.fillMaxSize(),
                             contentPadding = PaddingValues(vertical = 8.dp),
                             verticalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
                             item {
-                                GreetingCard(
-                                    userName = userName,
-                                    synopsis = synopsis ?: stringResource(R.string.screen_greeting_loading_synopsis),
-                                    onNameSubmit = { name -> viewModel.saveUserName(name) }
-                                )
+                                AnimatedVisibility(
+                                    visible = true,
+                                    enter = slideInVertically(
+                                        initialOffsetY = { -it },
+                                        animationSpec = spring(
+                                            dampingRatio = Spring.DampingRatioMediumBouncy,
+                                            stiffness = Spring.StiffnessLow
+                                        )
+                                    ),
+                                    exit = slideOutVertically(
+                                        targetOffsetY = { it },
+                                        animationSpec = tween(durationMillis = 200)
+                                    )
+                                ) {
+                                    GreetingCard(
+                                        userName = userName,
+                                        synopsis = synopsis ?: stringResource(R.string.screen_greeting_loading_synopsis)
+                                    )
+                                }
                             }
-                            items(uiState.weatherCards, key = { it.title + it.value }) { card ->
-                                WeatherCard(card = card)
+                            itemsIndexed(
+                                items = uiState.weatherCards,
+                                key = { _, it -> it.title + it.value }
+                            ) { index, card ->
+                                AnimatedVisibility(
+                                    visible = true,
+                                    enter = slideInVertically(
+                                        initialOffsetY = { it },
+                                        animationSpec = spring(
+                                            dampingRatio = Spring.DampingRatioMediumBouncy,
+                                            stiffness = Spring.StiffnessLow
+                                        )
+                                    ),
+                                    exit = slideOutVertically(
+                                        targetOffsetY = { -it },
+                                        animationSpec = tween(durationMillis = 200)
+                                    )
+                                ) {
+                                    AnimatedWeatherCard(
+                                        index = index,
+                                        state = listState,
+                                        card = card
+                                    )
+                                }
                             }
                         }
                     }
@@ -97,7 +147,6 @@ fun WeatherScreen(
                             isRefreshing = true
                             scope.launch {
                                 viewModel.loadWeather(forceRefresh = true)
-                                // Wait for the UI state to update from Loading to Success/Error
                                 while (uiState is WeatherUiState.Loading) {
                                     kotlinx.coroutines.delay(100)
                                 }
@@ -162,6 +211,19 @@ private fun SplashScreen() {
                 modifier = Modifier.size(80.dp)
             )
         }
+        // Copyright at the bottom
+        Box(
+            modifier = Modifier
+                .fillMaxSize(),
+            contentAlignment = Alignment.BottomCenter
+        ) {
+            Text(
+                text = "© 2025 Everton L. Frederick. All rights reserved.",
+                style = MaterialTheme.typography.bodySmall,
+                color = Color(0xFF444444),
+                modifier = Modifier.padding(bottom = 12.dp)
+            )
+        }
     }
 }
 
@@ -197,4 +259,45 @@ private fun ErrorContent(
             Text(stringResource(R.string.button_retry))
         }
     }
+}
+
+@Composable
+private fun AnimatedWeatherCard(
+    index: Int,
+    state: androidx.compose.foundation.lazy.LazyListState,
+    card: com.weatherpossum.app.data.model.WeatherCard,
+    modifier: Modifier = Modifier
+) {
+    val itemOffset = remember {
+        derivedStateOf {
+            val visibleItems = state.layoutInfo.visibleItemsInfo
+            val itemInfo = visibleItems.find { it.index == index }
+            itemInfo?.offset?.toFloat() ?: 0f
+        }
+    }
+    
+    val animatedScale by animateFloatAsState(
+        targetValue = if (itemOffset.value in -50f..50f) 1.02f else 1f,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioMediumBouncy,
+            stiffness = Spring.StiffnessLow
+        ),
+        label = "card scale"
+    )
+    
+    val animatedAlpha by animateFloatAsState(
+        targetValue = if (itemOffset.value in -100f..100f) 1f else 0.7f,
+        animationSpec = tween(durationMillis = 200),
+        label = "card alpha"
+    )
+
+    WeatherCard(
+        card = card,
+        modifier = modifier
+            .graphicsLayer {
+                scaleX = animatedScale
+                scaleY = animatedScale
+                alpha = animatedAlpha
+            }
+    )
 } 

@@ -19,7 +19,6 @@ import java.util.regex.Pattern
 
 private const val TAG = "WeatherRepository"
 private const val CACHE_DURATION_MILLIS = 30 * 60 * 1000L // 30 minutes
-private const val NETWORK_TIMEOUT_MILLIS = 60000L // 60 seconds
 private const val MAX_RETRIES = 3
 private const val INITIAL_RETRY_DELAY = 2000L // 2 seconds
 
@@ -44,7 +43,6 @@ class WeatherRepository(
     }
 
     private suspend fun <T> retryWithTimeout(
-        timeoutMillis: Long = NETWORK_TIMEOUT_MILLIS,
         maxRetries: Int = MAX_RETRIES,
         block: suspend () -> T
     ): T {
@@ -427,7 +425,7 @@ class WeatherRepository(
             }
 
             // Fetch weather data with retry
-            val html = retryWithTimeout(timeoutMillis = NETWORK_TIMEOUT_MILLIS) {
+            val html = retryWithTimeout {
                 Log.d(TAG, "Fetching weather forecast...")
                 weatherApi.getWeatherForecast()
             }

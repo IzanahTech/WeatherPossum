@@ -83,7 +83,7 @@ class WeatherViewModel(
 
                     if (todayIndex != -1 || tonightIndex != -1) {
                         val sixPm = java.time.LocalTime.of(18, 0)
-                        otherCards = otherCards.filterIndexed { idx, card ->
+                        otherCards = otherCards.filterIndexed { _, card ->
                             when {
                                 card.title.contains(tonightKeyword, ignoreCase = true) -> now.isAfter(sixPm) || now == sixPm
                                 card.title.contains(todayKeyword, ignoreCase = true) ||

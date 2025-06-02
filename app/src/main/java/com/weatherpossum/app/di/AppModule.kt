@@ -12,7 +12,7 @@ import org.koin.dsl.module
 
 val appModule = module {
     // API Services
-    single { WeatherForecastApi.create(androidContext()) }
+    single { WeatherForecastApi.create() }
 
     // User Preferences
     single { UserPreferences(androidContext()) }

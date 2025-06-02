@@ -21,8 +21,7 @@ import androidx.compose.ui.unit.sp
 import com.airbnb.lottie.compose.*
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
-import androidx.compose.ui.res.fontResource
-// import androidx.compose.ui.res.painterResource // Not used
+// import androidx.compose.ui.res.painterResource // Not used, already commented out
 import com.weatherpossum.app.R // Already present, ensure it's not duplicated by tool
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.platform.LocalDensity
@@ -41,11 +40,8 @@ private val ArialBlack = FontFamily(
 fun GreetingCard(
     userName: String?,
     synopsis: String,
-    modifier: Modifier = Modifier,
-    onNameSubmit: (String) -> Unit
+    modifier: Modifier = Modifier
 ) {
-    var showNameInput by remember { mutableStateOf(userName == null) }
-    var tempName by remember { mutableStateOf("") }
     val now = remember { java.time.LocalTime.now() }
     val (greetingResId, animationFile) = remember(now.hour) {
         when (now.hour) {

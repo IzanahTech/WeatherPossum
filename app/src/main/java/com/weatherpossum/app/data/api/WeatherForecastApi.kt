@@ -70,7 +70,7 @@ interface WeatherForecastApi {
             }
         }
 
-        fun create(context: Context): WeatherForecastApi {
+        fun create(): WeatherForecastApi {
             val loggingInterceptor = HttpLoggingInterceptor().apply {
                 level = if (BuildConfig.DEBUG) {
                     HttpLoggingInterceptor.Level.BASIC
