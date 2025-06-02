@@ -42,7 +42,7 @@ class WeatherViewModel(
     }
 
     fun saveUserName(name: String) {
-        viewModelScope.launch(Dispatchers.IO) {
+        viewModelScope.launch {
             userPreferences.saveUserName(name)
         }
     }

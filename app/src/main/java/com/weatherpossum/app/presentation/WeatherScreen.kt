@@ -1,38 +1,35 @@
 package com.weatherpossum.app.presentation
 
 import androidx.compose.animation.*
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.WbSunny
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.weatherpossum.app.presentation.components.GreetingCard
-import com.weatherpossum.app.presentation.components.WeatherCard
-import org.koin.androidx.compose.koinViewModel
 import com.airbnb.lottie.compose.*
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.pulltorefresh.PullToRefreshBox
-import androidx.compose.ui.res.stringResource
 import com.weatherpossum.app.R
+import com.weatherpossum.app.data.model.WeatherCard as WeatherCardModel
 import kotlinx.coroutines.launch
-import androidx.compose.foundation.lazy.rememberLazyListState
+import org.koin.androidx.compose.koinViewModel
+import java.time.LocalTime
 import androidx.compose.foundation.gestures.snapping.rememberSnapFlingBehavior
-import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.runtime.derivedStateOf
-import androidx.compose.foundation.lazy.itemsIndexed
-import androidx.compose.animation.core.*
-import androidx.compose.animation.core.tween
-import androidx.compose.animation.core.spring
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
+import com.weatherpossum.app.presentation.components.WeatherCard
+import androidx.compose.foundation.layout.statusBarsPadding
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -40,264 +37,303 @@ fun WeatherScreen(
     viewModel: WeatherViewModel = koinViewModel()
 ) {
     var isRefreshing by remember { mutableStateOf(false) }
-    val userName by viewModel.userName.collectAsState()
     val synopsis by viewModel.synopsis.collectAsState()
+    val userName by viewModel.userName.collectAsState()
     val uiState = viewModel.uiState.collectAsState().value
     val scope = rememberCoroutineScope()
 
-    Scaffold(
-        topBar = {
-            if (uiState !is WeatherUiState.Loading) {
-                TopAppBar(
-                    title = { Text(stringResource(R.string.app_name_full)) },
-                    colors = TopAppBarDefaults.topAppBarColors(
-                        containerColor = MaterialTheme.colorScheme.primaryContainer,
-                        titleContentColor = MaterialTheme.colorScheme.onPrimaryContainer
-                    )
-                )
-            }
-        }
-    ) { paddingValues ->
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues)
-        ) {
-            when (uiState) {
-                is WeatherUiState.Loading -> {
-                    SplashScreen()
+    val bgColors = when {
+        synopsis?.contains("rain", ignoreCase = true) == true -> listOf(Color(0xFF90CAF9), Color(0xFFE3F2FD))
+        synopsis?.contains("cloud", ignoreCase = true) == true -> listOf(Color(0xFFB0BEC5), Color(0xFFECEFF1))
+        synopsis?.contains("wind", ignoreCase = true) == true -> listOf(Color(0xFF80DEEA), Color(0xFFE0F7FA))
+        else -> listOf(Color(0xFFB3E5FC), Color(0xFFE1F5FE))
+    }
+
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Brush.verticalGradient(colors = bgColors))
+    ) {
+        when (uiState) {
+            is WeatherUiState.Loading -> SplashScreen()
+            is WeatherUiState.Error -> ErrorContent(
+                errorMessage = uiState.message,
+                onRetry = {
+                    isRefreshing = true
+                    scope.launch {
+                        viewModel.loadWeather(forceRefresh = true)
+                        isRefreshing = false
+                    }
                 }
-                is WeatherUiState.Success -> {
-                    val listState = rememberLazyListState()
-                    val snappingFlingBehavior = rememberSnapFlingBehavior(lazyListState = listState)
-                    PullToRefreshBox(
-                        isRefreshing = isRefreshing,
-                        onRefresh = {
-                            isRefreshing = true
-                            scope.launch {
-                                viewModel.loadWeather(forceRefresh = true)
-                                while (uiState is WeatherUiState.Loading) {
-                                    kotlinx.coroutines.delay(100)
-                                }
-                                isRefreshing = false
+            )
+            is WeatherUiState.Success -> {
+                val listState = rememberLazyListState()
+                val snappingFlingBehavior = rememberSnapFlingBehavior(lazyListState = listState)
+
+                var showNameDialog by remember { mutableStateOf(userName.isNullOrBlank()) }
+                var nameInput by remember { mutableStateOf("") }
+
+                if (showNameDialog) {
+                    val composition by rememberLottieComposition(LottieCompositionSpec.RawRes(R.raw.sunny))
+                    val progress by animateLottieCompositionAsState(composition, iterations = LottieConstants.IterateForever)
+
+                    AlertDialog(
+                        onDismissRequest = { /* Prevent dismiss */ },
+                        confirmButton = {
+                            Button(
+                                onClick = {
+                                    if (nameInput.isNotBlank()) {
+                                        viewModel.saveUserName(nameInput.trim())
+                                        showNameDialog = false
+                                    }
+                                },
+                                shape = RoundedCornerShape(16.dp)
+                            ) {
+                                Text("OK", style = MaterialTheme.typography.labelLarge)
                             }
                         },
-                        modifier = Modifier.fillMaxSize()
-                    ) {
-                        LazyColumn(
-                            state = listState,
-                            flingBehavior = snappingFlingBehavior,
-                            modifier = Modifier.fillMaxSize(),
-                            contentPadding = PaddingValues(vertical = 8.dp),
-                            verticalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            item {
-                                AnimatedVisibility(
-                                    visible = true,
-                                    enter = slideInVertically(
-                                        initialOffsetY = { -it },
-                                        animationSpec = spring(
-                                            dampingRatio = Spring.DampingRatioMediumBouncy,
-                                            stiffness = Spring.StiffnessLow
-                                        )
-                                    ),
-                                    exit = slideOutVertically(
-                                        targetOffsetY = { it },
-                                        animationSpec = tween(durationMillis = 200)
-                                    )
+                        title = {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                Text(
+                                    text = "Welcome",
+                                    style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold)
+                                )
+                                Box(
+                                    modifier = Modifier.size(48.dp),
+                                    contentAlignment = Alignment.Center
                                 ) {
-                                    GreetingCard(
-                                        userName = userName,
-                                        synopsis = synopsis ?: stringResource(R.string.screen_greeting_loading_synopsis)
+                                    LottieAnimation(
+                                        composition = composition,
+                                        progress = { progress },
+                                        modifier = Modifier.fillMaxSize()
                                     )
                                 }
                             }
-                            itemsIndexed(
-                                items = uiState.weatherCards,
-                                key = { _, it -> it.title + it.value }
-                            ) { index, card ->
-                                AnimatedVisibility(
-                                    visible = true,
-                                    enter = slideInVertically(
-                                        initialOffsetY = { it },
-                                        animationSpec = spring(
-                                            dampingRatio = Spring.DampingRatioMediumBouncy,
-                                            stiffness = Spring.StiffnessLow
-                                        )
-                                    ),
-                                    exit = slideOutVertically(
-                                        targetOffsetY = { -it },
-                                        animationSpec = tween(durationMillis = 200)
-                                    )
+                        },
+                        text = {
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                Text(
+                                    "What shall I call you?",
+                                    style = MaterialTheme.typography.bodyLarge
+                                )
+                                Spacer(Modifier.height(12.dp))
+                                OutlinedTextField(
+                                    value = nameInput,
+                                    onValueChange = { nameInput = it },
+                                    placeholder = { Text("Enter your name") },
+                                    singleLine = true,
+                                    shape = RoundedCornerShape(12.dp)
+                                )
+                            }
+                        },
+                        shape = RoundedCornerShape(28.dp),
+                        containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                        tonalElevation = 12.dp,
+                        titleContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                        textContentColor = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+
+                PullToRefreshBox(
+                    isRefreshing = isRefreshing,
+                    onRefresh = {
+                        isRefreshing = true
+                        scope.launch {
+                            viewModel.loadWeather(forceRefresh = true)
+                            isRefreshing = false
+                        }
+                    },
+                    modifier = Modifier.fillMaxSize()
+                ) {
+                    LazyColumn(
+                        state = listState,
+                        flingBehavior = snappingFlingBehavior,
+                        modifier = Modifier.fillMaxSize(),
+                        contentPadding = PaddingValues(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        item {
+                            val hour = LocalTime.now().hour
+                            val greeting = when (hour) {
+                                in 5..11 -> stringResource(R.string.greeting_good_morning)
+                                in 12..17 -> stringResource(R.string.greeting_good_afternoon)
+                                else -> stringResource(R.string.greeting_good_night)
+                            }
+
+                            val displayName = userName?.replaceFirstChar { it.uppercase() } ?: ""
+                            val personalizedGreeting = if (displayName.isNotBlank()) "$greeting, $displayName" else greeting
+
+                            // Select greeting animation based on time of day
+                            val greetingAnimation = when (hour) {
+                                in 5..11 -> R.raw.gmorning
+                                in 12..17 -> R.raw.afternoon
+                                else -> R.raw.night
+                            }
+
+                            val composition by rememberLottieComposition(
+                                LottieCompositionSpec.RawRes(greetingAnimation)
+                            )
+                            val progress by animateLottieCompositionAsState(
+                                composition = composition,
+                                iterations = LottieConstants.IterateForever,
+                                isPlaying = true
+                            )
+
+                            Card(
+                                shape = RoundedCornerShape(24.dp),
+                                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+                                elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .statusBarsPadding()
+                                    .padding(bottom = 8.dp)
+                            ) {
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(20.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(16.dp)
                                 ) {
-                                    AnimatedWeatherCard(
-                                        index = index,
-                                        state = listState,
-                                        card = card
+                                    Column(modifier = Modifier.weight(1f)) {
+                                        Text(
+                                            text = personalizedGreeting.uppercase(),
+                                            style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold),
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                        Spacer(modifier = Modifier.height(8.dp))
+                                        if (!synopsis.isNullOrBlank()) {
+                                            Text(
+                                                text = "SYNOPSIS: ${synopsis!!}",
+                                                style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Medium),
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                            )
+                                        }
+                                    }
+
+                                    Box(
+                                        modifier = Modifier
+                                            .size(96.dp)
+                                            .background(Color.Transparent),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        LottieAnimation(
+                                            composition = composition,
+                                            progress = { progress },
+                                            modifier = Modifier.fillMaxSize()
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                        itemsIndexed(uiState.weatherCards) { _, card ->
+                            AnimatedVisibility(
+                                visible = true,
+                                enter = fadeIn() + slideInVertically(initialOffsetY = { it / 2 })
+                            ) {
+                                if (card.title.contains("Weather Outlook for Dominica", ignoreCase = true)) {
+                                    WeatherCard(card = card, lottieRes = R.raw.outlook)
+                                } else {
+                                    WeatherInfoCard(
+                                        title = card.title,
+                                        description = card.value,
+                                        lottieRes = getLottieResForCard(card)
                                     )
                                 }
                             }
                         }
                     }
                 }
-                is WeatherUiState.Error -> {
-                    ErrorContent(
-                        errorMessage = uiState.message,
-                        onRetry = {
-                            isRefreshing = true
-                            scope.launch {
-                                viewModel.loadWeather(forceRefresh = true)
-                                while (uiState is WeatherUiState.Loading) {
-                                    kotlinx.coroutines.delay(100)
-                                }
-                                isRefreshing = false
-                            }
-                        }
-                    )
-                }
             }
         }
     }
 }
 
 @Composable
-private fun SplashScreen() {
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Color(0xFFC8E6A0)),
-        contentAlignment = Alignment.Center
+fun WeatherInfoCard(title: String, description: String, lottieRes: Int) {
+    val composition by rememberLottieComposition(LottieCompositionSpec.RawRes(lottieRes))
+    val progress by animateLottieCompositionAsState(composition, iterations = LottieConstants.IterateForever)
+
+    Card(
+        shape = RoundedCornerShape(24.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+        elevation = CardDefaults.cardElevation(8.dp),
+        modifier = Modifier.fillMaxWidth()
     ) {
-        Column(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            val splashComposition by rememberLottieComposition(LottieCompositionSpec.Asset("animations/splash.json"))
             LottieAnimation(
-                composition = splashComposition,
-                iterations = LottieConstants.IterateForever,
-                modifier = Modifier.size(220.dp)
+                composition = composition,
+                progress = { progress },
+                modifier = Modifier.size(64.dp)
             )
-            
             Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(4.dp)
+                modifier = Modifier.weight(1f)
             ) {
                 Text(
-                    text = stringResource(R.string.screen_splash_title_weather),
-                    style = MaterialTheme.typography.displayMedium.copy(fontWeight = FontWeight.ExtraBold),
-                    color = Color.Black,
-                    letterSpacing = 2.sp
+                    text = title,
+                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
+                Spacer(modifier = Modifier.height(4.dp))
                 Text(
-                    text = stringResource(R.string.screen_splash_title_possum),
-                    style = MaterialTheme.typography.displayMedium.copy(fontWeight = FontWeight.ExtraBold),
-                    color = Color.Black,
-                    letterSpacing = 2.sp
+                    text = description,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
-            
-            Text(
-                text = stringResource(R.string.screen_splash_subtitle),
-                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                color = Color.Black
-            )
-            
-            val loadingComposition by rememberLottieComposition(LottieCompositionSpec.Asset("animations/loading.json"))
-            LottieAnimation(
-                composition = loadingComposition,
-                iterations = LottieConstants.IterateForever,
-                modifier = Modifier.size(80.dp)
-            )
-        }
-        // Copyright at the bottom
-        Box(
-            modifier = Modifier
-                .fillMaxSize(),
-            contentAlignment = Alignment.BottomCenter
-        ) {
-            Text(
-                text = "© 2025 Everton L. Frederick. All rights reserved.",
-                style = MaterialTheme.typography.bodySmall,
-                color = Color(0xFF444444),
-                modifier = Modifier.padding(bottom = 12.dp)
-            )
         }
     }
 }
 
 @Composable
-private fun LoadingContent() {
-    Box(
-        modifier = Modifier.fillMaxSize(),
-        contentAlignment = Alignment.Center
-    ) {
+fun SplashScreen() {
+    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
         CircularProgressIndicator()
     }
 }
 
 @Composable
-private fun ErrorContent(
-    errorMessage: String,
-    onRetry: () -> Unit
-) {
+fun ErrorContent(errorMessage: String, onRetry: () -> Unit) {
     Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp),
+        Modifier.fillMaxSize().padding(16.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
-        Text(
-            text = errorMessage,
-            style = MaterialTheme.typography.bodyLarge,
-            color = MaterialTheme.colorScheme.error
-        )
-        Spacer(modifier = Modifier.height(16.dp))
-        Button(onClick = onRetry) {
-            Text(stringResource(R.string.button_retry))
-        }
+        Text(errorMessage, color = MaterialTheme.colorScheme.error)
+        Spacer(Modifier.height(16.dp))
+        Button(onClick = onRetry) { Text("Retry") }
     }
 }
 
-@Composable
-private fun AnimatedWeatherCard(
-    index: Int,
-    state: androidx.compose.foundation.lazy.LazyListState,
-    card: com.weatherpossum.app.data.model.WeatherCard,
-    modifier: Modifier = Modifier
-) {
-    val itemOffset = remember {
-        derivedStateOf {
-            val visibleItems = state.layoutInfo.visibleItemsInfo
-            val itemInfo = visibleItems.find { it.index == index }
-            itemInfo?.offset?.toFloat() ?: 0f
-        }
+fun getLottieResForCard(card: WeatherCardModel): Int {
+    val title = card.title.lowercase()
+    val value = card.value.lowercase()
+    val text = "$title $value"
+    // Check for partly cloudy in forecast cards
+    if ((title.contains("forecast for today") || title.contains("forecast for tonight") || title.contains("forecast for today and tonight")) && text.contains("partly cloudy")) {
+        return R.raw.partlycloudy
     }
-    
-    val animatedScale by animateFloatAsState(
-        targetValue = if (itemOffset.value in -50f..50f) 1.02f else 1f,
-        animationSpec = spring(
-            dampingRatio = Spring.DampingRatioMediumBouncy,
-            stiffness = Spring.StiffnessLow
-        ),
-        label = "card scale"
-    )
-    
-    val animatedAlpha by animateFloatAsState(
-        targetValue = if (itemOffset.value in -100f..100f) 1f else 0.7f,
-        animationSpec = tween(durationMillis = 200),
-        label = "card alpha"
-    )
-
-    WeatherCard(
-        card = card,
-        modifier = modifier
-            .graphicsLayer {
-                scaleX = animatedScale
-                scaleY = animatedScale
-                alpha = animatedAlpha
-            }
-    )
-} 
+    return when {
+        text.contains("thunderstorm") || text.contains("thunder") -> R.raw.thunder
+        text.contains("rain") || text.contains("shower") -> R.raw.rain
+        text.contains("cloud") || text.contains("overcast") -> R.raw.cloudy
+        text.contains("wind") || text.contains("breeze") || text.contains("gust") -> R.raw.wind
+        text.contains("sun") || text.contains("clear") || text.contains("fair") -> R.raw.sunny
+        text.contains("sea") -> {
+            val hour = java.time.LocalTime.now().hour
+            if (hour in 6..18) R.raw.seaconday else R.raw.seaconnight
+        }
+        text.contains("outlook") -> R.raw.outlook
+        text.contains("synopsis") -> R.raw.sunny
+        else -> R.raw.neutral
+    }
+}

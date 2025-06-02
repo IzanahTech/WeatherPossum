@@ -34,7 +34,8 @@ import java.time.LocalTime
 @Composable
 fun WeatherCard(
     card: WeatherCardModel,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    lottieRes: Int? = null
 ) {
     var isExpanded by remember { mutableStateOf(false) }
     val interactionSource = remember { MutableInteractionSource() }
@@ -135,15 +136,31 @@ fun WeatherCard(
                 card.title.contains("Sea Conditions", ignoreCase = true) -> 120.dp
                 else -> 100.dp
             }
-            
-            WeatherAnimation(
-                forecast = card.value,
-                title = card.title,
-                modifier = Modifier
-                    .size(animationSize)
-                    .alpha(if (isDark) 0.85f else 1f), // Slightly reduced alpha in dark mode
-                dimForDark = isDark
-            )
+            if (lottieRes != null) {
+                val composition by rememberLottieComposition(LottieCompositionSpec.RawRes(lottieRes))
+                val progress by animateLottieCompositionAsState(composition, iterations = LottieConstants.IterateForever)
+                Box(
+                    modifier = Modifier.fillMaxWidth(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    LottieAnimation(
+                        composition = composition,
+                        progress = { progress },
+                        modifier = Modifier
+                            .size(animationSize)
+                            .alpha(if (isDark) 0.85f else 1f)
+                    )
+                }
+            } else {
+                WeatherAnimation(
+                    forecast = card.value,
+                    title = card.title,
+                    modifier = Modifier
+                        .size(animationSize)
+                        .alpha(if (isDark) 0.85f else 1f),
+                    dimForDark = isDark
+                )
+            }
             
             Spacer(modifier = Modifier.height(8.dp))
             
@@ -218,7 +235,7 @@ private fun WeatherAnimation(
         forecast.contains("thunder", ignoreCase = true) -> "thunder"
         forecast.contains("sunny", ignoreCase = true) || forecast.contains("clear", ignoreCase = true) -> "sunny"
         forecast.contains("cloud", ignoreCase = true) || forecast.contains("hazy", ignoreCase = true) -> "cloudy"
-        else -> "default"
+        else -> "neutral"
     }
     
     val composition by rememberLottieComposition(
