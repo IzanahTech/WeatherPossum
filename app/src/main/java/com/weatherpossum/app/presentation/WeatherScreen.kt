@@ -7,22 +7,18 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.WbSunny
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.airbnb.lottie.compose.*
 import com.weatherpossum.app.R
-import com.weatherpossum.app.data.model.WeatherCard as WeatherCardModel
+import com.weatherpossum.app.data.model.WeatherCard
 import kotlinx.coroutines.launch
 import org.koin.androidx.compose.koinViewModel
 import java.time.LocalTime
@@ -314,12 +310,12 @@ fun ErrorContent(errorMessage: String, onRetry: () -> Unit) {
     }
 }
 
-fun getLottieResForCard(card: WeatherCardModel): Int {
+fun getLottieResForCard(card: WeatherCard): Int {
     val title = card.title.lowercase()
     val value = card.value.lowercase()
     val text = "$title $value"
-    // Check for partly cloudy in forecast cards
-    if ((title.contains("forecast for today") || title.contains("forecast for tonight") || title.contains("forecast for today and tonight")) && text.contains("partly cloudy")) {
+    // Use partlycloudy for any card mentioning partly cloudy
+    if (text.contains("partly cloudy")) {
         return R.raw.partlycloudy
     }
     return when {
