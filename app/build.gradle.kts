@@ -1,7 +1,6 @@
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
-    alias(libs.plugins.kotlin.kapt)
 }
 
 android {
@@ -84,11 +83,6 @@ dependencies {
     
     // org.json for JSON parsing
     implementation(libs.org.json)
-
-    
-    // Accompanist for placeholders
-    implementation(libs.accompanist.placeholder.material) // Note: Consider deprecation
-
     
     // DataStore
     implementation(libs.androidx.datastore.preferences)
@@ -96,11 +90,6 @@ dependencies {
     // Koin for dependency injection
     implementation(libs.koin.android)
     implementation(libs.koin.androidx.compose)
-
-    
-    // Official Compose Pull Refresh
-    implementation(libs.androidx.material) // Note: M2, project uses M3. Investigate alternatives.
-
     
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)

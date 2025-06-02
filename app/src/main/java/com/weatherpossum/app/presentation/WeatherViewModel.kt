@@ -29,12 +29,6 @@ class WeatherViewModel(
     private val _synopsis = MutableStateFlow<String?>(null)
     val synopsis: StateFlow<String?> = _synopsis.asStateFlow()
 
-    val isRefreshing: StateFlow<Boolean> = uiState.map { it is WeatherUiState.Loading }.stateIn(
-        viewModelScope,
-        SharingStarted.Eagerly,
-        false
-    )
-
     init {
         viewModelScope.launch(Dispatchers.IO) {
             // Load user name
@@ -120,7 +114,9 @@ class WeatherViewModel(
                 is Result.Error -> {
                     _uiState.value = WeatherUiState.Error(result.exception.message ?: application.getString(R.string.unknown_error))
                 }
-                // else -> {} // Not needed as sealed class should be exhaustive or have a fallback
+                is Result.Loading -> {
+                    _uiState.value = WeatherUiState.Loading
+                }
             }
         }
     }

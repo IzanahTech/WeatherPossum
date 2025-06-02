@@ -1,7 +1,5 @@
 package com.weatherpossum.app.di
 
-import com.weatherpossum.app.data.UserPreferences
-import com.weatherpossum.app.data.api.WeatherForecastApi
 import android.app.Application
 import com.weatherpossum.app.data.UserPreferences
 import com.weatherpossum.app.data.api.WeatherForecastApi

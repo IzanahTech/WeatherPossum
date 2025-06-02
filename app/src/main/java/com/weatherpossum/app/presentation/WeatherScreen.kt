@@ -17,37 +17,24 @@ import com.airbnb.lottie.compose.*
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.foundation.background
-// M2 PullRefreshIndicator, pullRefresh, rememberPullRefreshState removed
 import androidx.compose.foundation.layout.Arrangement
-// LazyColumn import was duplicated, ensure it's present once.
-// import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.layout.PaddingValues
-// ExperimentalMaterialApi removed
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.pulltorefresh.PullToRefreshContainer
-import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
-import androidx.compose.ui.res.stringResource // Added import
-import com.weatherpossum.app.R // Added import
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
+import androidx.compose.ui.res.stringResource
+import com.weatherpossum.app.R
+import kotlinx.coroutines.launch
 
-
-@OptIn(ExperimentalMaterial3Api::class) // ExperimentalMaterialApi removed
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun WeatherScreen(
     viewModel: WeatherViewModel = koinViewModel()
 ) {
-    val isRefreshing by viewModel.isRefreshing.collectAsState()
+    var isRefreshing by remember { mutableStateOf(false) }
     val userName by viewModel.userName.collectAsState()
     val synopsis by viewModel.synopsis.collectAsState()
     val uiState = viewModel.uiState.collectAsState().value
-
-    val pullToRefreshState = rememberPullToRefreshState()
-    LaunchedEffect(isRefreshing) {
-        if (isRefreshing) {
-            if (!pullToRefreshState.isRefreshing) pullToRefreshState.startRefresh()
-        } else {
-            if (pullToRefreshState.isRefreshing) pullToRefreshState.endRefresh()
-        }
-    }
+    val scope = rememberCoroutineScope()
 
     Scaffold(
         topBar = {
@@ -60,45 +47,62 @@ fun WeatherScreen(
             )
         }
     ) { paddingValues ->
-        PullToRefreshContainer(
-            state = pullToRefreshState,
-            onRefresh = { viewModel.loadWeather(forceRefresh = true) },
+        Box(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
         ) {
-            // The Box that had .pullRefresh modifier is replaced by PullToRefreshContainer
-            // The content (when block) is now a direct child of PullToRefreshContainer
             when (uiState) {
                 is WeatherUiState.Loading -> {
-                    SplashScreen() // SplashScreen typically fills the screen, suitable as direct child
+                    SplashScreen()
                 }
                 is WeatherUiState.Success -> {
-                    // LazyColumn is the primary scrollable content for success state
-                    LazyColumn(
-                        modifier = Modifier.fillMaxSize(), // LazyColumn should fill the container
-                        contentPadding = PaddingValues(vertical = 8.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    PullToRefreshBox(
+                        isRefreshing = isRefreshing,
+                        onRefresh = {
+                            isRefreshing = true
+                            scope.launch {
+                                viewModel.loadWeather(forceRefresh = true)
+                                // Wait for the UI state to update from Loading to Success/Error
+                                while (uiState is WeatherUiState.Loading) {
+                                    kotlinx.coroutines.delay(100)
+                                }
+                                isRefreshing = false
+                            }
+                        },
+                        modifier = Modifier.fillMaxSize()
                     ) {
-                        item {
-                            GreetingCard(
-                                userName = userName,
-                                synopsis = synopsis ?: stringResource(R.string.screen_greeting_loading_synopsis),
-                                onNameSubmit = { name -> viewModel.saveUserName(name) }
-                            )
-                        }
-                        items(uiState.weatherCards, key = { it.title + it.value }) { card ->
-                            WeatherCard(card = card)
+                        LazyColumn(
+                            modifier = Modifier.fillMaxSize(),
+                            contentPadding = PaddingValues(vertical = 8.dp),
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            item {
+                                GreetingCard(
+                                    userName = userName,
+                                    synopsis = synopsis ?: stringResource(R.string.screen_greeting_loading_synopsis),
+                                    onNameSubmit = { name -> viewModel.saveUserName(name) }
+                                )
+                            }
+                            items(uiState.weatherCards, key = { it.title + it.value }) { card ->
+                                WeatherCard(card = card)
+                            }
                         }
                     }
-                    // PullRefreshIndicator is now implicitly handled by PullToRefreshContainer
                 }
                 is WeatherUiState.Error -> {
-                    // ErrorContent can also be a direct child
                     ErrorContent(
                         errorMessage = uiState.message,
                         onRetry = {
-                            viewModel.loadWeather(forceRefresh = true)
+                            isRefreshing = true
+                            scope.launch {
+                                viewModel.loadWeather(forceRefresh = true)
+                                // Wait for the UI state to update from Loading to Success/Error
+                                while (uiState is WeatherUiState.Loading) {
+                                    kotlinx.coroutines.delay(100)
+                                }
+                                isRefreshing = false
+                            }
                         }
                     )
                 }
