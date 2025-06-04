@@ -16,7 +16,8 @@ import com.weatherpossum.app.R
 import com.weatherpossum.app.presentation.caribbeanWeatherFacts
 import com.weatherpossum.app.presentation.components.FunFactCard
 import com.weatherpossum.app.presentation.components.GreetingCard
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.lifecycle.viewmodel.compose.viewModel
 import org.koin.androidx.compose.koinViewModel
 import com.weatherpossum.app.presentation.components.ExtendedForecastCard
@@ -46,6 +47,7 @@ fun ExtrasScreenContent(
     Column(
         modifier = Modifier
             .fillMaxSize()
+            .verticalScroll(rememberScrollState())
             .padding(vertical = 24.dp)
             .padding(horizontal = 16.dp)
             .padding(bottom = 112.dp),

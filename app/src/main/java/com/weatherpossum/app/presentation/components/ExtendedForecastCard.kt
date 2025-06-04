@@ -18,7 +18,7 @@ import androidx.compose.ui.unit.sp
 import com.airbnb.lottie.compose.*
 import com.weatherpossum.app.presentation.ForecastDay
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.ui.draw.shadow
 
 @Composable
 fun ExtendedForecastCard(forecast: List<ForecastDay>) {
@@ -44,46 +44,51 @@ fun ExtendedForecastCard(forecast: List<ForecastDay>) {
             modifier = Modifier
                 .padding(start = 12.dp, top = 8.dp, end = 12.dp)
                 .animateContentSize()
+                .heightIn(min = 200.dp)
         ) {
             if (forecast.isNotEmpty()) {
                 if (!expanded) {
                     ForecastSummaryRow(forecast.first())
                     Spacer(modifier = Modifier.height(8.dp))
-                    // Make the arrow more visible with a background and proper padding
+                    Spacer(modifier = Modifier.height(12.dp)) // Ensures space for the arrow
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(vertical = 8.dp),
+                            .padding(vertical = 12.dp),
                         contentAlignment = Alignment.Center
                     ) {
                         Surface(
                             modifier = Modifier
-                                .size(40.dp)
+                                .size(48.dp) // Slightly larger for better tap area
                                 .clickable { expanded = true },
-                            shape = RoundedCornerShape(20.dp),
-                            color = Color.White.copy(alpha = 0.7f),
-                            shadowElevation = 2.dp
+                            shape = RoundedCornerShape(24.dp),
+                            color = Color.White.copy(alpha = 0.9f), // More solid for contrast
+                            shadowElevation = 4.dp
                         ) {
                             Box(
-                                modifier = Modifier.fillMaxSize(),
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .padding(4.dp), // Padding around icon
                                 contentAlignment = Alignment.Center
                             ) {
                                 Icon(
                                     imageVector = Icons.Default.ExpandMore,
                                     contentDescription = "Expand forecast",
-                                    modifier = Modifier.size(32.dp),
-                                    tint = Color.Gray
+                                    modifier = Modifier.size(28.dp), // Smaller icon inside bigger surface
+                                    tint = Color.DarkGray // Stronger contrast
                                 )
                             }
                         }
                     }
-                } else {
-                    // Scrollable list of cards for each day
-                    Box(modifier = Modifier.heightIn(max = 400.dp)) {
-                        androidx.compose.foundation.lazy.LazyColumn(
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            itemsIndexed(forecast) { idx, day ->
+                } else if (expanded) {
+                    androidx.compose.animation.AnimatedVisibility(
+                        visible = expanded,
+                        enter = androidx.compose.animation.fadeIn() + androidx.compose.animation.expandVertically(),
+                        exit = androidx.compose.animation.fadeOut() + androidx.compose.animation.shrinkVertically()
+                    ) {
+                        Column {
+                            Spacer(modifier = Modifier.height(12.dp))
+                            forecast.forEachIndexed { idx, day ->
                                 Card(
                                     modifier = Modifier
                                         .fillMaxWidth()
@@ -96,36 +101,37 @@ fun ExtendedForecastCard(forecast: List<ForecastDay>) {
                                         ForecastSummaryRow(day)
                                     }
                                 }
-                                if (idx == forecast.lastIndex) {
-                                    // Make the collapse arrow more visible with a background
+                            }
+
+                            // Collapse arrow at bottom
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 12.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Surface(
+                                    modifier = Modifier
+                                        .size(48.dp)
+                                        .clickable { expanded = false },
+                                    shape = RoundedCornerShape(24.dp),
+                                    color = Color.White.copy(alpha = 0.9f),
+                                    shadowElevation = 4.dp
+                                ) {
                                     Box(
                                         modifier = Modifier
-                                            .fillMaxWidth()
-                                            .padding(vertical = 8.dp),
+                                            .fillMaxSize()
+                                            .padding(4.dp),
                                         contentAlignment = Alignment.Center
                                     ) {
-                                        Surface(
+                                        Icon(
+                                            imageVector = Icons.Default.ExpandMore,
+                                            contentDescription = "Collapse forecast",
                                             modifier = Modifier
-                                                .size(40.dp)
-                                                .clickable { expanded = false },
-                                            shape = RoundedCornerShape(20.dp),
-                                            color = Color.White.copy(alpha = 0.7f),
-                                            shadowElevation = 2.dp
-                                        ) {
-                                            Box(
-                                                modifier = Modifier.fillMaxSize(),
-                                                contentAlignment = Alignment.Center
-                                            ) {
-                                                Icon(
-                                                    imageVector = Icons.Default.ExpandMore,
-                                                    contentDescription = "Collapse forecast",
-                                                    modifier = Modifier
-                                                        .size(32.dp)
-                                                        .graphicsLayer { rotationZ = 180f },
-                                                    tint = Color.Gray
-                                                )
-                                            }
-                                        }
+                                                .size(28.dp)
+                                                .graphicsLayer { rotationZ = 180f },
+                                            tint = Color.DarkGray
+                                        )
                                     }
                                 }
                             }
