@@ -13,6 +13,54 @@ import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
+import android.util.Log
+
+// Forecast period enum and data class
+enum class ForecastPeriod { MORNING, AFTERNOON, NIGHT, FULL_DAY }
+
+data class ParsedForecastCard(val period: ForecastPeriod, val card: WeatherCard)
+
+fun normalizeTitle(title: String): ForecastPeriod? {
+    val t = title.trim().lowercase()
+    return when {
+        t.contains("today and tonight") -> ForecastPeriod.FULL_DAY
+        t.contains("today") -> ForecastPeriod.FULL_DAY
+        t.contains("this morning") -> ForecastPeriod.MORNING
+        t.contains("this afternoon") -> ForecastPeriod.AFTERNOON
+        t.contains("tonight") -> ForecastPeriod.NIGHT
+        else -> null
+    }
+}
+
+class ForecastParser(private val cards: List<WeatherCard>) {
+    val parsedCards: List<ParsedForecastCard> = cards.mapNotNull { card ->
+        normalizeTitle(card.title)?.let { period -> ParsedForecastCard(period, card) }
+    }
+
+    fun getForecastForNow(): WeatherCard? {
+        val now = java.time.LocalTime.now()
+        
+        // Determine which time period we're in and look for that specific forecast
+        val currentPeriodForecast = when {
+            now < java.time.LocalTime.NOON -> {
+                // Morning period - only look for morning forecast
+                parsedCards.find { it.period == ForecastPeriod.MORNING }
+            }
+            now < java.time.LocalTime.of(18, 0) -> {
+                // Afternoon period - only look for afternoon forecast
+                parsedCards.find { it.period == ForecastPeriod.AFTERNOON }
+            }
+            else -> {
+                // Night period - only look for night forecast
+                parsedCards.find { it.period == ForecastPeriod.NIGHT }
+            }
+        }
+
+        // If we found a forecast for the current time period, show only that
+        // Otherwise fall back to full day forecast
+        return currentPeriodForecast?.card ?: parsedCards.find { it.period == ForecastPeriod.FULL_DAY }?.card
+    }
+}
 
 class WeatherViewModel(
     private val application: Application
@@ -54,62 +102,40 @@ class WeatherViewModel(
             when (result) {
                 is Result.Success -> {
                     val cards = result.data
-                    // Extract synopsis and other cards
                     val synopsisTitle = application.getString(R.string.repository_title_synopsis)
                     val synopsisCard = cards.find { it.title.contains(synopsisTitle, ignoreCase = true) }
                     _synopsis.value = synopsisCard?.value
 
-                    // Filter out synopsis and tomorrow forecasts from other cards
-                    var otherCards = cards.filter { 
+                    // Filter out synopsis, tomorrow forecasts, and blank titles from other cards
+                    val otherCards = cards.filter { 
                         !it.title.contains(synopsisTitle, ignoreCase = true) &&
-                        !it.title.contains("Tomorrow", ignoreCase = true) // "Tomorrow" is a keyword, not a string resource yet
+                        !it.title.contains("Tomorrow", ignoreCase = true) &&
+                        it.title.isNotBlank()  // Filter out blank titles
                     }
 
-                    // Define 'now' once for use below
-                    val now = java.time.LocalTime.now()
+                    // Use ForecastParser to select the correct forecast card for now
+                    val parser = ForecastParser(otherCards)
+                    val forecastCard = parser.getForecastForNow()
 
-                    // Custom logic for Forecast for Today/Tonight
-                    val todayKeyword = application.getString(R.string.repository_title_forecast_today)
-                    val tonightKeyword = application.getString(R.string.repository_title_forecast_tonight)
-                    val morningKeyword = application.getString(R.string.viewmodel_forecast_morning) // More specific than just "Morning"
-                    val afternoonKeyword = application.getString(R.string.viewmodel_forecast_afternoon) // More specific than just "Afternoon"
+                    // Debug: Log all forecast and extra cards
+                    Log.d("WeatherDebug", "Forecast card: ${forecastCard?.title} | ${forecastCard?.value}")
+                    otherCards.forEach { Log.d("WeatherDebug", "Other card: ${it.title} | ${it.value}") }
 
-                    val todayIndex = otherCards.indexOfFirst {
-                        it.title.contains(todayKeyword, ignoreCase = true) ||
-                        it.title.contains(afternoonKeyword, ignoreCase = true) ||
-                        it.title.contains(morningKeyword, ignoreCase = true)
-                    }
-                    val tonightIndex = otherCards.indexOfFirst { it.title.contains(tonightKeyword, ignoreCase = true) }
+                    // Only include non-forecast cards as extras, and exclude the main forecast card if present
+                    val extraCards = otherCards.filter { normalizeTitle(it.title) == null && it != forecastCard }
 
-                    if (todayIndex != -1 || tonightIndex != -1) {
-                        val sixPm = java.time.LocalTime.of(18, 0)
-                        otherCards = otherCards.filterIndexed { _, card ->
-                            when {
-                                card.title.contains(tonightKeyword, ignoreCase = true) -> now.isAfter(sixPm) || now == sixPm
-                                card.title.contains(todayKeyword, ignoreCase = true) ||
-                                card.title.contains(afternoonKeyword, ignoreCase = true) ||
-                                card.title.contains(morningKeyword, ignoreCase = true) -> now.isBefore(sixPm)
-                                else -> true
-                            }
-                        }
+                    // Log final cards to show
+                    (listOfNotNull(forecastCard) + extraCards).forEach {
+                        Log.d("WeatherDebug", "Card to show: ${it.title} | ${it.value}")
                     }
 
-                    // Assign default title if missing or if title is 'Forecast for Today and Tonight'
-                    val defaultTitle = when {
-                        now.isBefore(java.time.LocalTime.NOON) -> application.getString(R.string.viewmodel_forecast_morning)
-                        now.isBefore(java.time.LocalTime.of(18, 0)) -> application.getString(R.string.viewmodel_forecast_afternoon)
-                        else -> application.getString(R.string.viewmodel_forecast_tonight)
-                    }
-                    otherCards = otherCards.map { card ->
-                        val trimmedTitle = card.title.trim()
-                        if (trimmedTitle.isEmpty() || trimmedTitle.equals(application.getString(R.string.repository_title_forecast_today_tonight), ignoreCase = true)) {
-                            card.copy(title = defaultTitle)
-                        } else {
-                            card
-                        }
+                    // Combine forecast card (if present) and extra cards
+                    val cardsToShow = buildList {
+                        forecastCard?.let { add(it) }
+                        addAll(extraCards)
                     }
 
-                    _uiState.value = WeatherUiState.Success(otherCards)
+                    _uiState.value = WeatherUiState.Success(cardsToShow)
                 }
                 is Result.Error -> {
                     _uiState.value = WeatherUiState.Error(result.exception.message ?: application.getString(R.string.unknown_error))

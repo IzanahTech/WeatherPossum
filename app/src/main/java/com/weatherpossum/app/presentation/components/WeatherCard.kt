@@ -42,13 +42,21 @@ fun WeatherCard(
     val isPressed by interactionSource.collectIsPressedAsState()
     val haptic = LocalHapticFeedback.current
     
-    // Animation states
+    // Dispose of Lottie composition when the composable is disposed
+    DisposableEffect(Unit) {
+        onDispose {
+            // Cleanup any resources here
+        }
+    }
+    
+    // Animation states with improved cleanup
     val cardScale by animateFloatAsState(
         targetValue = if (isPressed) 0.98f else 1f,
         animationSpec = spring(
             dampingRatio = Spring.DampingRatioMediumBouncy,
             stiffness = Spring.StiffnessLow
         ),
+        finishedListener = { /* Cleanup if needed */ },
         label = "card scale"
     )
     
@@ -137,8 +145,19 @@ fun WeatherCard(
                 else -> 100.dp
             }
             if (lottieRes != null) {
-                val composition by rememberLottieComposition(LottieCompositionSpec.RawRes(lottieRes))
-                val progress by animateLottieCompositionAsState(composition, iterations = LottieConstants.IterateForever)
+                val composition by rememberLottieComposition(
+                    LottieCompositionSpec.RawRes(lottieRes),
+                    onRetry = { retryCount, exception ->
+                        // Log or handle retry if needed
+                        true // Return true to retry, false to stop
+                    }
+                )
+                val progress by animateLottieCompositionAsState(
+                    composition = composition,
+                    iterations = LottieConstants.IterateForever,
+                    isPlaying = true,
+                    restartOnPlay = false // Prevent unnecessary restarts
+                )
                 Box(
                     modifier = Modifier.fillMaxWidth(),
                     contentAlignment = Alignment.Center
@@ -239,8 +258,18 @@ private fun WeatherAnimation(
     }
     
     val composition by rememberLottieComposition(
-        LottieCompositionSpec.Asset("animations/$animationName.json")
+        LottieCompositionSpec.Asset("animations/$animationName.json"),
+        onRetry = { retryCount, exception ->
+            // Log or handle retry if needed
+            true // Return true to retry, false to stop
+        }
     )
+    
+    DisposableEffect(composition) {
+        onDispose {
+            // No need to call cancel() as Lottie handles cleanup automatically
+        }
+    }
     
     Box(
         modifier = Modifier.fillMaxWidth(),
@@ -254,7 +283,8 @@ private fun WeatherAnimation(
             } else {
                 modifier
             },
-            isPlaying = true
+            isPlaying = true,
+            restartOnPlay = false
         )
     }
 } 

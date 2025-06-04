@@ -4,7 +4,10 @@ import android.app.Application
 import com.weatherpossum.app.data.UserPreferences
 import com.weatherpossum.app.data.api.WeatherForecastApi
 import com.weatherpossum.app.data.repository.WeatherRepository
+import com.weatherpossum.app.data.repository.MoonRepository
 import com.weatherpossum.app.presentation.WeatherViewModel
+import com.weatherpossum.app.presentation.ExtrasViewModel
+import com.weatherpossum.app.ui.viewmodel.MoonViewModel
 import org.koin.android.ext.koin.androidApplication
 import org.koin.android.ext.koin.androidContext
 import org.koin.androidx.viewmodel.dsl.viewModel
@@ -17,11 +20,12 @@ val appModule = module {
     // User Preferences
     single { UserPreferences(androidContext()) }
 
-    // Repository
-    // WeatherRepository now takes Context, WeatherForecastApi, UserPreferences
+    // Repositories
     single { WeatherRepository(androidContext(), get(), get()) }
+    single { MoonRepository() }
 
-    // ViewModel
-    // WeatherViewModel now takes Application
+    // ViewModels
     viewModel { WeatherViewModel(androidApplication()) }
+    viewModel { ExtrasViewModel() }
+    viewModel { MoonViewModel(get(), get()) }
 }

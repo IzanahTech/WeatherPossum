@@ -1,7 +1,6 @@
 package com.weatherpossum.app.data.repository
 
 import android.content.Context
-import android.util.Log
 import com.weatherpossum.app.R
 import com.weatherpossum.app.data.api.WeatherForecastApi
 import com.weatherpossum.app.data.model.Result
@@ -63,15 +62,12 @@ class WeatherRepository(
                     else -> e.message ?: context.getString(R.string.unknown_error)
                 }
                 
-                Log.w(TAG, "Attempt $attempt/$maxRetries failed: $errorMessage")
-                
                 if (attempt < maxRetries) {
                     val nextDelay = when (e) {
                         is SocketTimeoutException -> currentDelay * 3
                         else -> currentDelay * 2
                     }.toLong().coerceAtMost(30000L)
                     
-                    Log.d(TAG, "Retrying in ${nextDelay}ms...")
                     delay(nextDelay)
                     currentDelay = nextDelay
                 }
@@ -113,7 +109,6 @@ class WeatherRepository(
                     }
                 }
             } catch (e: Exception) {
-                Log.w(TAG, "Selector '$selector' failed: ${e.message}")
             }
         }
         return null
@@ -123,9 +118,6 @@ class WeatherRepository(
         val cards = mutableListOf<WeatherCard>()
         
         try {
-            // Log the HTML structure for debugging
-            Log.d(TAG, "Parsing HTML structure: ${doc.select("body").html().take(500)}...")
-
             // Parse Synopsis with multiple fallback selectors
             val synopsisSelectors = listOf(
                 "p:contains(Synopsis)", // Keyword
@@ -142,7 +134,33 @@ class WeatherRepository(
                         title = context.getString(R.string.repository_title_synopsis),
                         value = text
                     ))
-                    Log.d(TAG, "Successfully parsed Synopsis")
+                }
+            }
+
+            // Parse Warning/Advisory
+            val warningSelectors = listOf(
+                "p:contains(Warning/Advisory)",
+                "div:contains(Warning/Advisory)",
+                "h3:contains(Warning/Advisory) + p"
+            )
+            findElementWithFallbacks(doc, warningSelectors, "Warning/Advisory")?.let { warningEl ->
+                val text = cleanText(warningEl.text())
+                val value = text.removePrefix("Warning/Advisory:").trim()
+                val valueLower = value.lowercase()
+                val isNone = valueLower.isBlank() ||
+                    valueLower == "none" ||
+                    valueLower == "none at this time" ||
+                    valueLower.contains("none at this time") ||
+                    valueLower.contains("no warning") ||
+                    valueLower.contains("no advis") ||
+                    valueLower.contains("no alerts") ||
+                    valueLower == "n/a" ||
+                    valueLower == "not available"
+                if (!isNone) {
+                    cards.add(WeatherCard(
+                        title = "Warning/Advisory",
+                        value = value
+                    ))
                 }
             }
 
@@ -173,6 +191,9 @@ class WeatherRepository(
                     val nextParagraph = strong.parent()?.nextElementSibling()
                     if (nextParagraph != null && nextParagraph.tagName() == "p") {
                         val content = cleanText(nextParagraph.text())
+                        if (rawTitle.isBlank()) {
+                            return@forEach
+                        }
                         if (content.isNotBlank()) {
                             // Use the exact title for today/afternoon/morning, and always use 'Forecast for Tonight' for night
                             when {
@@ -215,7 +236,6 @@ class WeatherRepository(
                         title = title.trim(),
                         value = content
                     ))
-                    Log.d(TAG, "Successfully parsed $title")
                 }
 
                 // If no forecasts were found using strong tags, try the old method
@@ -236,7 +256,6 @@ class WeatherRepository(
                                 title = context.getString(R.string.repository_title_forecast_today_tonight),
                                 value = paragraphs.joinToString("\n")
                             ))
-                            Log.d(TAG, "Successfully parsed combined Forecast for Today and Tonight")
                         }
                     } else {
                         // Try to find separate today and tonight forecasts
@@ -261,7 +280,6 @@ class WeatherRepository(
                                     title = context.getString(R.string.repository_title_forecast_today),
                                     value = paragraphs.joinToString("\n")
                                 ))
-                                Log.d(TAG, "Successfully parsed Forecast for Today")
                             }
                         }
 
@@ -274,7 +292,6 @@ class WeatherRepository(
                                     title = context.getString(R.string.repository_title_forecast_tonight),
                                     value = paragraphs.joinToString("\n")
                                 ))
-                                Log.d(TAG, "Successfully parsed Forecast for Tonight")
                             }
                         }
                     }
@@ -296,7 +313,6 @@ class WeatherRepository(
                         title = context.getString(R.string.repository_title_wind_conditions),
                         value = text
                     ))
-                    Log.d(TAG, "Successfully parsed Wind Conditions")
                 }
             }
 
@@ -329,7 +345,6 @@ class WeatherRepository(
                     title = context.getString(R.string.repository_title_sea_conditions),
                     value = seaConditionsList.joinToString("\n")
                 ))
-                Log.d(TAG, "Successfully parsed Sea Conditions")
             }
 
             // Parse Sun Times with multiple fallback selectors
@@ -355,7 +370,6 @@ class WeatherRepository(
                     title = context.getString(R.string.repository_title_sun_times),
                     value = sunTimesList.joinToString(", ")
                 ))
-                Log.d(TAG, "Successfully parsed Sun Times")
             }
 
             // Parse Weather Outlook with specific structure handling
@@ -396,21 +410,15 @@ class WeatherRepository(
                         title = context.getString(R.string.repository_title_weather_outlook),
                         value = outlookText.toString().trim()
                     ))
-                    Log.d(TAG, "Successfully parsed Weather Outlook")
                 }
             }
 
             // Validate that we have at least some weather information
             if (cards.isEmpty()) {
-                Log.w(TAG, "No weather cards were parsed from the HTML")
                 throw IOException(context.getString(R.string.repository_error_no_info_in_response))
             }
 
-            // Log the number of cards parsed
-            Log.d(TAG, "Successfully parsed ${cards.size} weather cards")
-
         } catch (e: Exception) {
-            Log.e(TAG, "Error parsing weather cards from HTML", e)
             throw IOException(context.getString(R.string.repository_error_parsing_data, e.message ?: context.getString(R.string.unknown_error)), e)
         }
 
@@ -420,13 +428,11 @@ class WeatherRepository(
     suspend fun getWeatherForecast(forceRefresh: Boolean = false): Result<List<WeatherCard>> {
         return try {
             if (!forceRefresh && isCacheValid()) {
-                Log.d(TAG, "Using cached weather data")
                 return Result.Success(cachedCards!!)
             }
 
             // Fetch weather data with retry
             val html = retryWithTimeout {
-                Log.d(TAG, "Fetching weather forecast...")
                 weatherApi.getWeatherForecast()
             }
 
@@ -437,14 +443,11 @@ class WeatherRepository(
             // Update cache
             cachedCards = cards
             lastFetchTime = System.currentTimeMillis()
-            Log.d(TAG, "Successfully updated weather cache")
             
             Result.Success(cards)
         } catch (e: Exception) {
-            Log.e(TAG, "Error fetching weather data", e)
             val errorMsg = e.message ?: context.getString(R.string.unknown_error)
             if (cachedCards != null) {
-                Log.w(TAG, "Using cached data due to error: $errorMsg")
                 Result.Error(Exception(context.getString(R.string.repository_error_fetch_failed_showing_cache, errorMsg), e))
             } else {
                 Result.Error(Exception(errorMsg, e)) // Ensure the exception passed up has a message
