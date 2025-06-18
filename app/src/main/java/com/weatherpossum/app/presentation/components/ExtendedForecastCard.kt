@@ -19,6 +19,9 @@ import com.airbnb.lottie.compose.*
 import com.weatherpossum.app.presentation.ForecastDay
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.withStyle
 
 @Composable
 fun ExtendedForecastCard(forecast: List<ForecastDay>) {
@@ -28,13 +31,13 @@ fun ExtendedForecastCard(forecast: List<ForecastDay>) {
             .fillMaxWidth(),
         shape = RoundedCornerShape(20.dp),
         elevation = CardDefaults.cardElevation(defaultElevation = 6.dp),
-        colors = CardDefaults.cardColors(containerColor = Color(0xFFE6F0FA))
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
     ) {
         // Title outside the main content area
         Text(
             text = "EXTENDED FORECAST",
             style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-            color = Color.Black,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(top = 20.dp, bottom = 0.dp),
@@ -88,14 +91,14 @@ fun ExtendedForecastCard(forecast: List<ForecastDay>) {
                     ) {
                         Column {
                             Spacer(modifier = Modifier.height(12.dp))
-                            forecast.forEachIndexed { idx, day ->
+                            forecast.forEachIndexed { _, day ->
                                 Card(
                                     modifier = Modifier
                                         .fillMaxWidth()
                                         .padding(bottom = 12.dp),
                                     shape = RoundedCornerShape(16.dp),
                                     elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-                                    colors = CardDefaults.cardColors(containerColor = Color.White)
+                                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
                                 ) {
                                     Column(Modifier.padding(16.dp)) {
                                         ForecastSummaryRow(day)
@@ -177,7 +180,7 @@ fun ForecastSummaryRow(day: ForecastDay) {
                 Text(
                     text = day.date,
                     style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
-                    color = Color.Black,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
@@ -192,11 +195,18 @@ fun ForecastSummaryRow(day: ForecastDay) {
 
 @Composable
 fun ForecastLine(label: String, detail: String) {
+    val annotated = buildAnnotatedString {
+        withStyle(style = SpanStyle(fontWeight = FontWeight.Bold)) {
+            append(label)
+        }
+        append(": ")
+        append(detail)
+    }
     Text(
-        text = "$label: $detail",
+        text = annotated,
         style = MaterialTheme.typography.bodyMedium.copy(
             lineHeight = 20.sp,
-            color = Color.Black
+            color = MaterialTheme.colorScheme.onSurfaceVariant
         )
     )
 } 

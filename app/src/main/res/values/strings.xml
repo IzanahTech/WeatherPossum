@@ -14,6 +14,7 @@
     <string name="repository_title_forecast_today">Forecast for Today</string>
     <string name="repository_title_forecast_tonight">Forecast for Tonight</string>
     <string name="repository_title_forecast_today_tonight">Forecast for Today and Tonight</string>
+    <string name="repository_title_warning_advisory">Warning/Advisory</string>
     <string name="repository_error_no_info_in_response">No weather information found in the response</string>
     <string name="repository_error_parsing_data">Error parsing weather data: %1$s</string>
     <string name="repository_error_fetch_failed_showing_cache">Failed to fetch new data: %1$s. Showing cached data.</string>

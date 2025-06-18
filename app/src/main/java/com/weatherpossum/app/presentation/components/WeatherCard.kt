@@ -29,6 +29,10 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.withStyle
+import androidx.compose.ui.text.SpanStyle
 import java.time.LocalTime
 
 @Composable
@@ -41,39 +45,26 @@ fun WeatherCard(
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
     val haptic = LocalHapticFeedback.current
-    
-    // Dispose of Lottie composition when the composable is disposed
-    DisposableEffect(Unit) {
-        onDispose {
-            // Cleanup any resources here
-        }
-    }
-    
-    // Animation states with improved cleanup
+    val isDark = isSystemInDarkTheme()
+
     val cardScale by animateFloatAsState(
-        targetValue = if (isPressed) 0.98f else 1f,
-        animationSpec = spring(
-            dampingRatio = Spring.DampingRatioMediumBouncy,
-            stiffness = Spring.StiffnessLow
-        ),
-        finishedListener = { /* Cleanup if needed */ },
-        label = "card scale"
-    )
-    
-    val cardElevation by animateFloatAsState(
-        targetValue = if (isPressed) 2.dp.value else 4.dp.value,
+        targetValue = if (isPressed) 0.95f else 1f,
         animationSpec = tween(durationMillis = 100),
-        label = "card elevation"
-    )
-    
-    val contentAlpha by animateFloatAsState(
-        targetValue = if (isExpanded) 1f else 0.9f,
-        animationSpec = tween(durationMillis = 200),
-        label = "content alpha"
+        label = "cardScale"
     )
 
-    val isDark = isSystemInDarkTheme()
-    // Choose background color based on card type with improved dark mode contrast
+    val cardElevation by animateFloatAsState(
+        targetValue = if (isPressed) 4f else 8f,
+        animationSpec = tween(durationMillis = 100),
+        label = "cardElevation"
+    )
+
+    val contentAlpha by animateFloatAsState(
+        targetValue = if (isExpanded) 1f else 0.9f,
+        animationSpec = tween(durationMillis = 300),
+        label = "contentAlpha"
+    )
+
     val backgroundColor: Color = if (isDark) {
         when {
             card.title.contains("Sun Times", ignoreCase = true) -> Color(0xFF2D2A1A) // Darker yellow
@@ -200,25 +191,36 @@ fun WeatherCard(
             
             Spacer(modifier = Modifier.height(8.dp))
             
-            // Content with improved readability
-            val paragraphs = card.value.split(Regex("(?<=[.?!])\\s+(?=[A-Z])")).filter { it.isNotBlank() }
-            paragraphs.forEachIndexed { idx, para ->
-                Text(
-                    text = para.trim(),
-                    style = MaterialTheme.typography.bodyMedium.copy(
-                        fontWeight = FontWeight.Bold,
-                        color = if (isDark) {
-                            MaterialTheme.colorScheme.onSurface.copy(alpha = 0.9f)
-                        } else {
-                            MaterialTheme.colorScheme.onSurface
+            // Content with bold formatting for certain prefixes
+            val boldLabels = listOf("Waves:", "Low Tide:", "High Tide:", "Sunrise:", "Sunset:", "Sea Conditions:")
+            
+            val annotated = buildAnnotatedString {
+                card.value.lines().forEachIndexed { index, line ->
+                    val trimmed = line.trim()
+                    val label = boldLabels.firstOrNull { trimmed.startsWith(it) }
+                    if (label != null) {
+                        withStyle(style = SpanStyle(fontWeight = FontWeight.Bold)) {
+                            append(label)
                         }
-                    ),
-                    textAlign = TextAlign.Start
-                )
-                if (idx != paragraphs.lastIndex) {
-                    Spacer(modifier = Modifier.height(8.dp))
+                        append(" " + trimmed.removePrefix(label).trim())
+                    } else {
+                        append(trimmed)
+                    }
+                    if (index != card.value.lines().lastIndex) append("\n")
                 }
             }
+
+            Text(
+                text = annotated,
+                style = MaterialTheme.typography.bodyMedium.copy(
+                    color = if (isDark) {
+                        MaterialTheme.colorScheme.onSurface.copy(alpha = 0.9f)
+                    } else {
+                        MaterialTheme.colorScheme.onSurface
+                    }
+                ),
+                textAlign = TextAlign.Start
+            )
         }
     }
 }

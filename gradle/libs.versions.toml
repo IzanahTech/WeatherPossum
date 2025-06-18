@@ -1,15 +1,15 @@
 [versions]
 agp = "8.3.0"
-kotlin = "1.9.24"
+kotlin = "1.9.23"
 
-composeCompiler = "1.5.14"
+composeCompiler = "1.5.11"
 coreKtx = "1.12.0"
 junit = "4.13.2"
 androidxJunit = "1.1.5"
 espressoCore = "3.5.1"
 lifecycleRuntimeKtx = "2.7.0"
 activityCompose = "1.8.2"
-composeBom = "2025.05.01"
+composeBom = "2024.06.00"
 
 retrofit = "2.11.0"
 okhttp = "4.12.0"
@@ -61,8 +61,6 @@ koin-android = { group = "io.insert-koin", name = "koin-android", version.ref = 
 koin-androidx-compose = { group = "io.insert-koin", name = "koin-androidx-compose", version.ref = "koin" }
 
 androidx-foundation = { group = "androidx.compose.foundation", name = "foundation" }
-
-material-icons-extended = { group = "androidx.compose.material", name = "material-icons-extended", version.ref = "composeCompiler" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

@@ -14,6 +14,7 @@ import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import java.io.IOException
+import java.util.Calendar
 
 // Data model
 data class ForecastDay(
@@ -36,6 +37,30 @@ class ExtendedForecastViewModel : ViewModel() {
     private val _error = MutableStateFlow<String?>(null)
     val error: StateFlow<String?> = _error.asStateFlow()
 
+    private var lastFetchTime: Long = 0
+    private val cacheDurationMillis = 30 * 60 * 1000L // 30 minutes
+
+    fun shouldRefreshForecast(): Boolean {
+        val now = Calendar.getInstance()
+        val hour = now.get(Calendar.HOUR_OF_DAY)
+        val minute = now.get(Calendar.MINUTE)
+        val currentMillis = now.timeInMillis
+        val refreshHours = listOf(6, 12, 18)
+        val lastFetch = Calendar.getInstance().apply { timeInMillis = lastFetchTime }
+        for (refreshHour in refreshHours) {
+            val refreshTime = Calendar.getInstance().apply {
+                set(Calendar.HOUR_OF_DAY, refreshHour)
+                set(Calendar.MINUTE, 0)
+                set(Calendar.SECOND, 0)
+                set(Calendar.MILLISECOND, 0)
+            }
+            if (currentMillis >= refreshTime.timeInMillis && lastFetchTime < refreshTime.timeInMillis) {
+                return true
+            }
+        }
+        return false
+    }
+
     fun loadForecast() {
         viewModelScope.launch {
             _isLoading.value = true
@@ -44,6 +69,7 @@ class ExtendedForecastViewModel : ViewModel() {
                 val html = fetchHtml()
                 Log.d("ExtendedForecast", "Raw HTML: ${html.take(1000)}")
                 _forecast.value = parseExtendedForecast(html)
+                lastFetchTime = System.currentTimeMillis()
             } catch (e: Exception) {
                 _error.value = "Failed to load forecast"
                 Log.e("ExtendedForecast", "Error loading forecast", e)

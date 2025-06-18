@@ -67,7 +67,9 @@ dependencies {
     implementation(libs.androidx.ui.graphics)
     implementation(libs.androidx.ui.tooling.preview)
     implementation(libs.androidx.material3)
-    implementation(libs.material.icons.extended)
+    implementation(libs.androidx.foundation)
+    implementation("androidx.compose.material:material-android:1.6.8")
+    implementation("androidx.compose.material:material-icons-extended-android:1.6.8")
     
     // Retrofit & OkHttp
     implementation(libs.retrofit.core)
@@ -92,8 +94,8 @@ dependencies {
     implementation(libs.koin.android)
     implementation(libs.koin.androidx.compose)
     
-    // AndroidX Foundation
-    implementation(libs.androidx.foundation)
+    // Pull-to-refresh
+    // implementation("androidx.compose.material:material-pull-refresh:1.2.0")
     
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
