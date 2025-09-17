@@ -1,8 +1,6 @@
 package com.weatherpossum.app.data
 
 import com.weatherpossum.app.R
-import java.time.LocalTime
-import java.time.format.DateTimeFormatter
 
 data class MoonData(
     val phase: String,
@@ -16,13 +14,6 @@ data class MoonData(
             return phase
                 .split('_')
                 .joinToString(" ") { it.lowercase().replaceFirstChar { c -> c.uppercase() } }
-        }
-
-        fun formatTimeTo12Hour(time24: String): String {
-            val inputFormat = DateTimeFormatter.ofPattern("HH:mm")
-            val outputFormat = DateTimeFormatter.ofPattern("h:mm a")
-            val localTime = LocalTime.parse(time24, inputFormat)
-            return localTime.format(outputFormat)
         }
 
         fun getMoonPhaseIcon(phase: String): Int {

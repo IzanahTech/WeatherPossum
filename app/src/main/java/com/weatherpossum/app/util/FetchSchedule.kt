@@ -6,6 +6,7 @@ import java.time.ZoneId
 
 object FetchSchedule {
     private const val FETCH_HOUR = 4 // 4 AM
+    private const val RATE_LIMIT_COOLDOWN_HOURS = 6 // Wait 6 hours after rate limit error
 
     /**
      * Checks if we need to fetch new data based on the last fetch time
@@ -24,6 +25,24 @@ object FetchSchedule {
         // If we've never fetched before, or if it's a new day after 4 AM
         return lastFetch.toLocalDate().isBefore(now.toLocalDate()) &&
                now.toLocalTime().isAfter(LocalTime.of(FETCH_HOUR, 0))
+    }
+
+    /**
+     * Checks if we should skip fetching due to recent rate limit errors
+     * @param lastRateLimitErrorTime The timestamp of the last rate limit error
+     * @return true if we should skip fetching due to recent rate limit error
+     */
+    fun shouldSkipDueToRateLimit(lastRateLimitErrorTime: Long?): Boolean {
+        if (lastRateLimitErrorTime == null) return false
+
+        val lastError = LocalDateTime.ofInstant(
+            java.time.Instant.ofEpochMilli(lastRateLimitErrorTime),
+            ZoneId.systemDefault()
+        )
+        val now = LocalDateTime.now()
+
+        // Skip if less than RATE_LIMIT_COOLDOWN_HOURS have passed since the last rate limit error
+        return lastError.plusHours(RATE_LIMIT_COOLDOWN_HOURS.toLong()).isAfter(now)
     }
 
     /**

@@ -1,8 +1,10 @@
 package com.weatherpossum.app.presentation.components
 
 import androidx.compose.animation.animateContentSize
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ExpandMore
@@ -10,133 +12,152 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.airbnb.lottie.compose.*
 import com.weatherpossum.app.presentation.ForecastDay
-import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.text.SpanStyle
-import androidx.compose.ui.text.buildAnnotatedString
-import androidx.compose.ui.text.withStyle
+
+/* ──────────────────────────────────────────────────────────────────────────────
+   EXTENDED FORECAST CARD – enhanced styling
+   - Gradient background inside the Card (so elevation shadow still renders)
+   - Strong header row (title + first-day date + Lottie glyph)
+   - Each day is a sub-card with rounded corners & subtle overlay for separation
+   - Bigger day headers (18sp) for quick scanning
+   - Aligned label/value rows with fixed label column width
+   - Polished expand/collapse chip (CENTERED)
+   ────────────────────────────────────────────────────────────────────────────── */
 
 @Composable
 fun ExtendedForecastCard(forecast: List<ForecastDay>) {
     var expanded by remember { mutableStateOf(false) }
+
+    val gradientTop = Color(0xFF5EB7FF)
+    val gradientBottom = Color(0xFF2F80ED)
+    val onGradient = Color.White
+
     Card(
-        modifier = Modifier
-            .fillMaxWidth(),
-        shape = RoundedCornerShape(20.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 6.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(22.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 10.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.Transparent)
     ) {
-        // Title outside the main content area
-        Text(
-            text = "EXTENDED FORECAST",
-            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier
+        Box(
+            Modifier
+                .background(Brush.verticalGradient(listOf(gradientTop, gradientBottom)))
                 .fillMaxWidth()
-                .padding(top = 20.dp, bottom = 0.dp),
-            textAlign = androidx.compose.ui.text.style.TextAlign.Center
-        )
-        Column(
-            modifier = Modifier
-                .padding(start = 12.dp, top = 8.dp, end = 12.dp)
-                .animateContentSize()
-                .heightIn(min = 200.dp)
+                .clip(RoundedCornerShape(22.dp))
+                .padding(horizontal = 16.dp, vertical = 14.dp)
         ) {
-            if (forecast.isNotEmpty()) {
-                if (!expanded) {
-                    ForecastSummaryRow(forecast.first())
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Spacer(modifier = Modifier.height(12.dp)) // Ensures space for the arrow
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 12.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Surface(
-                            modifier = Modifier
-                                .size(48.dp) // Slightly larger for better tap area
-                                .clickable { expanded = true },
-                            shape = RoundedCornerShape(24.dp),
-                            color = Color.White.copy(alpha = 0.9f), // More solid for contrast
-                            shadowElevation = 4.dp
-                        ) {
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxSize()
-                                    .padding(4.dp), // Padding around icon
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.ExpandMore,
-                                    contentDescription = "Expand forecast",
-                                    modifier = Modifier.size(28.dp), // Smaller icon inside bigger surface
-                                    tint = Color.DarkGray // Stronger contrast
-                                )
-                            }
+            Column(
+                modifier = Modifier
+                    .animateContentSize()
+                    .heightIn(min = 200.dp)
+            ) {
+                // ── Header ───────────────────────────────────────────────────────
+                Row(
+                    Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column {
+                        Text(
+                            text = "EXTENDED FORECAST",
+                            fontSize = 18.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = onGradient,
+                            letterSpacing = 0.5.sp
+                        )
+                        val dateLabel = forecast.firstOrNull()?.date.orEmpty()
+                        if (dateLabel.isNotBlank()) {
+                            Text(
+                                text = dateLabel,
+                                fontSize = 14.sp,
+                                color = onGradient.copy(alpha = 0.92f)
+                            )
                         }
                     }
-                } else if (expanded) {
-                    androidx.compose.animation.AnimatedVisibility(
-                        visible = expanded,
-                        enter = androidx.compose.animation.fadeIn() + androidx.compose.animation.expandVertically(),
-                        exit = androidx.compose.animation.fadeOut() + androidx.compose.animation.shrinkVertically()
-                    ) {
+
+                    // Header Lottie from the first day
+                    if (forecast.isNotEmpty()) {
+                        val head = forecast.first()
+                        val lottieRes = when {
+                            head.weather.contains("rain", true) || head.weather.contains("shower", true)
+                            -> com.weatherpossum.app.R.raw.rain
+                            head.weather.contains("cloud", true)
+                            -> com.weatherpossum.app.R.raw.cloudy
+                            head.weather.contains("sun", true) || head.weather.contains("clear", true)
+                            -> com.weatherpossum.app.R.raw.sunny
+                            else -> com.weatherpossum.app.R.raw.neutral
+                        }
+                        val composition by rememberLottieComposition(LottieCompositionSpec.RawRes(lottieRes))
+                        val progress by animateLottieCompositionAsState(
+                            composition,
+                            iterations = LottieConstants.IterateForever
+                        )
+                        Box(Modifier.size(44.dp), contentAlignment = Alignment.Center) {
+                            LottieAnimation(
+                                composition = composition,
+                                progress = { progress },
+                                modifier = Modifier.fillMaxSize()
+                            )
+                        }
+                    }
+                }
+
+                Spacer(Modifier.height(10.dp))
+                HorizontalDivider(color = onGradient.copy(alpha = 0.18f), thickness = 1.dp)
+                Spacer(Modifier.height(6.dp))
+
+                // ── Collapsed vs Expanded content ───────────────────────────────
+                if (forecast.isNotEmpty()) {
+                    if (!expanded) {
+                        // Collapsed: show the first day only
+                        DayForecastBlock(
+                            day = forecast.first(),
+                            onTextColor = onGradient
+                        )
+
+                        Spacer(Modifier.height(10.dp))
+                        // CENTERED expand chip
+                        Box(
+                            modifier = Modifier.fillMaxWidth(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            CenterChip(
+                                iconRotation = 0f,
+                                onClick = { expanded = true },
+                                background = Color.White.copy(alpha = 0.95f),
+                                tint = Color(0xFF2B2B2B)
+                            )
+                        }
+                    } else {
                         Column {
-                            Spacer(modifier = Modifier.height(12.dp))
-                            forecast.forEachIndexed { _, day ->
-                                Card(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(bottom = 12.dp),
-                                    shape = RoundedCornerShape(16.dp),
-                                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-                                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
-                                ) {
-                                    Column(Modifier.padding(16.dp)) {
-                                        ForecastSummaryRow(day)
-                                    }
-                                }
+                            // Expanded: show every day as its own sub-card
+                            forecast.forEach { day ->
+                                DayForecastBlock(
+                                    day = day,
+                                    onTextColor = onGradient
+                                )
                             }
 
-                            // Collapse arrow at bottom
+                            Spacer(Modifier.height(12.dp))
+                            // CENTERED collapse chip
                             Box(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(vertical = 12.dp),
+                                modifier = Modifier.fillMaxWidth(),
                                 contentAlignment = Alignment.Center
                             ) {
-                                Surface(
-                                    modifier = Modifier
-                                        .size(48.dp)
-                                        .clickable { expanded = false },
-                                    shape = RoundedCornerShape(24.dp),
-                                    color = Color.White.copy(alpha = 0.9f),
-                                    shadowElevation = 4.dp
-                                ) {
-                                    Box(
-                                        modifier = Modifier
-                                            .fillMaxSize()
-                                            .padding(4.dp),
-                                        contentAlignment = Alignment.Center
-                                    ) {
-                                        Icon(
-                                            imageVector = Icons.Default.ExpandMore,
-                                            contentDescription = "Collapse forecast",
-                                            modifier = Modifier
-                                                .size(28.dp)
-                                                .graphicsLayer { rotationZ = 180f },
-                                            tint = Color.DarkGray
-                                        )
-                                    }
-                                }
+                                CenterChip(
+                                    iconRotation = 180f,
+                                    onClick = { expanded = false },
+                                    background = Color.White.copy(alpha = 0.95f),
+                                    tint = Color(0xFF2B2B2B)
+                                )
                             }
                         }
                     }
@@ -146,21 +167,74 @@ fun ExtendedForecastCard(forecast: List<ForecastDay>) {
     }
 }
 
+/* ──────────────────────────────────────────────────────────────────────────────
+   DAY BLOCK – large header + separated surface
+   ────────────────────────────────────────────────────────────────────────────── */
+
 @Composable
-fun ForecastSummaryRow(day: ForecastDay) {
+private fun DayForecastBlock(
+    day: ForecastDay,
+    onTextColor: Color
+) {
+    Surface(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 6.dp),
+        shape = RoundedCornerShape(16.dp),
+        color = Color.White.copy(alpha = 0.10f),
+        tonalElevation = 2.dp
+    ) {
+        Column(Modifier.padding(16.dp)) {
+
+            // Large, scannable day header
+            Text(
+                text = day.date,                  // e.g., "Sunday, Sep 14"
+                fontSize = 18.sp,
+                fontWeight = FontWeight.Bold,
+                color = onTextColor,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+
+            Spacer(Modifier.height(8.dp))
+            HorizontalDivider(color = onTextColor.copy(alpha = 0.12f))
+            Spacer(Modifier.height(8.dp))
+
+            // Details row (no date inside)
+            ForecastSummaryRow(
+                day = day,
+                onTextColor = onTextColor
+            )
+        }
+    }
+}
+
+/* ──────────────────────────────────────────────────────────────────────────────
+   SUMMARY ROW – aligned label/value, Lottie on the left
+   ────────────────────────────────────────────────────────────────────────────── */
+
+@Composable
+fun ForecastSummaryRow(
+    day: ForecastDay,
+    onTextColor: Color
+) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier.fillMaxWidth()
     ) {
-        // Use Lottie or fallback icon
+        // Lottie (same logic as before)
         val lottieRes = when {
-            day.weather.contains("rain", ignoreCase = true) || day.weather.contains("shower", ignoreCase = true) -> com.weatherpossum.app.R.raw.rain
-            day.weather.contains("cloud", ignoreCase = true) -> com.weatherpossum.app.R.raw.cloudy
-            day.weather.contains("sun", ignoreCase = true) || day.weather.contains("clear", ignoreCase = true) -> com.weatherpossum.app.R.raw.sunny
+            day.weather.contains("rain", true) || day.weather.contains("shower", true)
+            -> com.weatherpossum.app.R.raw.rain
+            day.weather.contains("cloud", true)
+            -> com.weatherpossum.app.R.raw.cloudy
+            day.weather.contains("sun", true) || day.weather.contains("clear", true)
+            -> com.weatherpossum.app.R.raw.sunny
             else -> com.weatherpossum.app.R.raw.neutral
         }
         val composition by rememberLottieComposition(LottieCompositionSpec.RawRes(lottieRes))
         val progress by animateLottieCompositionAsState(composition, iterations = LottieConstants.IterateForever)
+
         Box(
             modifier = Modifier.size(56.dp),
             contentAlignment = Alignment.Center
@@ -171,42 +245,74 @@ fun ForecastSummaryRow(day: ForecastDay) {
                 modifier = Modifier.fillMaxSize()
             )
         }
-        Spacer(modifier = Modifier.width(16.dp))
+
+        Spacer(modifier = Modifier.width(14.dp))
+
         Column(
-            verticalArrangement = Arrangement.spacedBy(4.dp),
+            verticalArrangement = Arrangement.spacedBy(6.dp),
             modifier = Modifier.weight(1f)
         ) {
-            if (day.date.isNotBlank()) {
-                Text(
-                    text = day.date,
-                    style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-            }
-            ForecastLine("🌤️ Weather", day.weather)
-            ForecastLine("🌬️ Wind", day.wind)
-            ForecastLine("🌊 Seas", day.seas)
-            ForecastLine("🌊🌊 Waves", day.waves)
+            AlignedDetailRow(label = "Weather", value = day.weather, color = onTextColor)
+            AlignedDetailRow(label = "Wind",    value = day.wind,    color = onTextColor)
+            AlignedDetailRow(label = "Seas",    value = day.seas,    color = onTextColor)
+            AlignedDetailRow(label = "Waves",   value = day.waves,   color = onTextColor)
         }
     }
 }
 
+/* Label/value with fixed label width for tidy columns */
 @Composable
-fun ForecastLine(label: String, detail: String) {
-    val annotated = buildAnnotatedString {
-        withStyle(style = SpanStyle(fontWeight = FontWeight.Bold)) {
-            append(label)
-        }
-        append(": ")
-        append(detail)
-    }
-    Text(
-        text = annotated,
-        style = MaterialTheme.typography.bodyMedium.copy(
-            lineHeight = 20.sp,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
+private fun AlignedDetailRow(
+    label: String,
+    value: String,
+    color: Color
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.Top
+    ) {
+        Text(
+            text = "$label:",
+            color = color,
+            fontSize = 14.sp,
+            fontWeight = FontWeight.SemiBold,
+            modifier = Modifier.width(78.dp) // tweak to balance line breaks
         )
-    )
-} 
+        Text(
+            text = value,
+            color = color.copy(alpha = 0.96f),
+            fontSize = 14.sp,
+            lineHeight = 18.sp
+        )
+    }
+}
+
+/* Centered circular chip for expand/collapse */
+@Composable
+private fun CenterChip(
+    iconRotation: Float,
+    onClick: () -> Unit,
+    background: Color,
+    tint: Color
+) {
+    Surface(
+        modifier = Modifier
+            .size(48.dp)
+            .clip(CircleShape)
+            .clickable { onClick() },
+        color = background,
+        shadowElevation = 6.dp
+    ) {
+        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            Icon(
+                imageVector = Icons.Filled.ExpandMore,
+                contentDescription = null,
+                tint = tint,
+                modifier = Modifier
+                    .size(28.dp)
+                    .graphicsLayer { rotationZ = iconRotation }
+            )
+        }
+    }
+}
+

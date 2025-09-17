@@ -31,18 +31,48 @@ class MoonViewModel(
             // Combine the last fetch time with the moon data
             combine(
                 userPreferences.lastMoonFetchTime,
+                userPreferences.lastRateLimitErrorTime,
                 repository.moonData
-            ) { lastFetchTime: Long?, moonData: MoonData? ->
-                Log.d(TAG, "combine: lastFetchTime=$lastFetchTime, moonData=$moonData")
-                if (moonData == null || FetchSchedule.shouldFetchMoonData(lastFetchTime)) {
+            ) { lastFetchTime: Long?, lastRateLimitErrorTime: Long?, moonData: MoonData? ->
+                Log.d(TAG, "combine: lastFetchTime=$lastFetchTime, lastRateLimitErrorTime=$lastRateLimitErrorTime, moonData=$moonData")
+                
+                // Check if we should skip due to recent rate limit error
+                if (FetchSchedule.shouldSkipDueToRateLimit(lastRateLimitErrorTime)) {
+                    Log.d(TAG, "combine: Skipping fetch due to recent rate limit error")
+                    if (moonData != null) {
+                        MoonUiState.Success(moonData)
+                    } else {
+                        MoonUiState.Error("API rate limit exceeded. Please try again later.")
+                    }
+                } else if (moonData == null || FetchSchedule.shouldFetchMoonData(lastFetchTime)) {
                     Log.d(TAG, "combine: moonData is null or shouldFetchMoonData is TRUE, calling refreshMoonData()")
                     try {
-                        repository.refreshMoonData()
-                        userPreferences.updateLastMoonFetchTime(System.currentTimeMillis())
-                        MoonUiState.Success(moonData ?: throw IllegalStateException("Moon data is null after refresh"))
+                        val result = repository.refreshMoonData()
+                        result.fold(
+                            onSuccess = { newMoonData ->
+                                userPreferences.updateLastMoonFetchTime(System.currentTimeMillis())
+                                MoonUiState.Success(newMoonData)
+                            },
+                            onFailure = { exception ->
+                                Log.e(TAG, "combine: Error fetching moon data", exception)
+                                // If we have cached data, use it even if it's old
+                                if (moonData != null) {
+                                    Log.d(TAG, "combine: Using cached moon data due to fetch failure")
+                                    MoonUiState.Success(moonData)
+                                } else {
+                                    MoonUiState.Error(exception.message ?: "Failed to fetch moon data")
+                                }
+                            }
+                        )
                     } catch (e: Exception) {
                         Log.e(TAG, "combine: Error fetching moon data", e)
-                        MoonUiState.Error(e.message ?: "Failed to fetch moon data")
+                        // If we have cached data, use it even if it's old
+                        if (moonData != null) {
+                            Log.d(TAG, "combine: Using cached moon data due to exception")
+                            MoonUiState.Success(moonData)
+                        } else {
+                            MoonUiState.Error(e.message ?: "Failed to fetch moon data")
+                        }
                     }
                 } else {
                     Log.d(TAG, "combine: using cached moonData")
@@ -52,10 +82,5 @@ class MoonViewModel(
                 _uiState.value = state
             }
         }
-    }
-
-    fun getNextFetchTime(): String {
-        val nextFetch = FetchSchedule.getNextMoonFetchTime()
-        return nextFetch.toString()
     }
 } 

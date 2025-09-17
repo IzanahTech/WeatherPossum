@@ -28,7 +28,7 @@
     <string name="viewmodel_forecast_tonight">Forecast for Tonight</string>
 
     <!-- WeatherScreen specific -->
-    <string name="screen_greeting_loading_synopsis">Loading weather information...</string>
+    <string name="screen_greeting_loading_synopsis">Loading weather information…</string>
     <string name="screen_splash_title_weather">WEATHER</string>
     <string name="screen_splash_title_possum">POSSUM</string>
     <string name="screen_splash_subtitle">Consulting the possum\'s weather balloon…</string>

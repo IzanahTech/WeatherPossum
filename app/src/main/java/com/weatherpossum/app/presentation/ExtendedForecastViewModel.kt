@@ -38,15 +38,11 @@ class ExtendedForecastViewModel : ViewModel() {
     val error: StateFlow<String?> = _error.asStateFlow()
 
     private var lastFetchTime: Long = 0
-    private val cacheDurationMillis = 30 * 60 * 1000L // 30 minutes
 
     fun shouldRefreshForecast(): Boolean {
         val now = Calendar.getInstance()
-        val hour = now.get(Calendar.HOUR_OF_DAY)
-        val minute = now.get(Calendar.MINUTE)
         val currentMillis = now.timeInMillis
         val refreshHours = listOf(6, 12, 18)
-        val lastFetch = Calendar.getInstance().apply { timeInMillis = lastFetchTime }
         for (refreshHour in refreshHours) {
             val refreshTime = Calendar.getInstance().apply {
                 set(Calendar.HOUR_OF_DAY, refreshHour)

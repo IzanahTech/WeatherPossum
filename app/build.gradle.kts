@@ -5,12 +5,12 @@ plugins {
 
 android {
     namespace = "com.weatherpossum.app"
-    compileSdk = 35
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "com.weatherpossum.app"
         minSdk = 31
-        targetSdk = 35
+        targetSdk = 36
         versionCode = 1
         versionName = "1.0"
 
@@ -68,8 +68,8 @@ dependencies {
     implementation(libs.androidx.ui.tooling.preview)
     implementation(libs.androidx.material3)
     implementation(libs.androidx.foundation)
-    implementation("androidx.compose.material:material-android:1.6.8")
-    implementation("androidx.compose.material:material-icons-extended-android:1.6.8")
+    implementation(libs.androidx.material)
+    implementation(libs.androidx.material.icons.extended)
     
     // Retrofit & OkHttp
     implementation(libs.retrofit.core)
@@ -96,6 +96,9 @@ dependencies {
     
     // Pull-to-refresh
     // implementation("androidx.compose.material:material-pull-refresh:1.2.0")
+    
+    // Time4A for professional astronomical calculations
+    implementation(libs.time4j.android)
     
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)

@@ -117,17 +117,8 @@ class WeatherViewModel(
                     val parser = ForecastParser(otherCards)
                     val forecastCard = parser.getForecastForNow()
 
-                    // Debug: Log all forecast and extra cards
-                    Log.d("WeatherDebug", "Forecast card: ${forecastCard?.title} | ${forecastCard?.value}")
-                    otherCards.forEach { Log.d("WeatherDebug", "Other card: ${it.title} | ${it.value}") }
-
                     // Only include non-forecast cards as extras, and exclude the main forecast card if present
                     val extraCards = otherCards.filter { normalizeTitle(it.title) == null && it != forecastCard }
-
-                    // Log final cards to show
-                    (listOfNotNull(forecastCard) + extraCards).forEach {
-                        Log.d("WeatherDebug", "Card to show: ${it.title} | ${it.value}")
-                    }
 
                     // Combine forecast card (if present) and extra cards
                     val cardsToShow = buildList {

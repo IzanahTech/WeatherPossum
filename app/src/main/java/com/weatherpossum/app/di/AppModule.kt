@@ -1,13 +1,14 @@
 package com.weatherpossum.app.di
 
-import android.app.Application
 import com.weatherpossum.app.data.UserPreferences
 import com.weatherpossum.app.data.api.WeatherForecastApi
 import com.weatherpossum.app.data.repository.WeatherRepository
 import com.weatherpossum.app.data.repository.MoonRepository
+import com.weatherpossum.app.data.repository.HurricaneRepository
 import com.weatherpossum.app.presentation.WeatherViewModel
 import com.weatherpossum.app.presentation.ExtrasViewModel
 import com.weatherpossum.app.ui.viewmodel.MoonViewModel
+import com.weatherpossum.app.ui.viewmodel.HurricaneViewModel
 import org.koin.android.ext.koin.androidApplication
 import org.koin.android.ext.koin.androidContext
 import org.koin.androidx.viewmodel.dsl.viewModel
@@ -21,11 +22,13 @@ val appModule = module {
     single { UserPreferences(androidContext()) }
 
     // Repositories
-    single { WeatherRepository(androidContext(), get(), get()) }
+    single { WeatherRepository(get(), get()) }
     single { MoonRepository() }
+    single { HurricaneRepository() }
 
     // ViewModels
     viewModel { WeatherViewModel(androidApplication()) }
     viewModel { ExtrasViewModel() }
     viewModel { MoonViewModel(get(), get()) }
+    viewModel { HurricaneViewModel(get()) }
 }

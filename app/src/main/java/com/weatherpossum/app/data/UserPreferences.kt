@@ -16,6 +16,7 @@ class UserPreferences(private val context: Context) {
     companion object {
         private val USER_NAME_KEY = stringPreferencesKey("user_name")
         private val LAST_MOON_FETCH_TIME_KEY = longPreferencesKey("last_moon_fetch_time")
+        private val LAST_RATE_LIMIT_ERROR_TIME_KEY = longPreferencesKey("last_rate_limit_error_time")
         private val WEATHER_CACHE_KEY = stringPreferencesKey("weather_cache")
         private val WEATHER_CACHE_TIME_KEY = longPreferencesKey("weather_cache_time")
     }
@@ -28,8 +29,8 @@ class UserPreferences(private val context: Context) {
         preferences[LAST_MOON_FETCH_TIME_KEY]
     }
 
-    val weatherCache: Flow<Pair<String?, Long?>> = context.dataStore.data.map { preferences ->
-        Pair(preferences[WEATHER_CACHE_KEY], preferences[WEATHER_CACHE_TIME_KEY])
+    val lastRateLimitErrorTime: Flow<Long?> = context.dataStore.data.map { preferences ->
+        preferences[LAST_RATE_LIMIT_ERROR_TIME_KEY]
     }
 
     suspend fun saveUserName(name: String) {
@@ -44,6 +45,18 @@ class UserPreferences(private val context: Context) {
         }
     }
 
+    suspend fun updateLastRateLimitErrorTime(timestamp: Long) {
+        context.dataStore.edit { preferences ->
+            preferences[LAST_RATE_LIMIT_ERROR_TIME_KEY] = timestamp
+        }
+    }
+
+    suspend fun clearLastRateLimitErrorTime() {
+        context.dataStore.edit { preferences ->
+            preferences.remove(LAST_RATE_LIMIT_ERROR_TIME_KEY)
+        }
+    }
+    
     suspend fun saveWeatherCache(cacheData: String, timestamp: Long) {
         context.dataStore.edit { preferences ->
             preferences[WEATHER_CACHE_KEY] = cacheData

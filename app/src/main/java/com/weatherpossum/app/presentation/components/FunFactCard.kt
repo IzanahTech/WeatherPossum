@@ -7,7 +7,10 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.airbnb.lottie.compose.*
@@ -19,6 +22,15 @@ fun FunFactCard(facts: List<String>, modifier: Modifier = Modifier) {
     val composition by rememberLottieComposition(LottieCompositionSpec.RawRes(R.raw.fact))
     val progress by animateLottieCompositionAsState(composition, iterations = LottieConstants.IterateForever)
 
+    // Unique gradient for fun facts - warm, educational theme
+    val gradient = Brush.verticalGradient(
+        colors = listOf(
+            Color(0xFF6A4C93), // Purple
+            Color(0xFF9A4C95)  // Pink-purple
+        )
+    )
+    val onColor = Color.White
+
     Card(
         modifier = modifier
             .fillMaxWidth()
@@ -26,29 +38,73 @@ fun FunFactCard(facts: List<String>, modifier: Modifier = Modifier) {
                 val newFact = facts.filter { it != currentFact }.randomOrNull() ?: currentFact
                 currentFact = newFact
             },
-        shape = RoundedCornerShape(24.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+        shape = RoundedCornerShape(22.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.Transparent),
         elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
     ) {
-        Row(
-            modifier = Modifier.padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .enhancedCardBackground(gradient)
+                .padding(20.dp)
         ) {
-            LottieAnimation(
-                composition = composition,
-                progress = { progress },
-                modifier = Modifier.size(48.dp)
-            )
-            Spacer(modifier = Modifier.width(16.dp))
+            GradientNoiseOverlay()
+            
             Column {
-                Text(
-                    text = "🌤️ Did You Know?",
-                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
+                // Header with icon and title
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = "DID YOU KNOW?",
+                            color = onColor,
+                            fontSize = 18.sp,
+                            fontWeight = FontWeight.Bold,
+                            letterSpacing = 0.5.sp
+                        )
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            text = "Tap to discover more!",
+                            color = onColor.copy(alpha = 0.8f),
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Medium
+                        )
+                    }
+                    
+                    // Lottie animation icon
+                    Box(
+                        modifier = Modifier.size(56.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        LottieAnimation(
+                            composition = composition,
+                            progress = { progress },
+                            modifier = Modifier.fillMaxSize()
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+                
+                // Divider
+                HorizontalDivider(
+                    color = onColor.copy(alpha = 0.2f),
+                    thickness = 1.dp
                 )
-                Spacer(modifier = Modifier.height(4.dp))
+                
+                Spacer(modifier = Modifier.height(16.dp))
+
+                // Fact content
                 Text(
                     text = currentFact,
-                    style = MaterialTheme.typography.bodyMedium.copy(fontSize = 16.sp)
+                    color = onColor,
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Medium,
+                    lineHeight = 22.sp,
+                    textAlign = TextAlign.Start
                 )
             }
         }

@@ -1,5 +1,5 @@
 [versions]
-agp = "8.3.0"
+agp = "8.6.0"
 kotlin = "1.9.23"
 
 composeCompiler = "1.5.11"
@@ -9,7 +9,7 @@ androidxJunit = "1.1.5"
 espressoCore = "3.5.1"
 lifecycleRuntimeKtx = "2.7.0"
 activityCompose = "1.8.2"
-composeBom = "2024.06.00"
+composeBom = "2025.09.00"
 
 retrofit = "2.11.0"
 okhttp = "4.12.0"
@@ -18,6 +18,7 @@ jsoup = "1.17.2"
 orgJson = "20231013"
 datastorePreferences = "1.0.0"
 koin = "3.5.6"
+time4j = "4.8-2021a"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -34,6 +35,8 @@ androidx-ui-tooling-preview = { group = "androidx.compose.ui", name = "ui-toolin
 androidx-ui-test-manifest = { group = "androidx.compose.ui", name = "ui-test-manifest" }
 androidx-ui-test-junit4 = { group = "androidx.compose.ui", name = "ui-test-junit4" }
 androidx-material3 = { group = "androidx.compose.material3", name = "material3" }
+androidx-material = { group = "androidx.compose.material", name = "material" }
+androidx-material-icons-extended = { group = "androidx.compose.material", name = "material-icons-extended" }
 
 # Retrofit
 retrofit-core = { group = "com.squareup.retrofit2", name = "retrofit", version.ref = "retrofit" }
@@ -59,6 +62,9 @@ androidx-datastore-preferences = { group = "androidx.datastore", name = "datasto
 # Koin
 koin-android = { group = "io.insert-koin", name = "koin-android", version.ref = "koin" }
 koin-androidx-compose = { group = "io.insert-koin", name = "koin-androidx-compose", version.ref = "koin" }
+
+# Time4A
+time4j-android = { group = "net.time4j", name = "time4j-android", version.ref = "time4j" }
 
 androidx-foundation = { group = "androidx.compose.foundation", name = "foundation" }
 

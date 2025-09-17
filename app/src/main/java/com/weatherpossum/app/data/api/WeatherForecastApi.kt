@@ -9,7 +9,6 @@ import java.util.concurrent.TimeUnit
 import okhttp3.Interceptor
 import okhttp3.Response
 import java.io.IOException
-import android.content.Context
 import com.weatherpossum.app.BuildConfig
 import java.net.SocketTimeoutException
 
