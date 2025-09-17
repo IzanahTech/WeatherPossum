@@ -132,7 +132,11 @@ WeatherPossum includes a complete in-app updater system that allows users to upd
 
 ## 📱 Screenshots
 
-*Screenshots would go here showing the app's beautiful UI*
+<img width="1080" height="2400" alt="Screenshot_20250917_100839" src="https://github.com/user-attachments/assets/0cc7fe52-5171-40a6-94ef-84f315271fac" />
+<img width="1080" height="2400" alt="Screenshot_20250917_100852" src="https://github.com/user-attachments/assets/31a63c7d-f295-428d-9808-0d408d840e89" />
+<img width="1080" height="2400" alt="Screenshot_20250917_100906" src="https://github.com/user-attachments/assets/410a26a7-5b4a-4089-870c-c2d2281ae444" />
+<img width="1080" height="2400" alt="Screenshot_20250917_100914" src="https://github.com/user-attachments/assets/bf3b86cf-55fa-48b0-906f-20a36c485b3a" />
+
 
 ## 🔧 Configuration
 
@@ -259,4 +263,4 @@ If you encounter any issues or have questions:
 
 **Made with ❤️ for Dominica and the Caribbean**
 
-*WeatherPossum - Your trusted weather companion with seamless updates*
+*Copyright 2025 Everton Frederick. All rights reserved*
