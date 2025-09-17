@@ -39,9 +39,9 @@ import com.weatherpossum.app.presentation.components.GradientNoiseOverlay
 import com.weatherpossum.app.presentation.components.ParallaxCard
 import com.weatherpossum.app.presentation.components.enhancedCardBackground
 import com.weatherpossum.app.presentation.components.GreetingCard
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.launch
-import org.koin.androidx.compose.koinViewModel
+import androidx.compose.ui.platform.LocalContext
+import com.weatherpossum.app.presentation.components.UpdateSheetWithContext
+import com.weatherpossum.app.ui.viewmodel.UpdateViewModel
 
 @OptIn(
     ExperimentalMaterial3Api::class,
@@ -50,7 +50,8 @@ import org.koin.androidx.compose.koinViewModel
 )
 @Composable
 fun WeatherScreen(
-    viewModel: WeatherViewModel = koinViewModel()
+    viewModel: WeatherViewModel = koinViewModel(),
+    updateViewModel: UpdateViewModel = koinViewModel()
 ) {
     var selectedTab by remember { mutableStateOf("Now") }
     var isRefreshing by remember { mutableStateOf(false) }
@@ -58,6 +59,7 @@ fun WeatherScreen(
     val userName by viewModel.userName.collectAsState()
     val uiState = viewModel.uiState.collectAsState().value
     val scope = rememberCoroutineScope()
+    val context = LocalContext.current
 
     val isDarkMode = isSystemInDarkTheme()
     val bgColors = when {
@@ -138,6 +140,18 @@ fun WeatherScreen(
             }
         }
     }
+    
+    // Check for updates on app launch
+    LaunchedEffect(Unit) {
+        updateViewModel.check(context)
+    }
+    
+    // Show update dialog if available
+    UpdateSheetWithContext(
+        vm = updateViewModel,
+        context = context,
+        onDismiss = { updateViewModel.dismissUpdate() }
+    )
 }
 
 @Composable

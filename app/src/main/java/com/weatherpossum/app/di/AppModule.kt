@@ -9,6 +9,7 @@ import com.weatherpossum.app.presentation.WeatherViewModel
 import com.weatherpossum.app.presentation.ExtrasViewModel
 import com.weatherpossum.app.ui.viewmodel.MoonViewModel
 import com.weatherpossum.app.ui.viewmodel.HurricaneViewModel
+import com.weatherpossum.app.ui.viewmodel.UpdateViewModel
 import org.koin.android.ext.koin.androidApplication
 import org.koin.android.ext.koin.androidContext
 import org.koin.androidx.viewmodel.dsl.viewModel
@@ -31,4 +32,5 @@ val appModule = module {
     viewModel { ExtrasViewModel() }
     viewModel { MoonViewModel(get(), get()) }
     viewModel { HurricaneViewModel(get()) }
+    viewModel { UpdateViewModel() }
 }

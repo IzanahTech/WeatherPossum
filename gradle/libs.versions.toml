@@ -13,6 +13,7 @@ composeBom = "2025.09.00"
 
 retrofit = "2.11.0"
 okhttp = "4.12.0"
+moshi = "1.15.0"
 lottieCompose = "6.4.0"
 jsoup = "1.17.2"
 orgJson = "20231013"
@@ -42,6 +43,7 @@ androidx-material-icons-extended = { group = "androidx.compose.material", name =
 retrofit-core = { group = "com.squareup.retrofit2", name = "retrofit", version.ref = "retrofit" }
 retrofit-converter-scalars = { group = "com.squareup.retrofit2", name = "converter-scalars", version.ref = "retrofit" }
 retrofit-converter-gson = { group = "com.squareup.retrofit2", name = "converter-gson", version.ref = "retrofit" }
+retrofit-converter-moshi = { group = "com.squareup.retrofit2", name = "converter-moshi", version.ref = "retrofit" }
 
 # OkHttp
 okhttp-core = { group = "com.squareup.okhttp3", name = "okhttp", version.ref = "okhttp" }
@@ -65,6 +67,10 @@ koin-androidx-compose = { group = "io.insert-koin", name = "koin-androidx-compos
 
 # Time4A
 time4j-android = { group = "net.time4j", name = "time4j-android", version.ref = "time4j" }
+
+# Moshi
+moshi-core = { group = "com.squareup.moshi", name = "moshi", version.ref = "moshi" }
+moshi-kotlin = { group = "com.squareup.moshi", name = "moshi-kotlin", version.ref = "moshi" }
 
 androidx-foundation = { group = "androidx.compose.foundation", name = "foundation" }
 

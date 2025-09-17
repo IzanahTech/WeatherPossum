@@ -75,8 +75,13 @@ dependencies {
     implementation(libs.retrofit.core)
     implementation(libs.retrofit.converter.scalars)
     implementation(libs.retrofit.converter.gson)
+    implementation(libs.retrofit.converter.moshi)
     implementation(libs.okhttp.core)
     implementation(libs.okhttp.logging.interceptor)
+    
+    // Moshi
+    implementation(libs.moshi.core)
+    implementation(libs.moshi.kotlin)
     
     // Lottie for animations
     implementation(libs.lottie.compose)
