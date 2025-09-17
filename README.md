@@ -1,6 +1,6 @@
-# WeatherPossum
+# 🌤️ WeatherPossum
 
-A beautiful, modern Android weather application built with Jetpack Compose, featuring accurate astronomical calculations and comprehensive weather information for Dominica and the Caribbean region.
+A beautiful, modern Android weather application built with Jetpack Compose, featuring accurate astronomical calculations, comprehensive weather information for Dominica and the Caribbean region, and **in-app updates via GitHub Releases**.
 
 ![WeatherPossum](https://img.shields.io/badge/Android-WeatherPossum-green?style=for-the-badge&logo=android)
 ![Kotlin](https://img.shields.io/badge/Kotlin-1.9.23-blue?style=for-the-badge&logo=kotlin)
@@ -28,6 +28,13 @@ A beautiful, modern Android weather application built with Jetpack Compose, feat
 - **Formation Chances** - Probability indicators for tropical development
 - **Eastern Tropical Atlantic** - Regional tropical weather analysis
 
+### 🔄 In-App Updates
+- **Fully Automatic** - Runs silently in background on app launch
+- **Zero Configuration** - No user setup or manual controls required
+- **Silent Operation** - Only alerts user when update is actually available
+- **Secure Downloads** - SHA256 checksum verification and certificate validation
+- **Seamless Experience** - Clean update dialog with minimal user interaction
+
 ### 🎨 Modern UI/UX
 - **Dynamic Color Themes** - Greeting cards that change colors based on daylight percentage
 - **Smooth Animations** - Lottie animations for weather conditions
@@ -53,22 +60,23 @@ A beautiful, modern Android weather application built with Jetpack Compose, feat
 - **Astronomical Calculations**: Time4A 4.8-2021a
 - **Data Persistence**: DataStore Preferences
 - **Animations**: Lottie Compose 6.4.0
+- **JSON Parsing**: Moshi 1.15.0
 
 ### Project Structure
 ```
 app/src/main/java/com/weatherpossum/app/
 ├── data/
-│   ├── api/              # Network API interfaces
+│   ├── api/              # Network API interfaces (including GitHub API)
 │   ├── model/            # Data models
 │   ├── parser/           # HTML parsing logic
 │   └── repository/       # Data repositories
 ├── presentation/
-│   ├── components/       # Reusable UI components
+│   ├── components/       # Reusable UI components (including UpdateSheet)
 │   └── *.kt             # Screen composables
 ├── ui/
 │   ├── theme/           # App theming
-│   └── viewmodel/       # ViewModels
-├── util/                # Utility classes
+│   └── viewmodel/       # ViewModels (including UpdateViewModel)
+├── util/                # Utility classes (including InAppUpdater)
 └── di/                  # Dependency injection
 ```
 
@@ -83,7 +91,7 @@ app/src/main/java/com/weatherpossum/app/
 
 1. **Clone the repository**
    ```bash
-   git clone https://github.com/yourusername/WeatherPossum.git
+   git clone https://github.com/IzanahTech/WeatherPossum.git
    cd WeatherPossum
    ```
 
@@ -106,13 +114,25 @@ app/src/main/java/com/weatherpossum/app/
 - **Min SDK**: 31 (Android 12)
 - **Java Version**: 17
 
+## 🔄 In-App Updates
+
+WeatherPossum includes a complete in-app updater system that allows users to update the app independently of the Play Store.
+
+### How It Works
+1. **Automatic Check** - App silently checks for updates on launch (2-second delay)
+2. **Background Processing** - Runs without user awareness or performance impact
+3. **Silent Result** - No update = no user notification
+4. **Update Available** - Shows clean dialog with "Update Now" or "Later" options
+5. **Secure Installation** - Handles download, verification, and installation automatically
+
+### For Developers
+- **Release Script** - Use `./create_release.sh` to create releases with proper files
+- **Documentation** - See [IN_APP_UPDATER.md](IN_APP_UPDATER.md) for detailed implementation
+- **Repository** - Configured for `IzanahTech/WeatherPossum` repository
+
 ## 📱 Screenshots
 
-<img width="1080" height="2400" alt="Screenshot_20250917_100914" src="https://github.com/user-attachments/assets/a14cea56-6609-4d5d-a54e-d8a2d2c445fe" />
-<img width="1080" height="2400" alt="Screenshot_20250917_100906" src="https://github.com/user-attachments/assets/3944ad1b-4311-44b3-81cd-3c1df1666bd8" />
-<img width="1080" height="2400" alt="Screenshot_20250917_100852" src="https://github.com/user-attachments/assets/73f21c0f-82d7-4036-ac4e-334353ce7957" />
-<img width="1080" height="2400" alt="Screenshot_20250917_100839" src="https://github.com/user-attachments/assets/33fbb7b2-b118-4874-8f08-a8b991ef823d" />
-
+*Screenshots would go here showing the app's beautiful UI*
 
 ## 🔧 Configuration
 
@@ -162,6 +182,7 @@ The app fetches weather data from:
 - **Retrofit** 2.11.0 - HTTP client
 - **OkHttp** 4.12.0 - HTTP transport
 - **JSoup** 1.17.2 - HTML parsing
+- **Moshi** 1.15.0 - JSON parsing
 
 ### Utility Dependencies
 - **Time4A** 4.8-2021a - Astronomical calculations
@@ -170,7 +191,7 @@ The app fetches weather data from:
 
 ## 🤝 Contributing
 
-Feel free to contribute towards this project however you can. 
+We welcome contributions! Please follow these guidelines:
 
 ### Development Setup
 1. Fork the repository
@@ -208,8 +229,11 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - **Jetpack Compose Team** for the amazing UI framework
 - **Material Design Team** for design guidelines
 
+## 📞 Support
 
-1. Check the [Issues](https://github.com/yourusername/WeatherPossum/issues) page
+If you encounter any issues or have questions:
+
+1. Check the [Issues](https://github.com/IzanahTech/WeatherPossum/issues) page
 2. Create a new issue with detailed information
 3. Include device information and error logs
 
@@ -222,15 +246,17 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - [ ] Dark mode improvements
 - [ ] Weather radar integration
 - [ ] Historical weather data
+- [ ] Delta updates for smaller downloads
 
 ### Version History
 - **v1.0.0** - Initial release with core weather features
 - **v1.1.0** - Added moon phase calculations
 - **v1.2.0** - Enhanced hurricane tracking
 - **v1.3.0** - UI/UX improvements and accessibility
+- **v1.4.0** - In-app updater with GitHub Releases integration
 
 ---
 
 **Made with ❤️ for Dominica and the Caribbean**
 
-*WeatherPossum - Your trusted weather companion*
+*WeatherPossum - Your trusted weather companion with seamless updates*

@@ -12,8 +12,9 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 /**
- * ViewModel for managing app update functionality
- * Handles checking for updates, downloading, and installing new versions
+ * ViewModel for managing automatic app update functionality
+ * Handles background checking for updates, downloading, and installing new versions
+ * Runs silently in the background and only alerts user when update is available
  */
 class UpdateViewModel(
     private val owner: String = "IzanahTech",
@@ -31,11 +32,18 @@ class UpdateViewModel(
         
     var error by mutableStateOf<String?>(null)
         private set
+        
+    var hasChecked by mutableStateOf(false)
+        private set
 
     /**
-     * Check for available updates on GitHub
+     * Automatically check for available updates in the background
+     * Only shows update dialog if a newer version is found
      */
-    fun check(context: Context) = viewModelScope.launch {
+    fun checkForUpdates(context: Context) = viewModelScope.launch {
+        if (hasChecked) return@launch // Prevent multiple simultaneous checks
+        
+        hasChecked = true
         runCatching {
             val cand = InAppUpdater.checkLatest(context, owner, repo)
             if (cand != null && InAppUpdater.isNewerThanInstalled(context, cand.tag)) {
@@ -44,6 +52,7 @@ class UpdateViewModel(
                 candidate = null
             }
         }.onFailure { 
+            // Silently handle errors - don't show to user unless critical
             error = it.message
         }
     }
@@ -84,16 +93,24 @@ class UpdateViewModel(
     }
 
     /**
-     * Clear any error state
+     * Clear any error state (for retry scenarios)
      */
     fun clearError() {
         error = null
     }
 
     /**
-     * Dismiss the update candidate
+     * Dismiss the update candidate (user chose "Later")
      */
     fun dismissUpdate() {
         candidate = null
+    }
+    
+    /**
+     * Reset the check state to allow re-checking (useful for retry scenarios)
+     */
+    fun resetCheckState() {
+        hasChecked = false
+        error = null
     }
 }

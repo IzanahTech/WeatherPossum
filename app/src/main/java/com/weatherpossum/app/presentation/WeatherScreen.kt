@@ -42,6 +42,7 @@ import com.weatherpossum.app.presentation.components.GreetingCard
 import androidx.compose.ui.platform.LocalContext
 import com.weatherpossum.app.presentation.components.UpdateSheetWithContext
 import com.weatherpossum.app.ui.viewmodel.UpdateViewModel
+import kotlinx.coroutines.delay
 
 @OptIn(
     ExperimentalMaterial3Api::class,
@@ -141,9 +142,12 @@ fun WeatherScreen(
         }
     }
     
-    // Check for updates on app launch
+    // Automatically check for updates in the background on app launch
+    // Only shows dialog if update is available - completely silent otherwise
     LaunchedEffect(Unit) {
-        updateViewModel.check(context)
+        // Add a small delay to ensure app is fully loaded before checking
+        kotlinx.coroutines.delay(2000)
+        updateViewModel.checkForUpdates(context)
     }
     
     // Show update dialog if available

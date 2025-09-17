@@ -106,72 +106,188 @@ The updater requires these permissions:
 5. **Verify Signature** - Ensure certificate matches installed app
 6. **Install APK** - Launch system installer with user permission
 
-## 🎨 UI Components
+# 🔄 Automatic In-App Updater Implementation
 
-### UpdateSheet
+WeatherPossum includes a **fully automatic** in-app updater system that runs silently in the background and only alerts users when updates are available.
 
-The update dialog displays:
-- **Version Information** - New version name and tag
-- **Release Notes** - Changelog from GitHub release
-- **Progress Indicators** - Download and verification status
-- **Error Handling** - Clear error messages for failed operations
+## ✨ Features
 
-### User Experience
+- **🔄 Fully Automatic** - Runs silently in background on app launch
+- **🔕 Silent Operation** - No user interaction required unless update is available
+- **🛡️ Secure Downloads** - SHA256 checksum verification and certificate validation
+- **🎯 User-Friendly** - Clean update dialog only appears when needed
+- **⚡ Background Processing** - No impact on app performance or user experience
 
-- **Non-blocking** - Users can dismiss and continue using the app
-- **Progress Feedback** - Clear indication of download/verification progress
-- **Error Recovery** - Graceful handling of network or verification failures
+## 🏗️ Architecture
+
+### Automatic Operation Flow
+
+1. **App Launch** → Silent background check (2-second delay)
+2. **GitHub API** → Fetch latest release information
+3. **Version Comparison** → Determine if update needed
+4. **Silent Result** → No update = no user notification
+5. **Update Available** → Show clean dialog with options
+6. **User Choice** → "Update Now" or "Later"
+
+### Key Components
+
+1. **UpdateViewModel** - Automatic state management with `checkForUpdates()`
+2. **InAppUpdater** - Core updater logic with download and verification
+3. **UpdateSheet** - Clean dialog that only appears when update is available
+4. **WeatherScreen Integration** - Automatic launch-time checking
+
+## 📱 User Experience
+
+### Silent Operation
+- **No Manual Controls** - No buttons or settings for update checking
+- **Background Processing** - Runs automatically without user awareness
+- **No Performance Impact** - Minimal resource usage during checks
+- **Error Handling** - Silent error handling for network issues
+
+### Update Dialog
+- **Only When Needed** - Dialog only appears if update is available
+- **Clear Information** - Shows version, release notes, and progress
+- **Simple Choices** - "Update Now" or "Later" options
+- **Progress Feedback** - Clear indication during download/installation
+
+## 🔧 Implementation Details
+
+### Automatic Check Timing
+```kotlin
+// In WeatherScreen - runs automatically on app launch
+LaunchedEffect(Unit) {
+    kotlinx.coroutines.delay(2000) // Wait for app to fully load
+    updateViewModel.checkForUpdates(context)
+}
+```
+
+### Silent Error Handling
+```kotlin
+// Errors are handled silently - no user notification unless critical
+runCatching {
+    val cand = InAppUpdater.checkLatest(context, owner, repo)
+    // ... update logic
+}.onFailure { 
+    // Silently handle errors - don't show to user unless critical
+    error = it.message
+}
+```
+
+### State Management
+- **hasChecked** - Prevents multiple simultaneous checks
+- **candidate** - Only set when update is actually available
+- **downloading** - Tracks installation progress
+- **error** - Handles failures gracefully
+
+## 🛡️ Security Features
+
+### Automatic Verification
+- **SHA256 Verification** - Downloads and verifies checksums automatically
+- **Certificate Validation** - Ensures APK is signed by same developer
+- **FileProvider Security** - Secure file sharing for APK installation
+
+### Network Security
+- **HTTPS Downloads** - All downloads use encrypted connections
+- **Rate Limiting** - Respects GitHub API rate limits
+- **Error Recovery** - Graceful handling of network failures
 
 ## 🚀 Deployment
 
 ### Creating Releases
+The updater automatically detects releases with:
+1. **APK File** - The app's APK file
+2. **SHA256 File** (Optional) - Checksum file with `.sha256` extension
+3. **Release Notes** - Description of changes
 
-1. **Build APK** - Generate signed APK for release
-2. **Create Checksum** - Generate SHA256 file:
-   ```bash
-   sha256sum WeatherPossum-v1.2.0.apk > WeatherPossum-v1.2.0.apk.sha256
-   ```
-3. **Upload to GitHub** - Create release with APK and checksum files
-4. **Add Release Notes** - Include changelog and new features
+### Release Structure
+```
+v1.2.0/
+├── WeatherPossum-v1.2.0.apk
+├── WeatherPossum-v1.2.0.apk.sha256
+└── Release notes with changelog
+```
 
-### Testing Updates
+## 🔄 Update Process Flow
 
-1. **Install Test Version** - Install APK with lower version code
-2. **Create Release** - Upload newer version to GitHub
-3. **Test Update Flow** - Verify download, verification, and installation
+1. **App Launch** → Automatic background check (2s delay)
+2. **Silent Check** → Query GitHub API for latest release
+3. **Version Compare** → Determine if update is available
+4. **Silent Result** → No update = no user notification
+5. **Update Dialog** → Show only if update is available
+6. **User Choice** → "Update Now" or "Later"
+7. **Download & Verify** → Automatic download and verification
+8. **Install** → Launch system installer with user permission
+
+## 🎨 UI Components
+
+### UpdateSheet Features
+- **Conditional Display** - Only appears when update is available
+- **Clean Design** - Material Design 3 with clear information
+- **Progress Indicators** - Shows download and verification status
+- **Error Handling** - Clear error messages for failed operations
+
+### User Interaction
+- **Minimal Required** - Only "Update Now" or "Later" choices
+- **Non-blocking** - Users can dismiss and continue using app
+- **Progress Feedback** - Clear indication of installation progress
+
+## 🔧 Configuration
+
+### Repository Setup
+Configured for `IzanahTech/WeatherPossum` repository:
+```kotlin
+class UpdateViewModel(
+    private val owner: String = "IzanahTech",
+    private val repo: String = "WeatherPossum"
+)
+```
+
+### Timing Configuration
+- **Launch Delay** - 2 seconds after app start
+- **Single Check** - Prevents multiple simultaneous checks
+- **Error Recovery** - Silent handling of network issues
+
+## 🚀 Benefits
+
+### For Users
+- **Zero Configuration** - Works automatically without setup
+- **No Interruption** - Only notified when update is actually available
+- **Seamless Experience** - Minimal user interaction required
+- **Always Current** - Automatically keeps app up to date
+
+### For Developers
+- **No Manual Distribution** - Updates distributed via GitHub releases
+- **Automatic Verification** - Built-in security checks
+- **User-Friendly** - Clean, non-intrusive update experience
+- **Reliable** - Robust error handling and recovery
 
 ## 🔧 Troubleshooting
 
-### Common Issues
+### Common Scenarios
 
-**"Install unknown apps" permission required**
-- Android 8+ requires users to enable installation from your app
-- The updater automatically opens the permission settings
+**No Update Dialog Appears**
+- Check if newer version is actually available on GitHub
+- Verify repository configuration in UpdateViewModel
+- Check network connectivity
 
-**Checksum verification failed**
-- Ensure SHA256 file format matches: `hash filename`
-- Verify the checksum file was uploaded correctly
+**Update Dialog Appears Repeatedly**
+- User may have dismissed update multiple times
+- Check if installation was successful
+- Verify APK signature matches installed app
 
-**Signature verification failed**
-- Ensure APK is signed with the same certificate as installed app
-- Check that the signing configuration is consistent
-
-### Debug Information
-
-The updater provides detailed error messages for:
-- Network failures
-- Checksum mismatches
-- Signature verification failures
-- Installation permission issues
+**Silent Failures**
+- Network errors are handled silently
+- Check device connectivity
+- Verify GitHub API accessibility
 
 ## 📈 Future Enhancements
 
+- **Periodic Checks** - Check for updates periodically during app usage
+- **Smart Timing** - Check for updates at optimal times (WiFi, charging)
+- **Background Downloads** - Download updates in background when available
 - **Delta Updates** - Download only changed parts of the app
-- **Background Updates** - Download updates in background
-- **Rollback Support** - Ability to revert to previous version
-- **Update Scheduling** - Schedule updates for optimal times
-- **Bandwidth Management** - Pause/resume downloads
 
 ---
 
-**The in-app updater provides a seamless way to keep WeatherPossum users on the latest version with enhanced security and user experience.**
+**The automatic in-app updater provides a seamless, silent way to keep WeatherPossum users on the latest version with zero configuration required.**
+
