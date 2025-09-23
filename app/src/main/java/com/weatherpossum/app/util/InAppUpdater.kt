@@ -150,10 +150,10 @@ object InAppUpdater {
         )
         
         val current = if (Build.VERSION.SDK_INT >= 28)
-            installed.signingInfo.apkContentsSigners.map { it.toCharsString() }.toSet()
+            installed.signingInfo?.apkContentsSigners?.map { it.toCharsString() }?.toSet() ?: emptySet()
         else 
             @Suppress("DEPRECATION")
-            installed.signatures.map { it.toCharsString() }.toSet()
+            installed.signatures?.map { it.toCharsString() }?.toSet() ?: emptySet()
 
         val archive = pm.getPackageArchiveInfo(
             apkFile.path,
@@ -161,10 +161,10 @@ object InAppUpdater {
         ) ?: return false
         
         val update = if (Build.VERSION.SDK_INT >= 28)
-            archive.signingInfo.apkContentsSigners.map { it.toCharsString() }.toSet()
+            archive.signingInfo?.apkContentsSigners?.map { it.toCharsString() }?.toSet() ?: emptySet()
         else 
             @Suppress("DEPRECATION")
-            archive.signatures.map { it.toCharsString() }.toSet()
+            archive.signatures?.map { it.toCharsString() }?.toSet() ?: emptySet()
 
         return current.intersect(update).isNotEmpty()
     }

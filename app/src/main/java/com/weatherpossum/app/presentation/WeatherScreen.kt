@@ -30,6 +30,9 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.airbnb.lottie.compose.*
+import org.koin.androidx.compose.koinViewModel
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.CoroutineScope
 import com.weatherpossum.app.R
 import com.weatherpossum.app.data.model.WeatherCard
 import com.weatherpossum.app.presentation.components.PillNavBar
