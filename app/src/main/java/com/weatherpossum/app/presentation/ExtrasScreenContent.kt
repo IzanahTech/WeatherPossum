@@ -116,31 +116,11 @@ fun ExtrasScreenContent(
         // ───────────────────────────────────────────────────────────────────
         when (val state = hurricaneState) {
             is HurricaneUiState.Success -> {
-                val activeStorms = state.hurricaneData.activeStorms
                 val tropicalOutlook = state.hurricaneData.tropicalOutlook
 
                 when {
-                    activeStorms.isNotEmpty() && !tropicalOutlook.isNullOrBlank() -> {
-                        // Show both active storms and outlook
-                        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                            HurricaneActiveCard(
-                                count = activeStorms.size,
-                                storms = activeStorms.map { it.displayName to it.categoryDescription }
-                            )
-                            HurricaneOutlookCard(
-                                outlook = parseMarkdownText(tropicalOutlook)
-                            )
-                        }
-                    }
-                    activeStorms.isNotEmpty() -> {
-                        // Show only active storms
-                        HurricaneActiveCard(
-                            count = activeStorms.size,
-                            storms = activeStorms.map { it.displayName to it.categoryDescription }
-                        )
-                    }
                     !tropicalOutlook.isNullOrBlank() -> {
-                        // Show only outlook
+                        // Show only the outlook card (which includes active systems)
                         HurricaneOutlookCard(
                             outlook = parseMarkdownText(tropicalOutlook)
                         )
