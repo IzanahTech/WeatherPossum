@@ -377,6 +377,13 @@ private fun HurricaneOutlookCard(outlook: AnnotatedString) {
     // Parse individual systems from the outlook text
     val individualSystems = parseIndividualSystems(outlookText)
     
+    // Debug: Log the outlook text and parsed systems
+    android.util.Log.d("HurricaneOutlook", "Outlook text: $outlookText")
+    android.util.Log.d("HurricaneOutlook", "Parsed ${individualSystems.size} individual systems")
+    individualSystems.forEach { system ->
+        android.util.Log.d("HurricaneOutlook", "System: ${system.title} - ${system.formationChances.size} formation chances")
+    }
+    
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(22.dp),
@@ -609,8 +616,8 @@ private fun HurricaneNeutralCard() {
 private fun parseIndividualSystems(text: String): List<HurricaneSystem> {
     val systems = mutableListOf<HurricaneSystem>()
     
-    // Parse Active Systems section
-    val activeSystemsRegex = Regex("Active Systems:(.*?)(?=Central and Western Tropical Atlantic|Eastern Tropical Atlantic|East of the Leeward Islands|\\$\\$|$)", RegexOption.DOT_MATCHES_ALL)
+    // Parse Active Systems section - more flexible pattern
+    val activeSystemsRegex = Regex("Active Systems:(.*?)(?=Eastern Tropical Atlantic|Central and Western Tropical Atlantic|East of the Leeward Islands|\\$\\$|$)", RegexOption.DOT_MATCHES_ALL)
     val activeMatch = activeSystemsRegex.find(text)
     if (activeMatch != null) {
         val activeContent = activeMatch.groupValues[1].trim()
@@ -624,7 +631,7 @@ private fun parseIndividualSystems(text: String): List<HurricaneSystem> {
     }
     
     // Parse Eastern Tropical Atlantic section
-    val easternRegex = Regex("Eastern Tropical Atlantic:(.*?)(?=\\$\\$|$)", RegexOption.DOT_MATCHES_ALL)
+    val easternRegex = Regex("Eastern Tropical Atlantic:(.*?)(?=Central and Western Tropical Atlantic|East of the Leeward Islands|\\$\\$|$)", RegexOption.DOT_MATCHES_ALL)
     val easternMatch = easternRegex.find(text)
     if (easternMatch != null) {
         val easternContent = easternMatch.groupValues[1].trim()
@@ -639,7 +646,7 @@ private fun parseIndividualSystems(text: String): List<HurricaneSystem> {
     }
     
     // Parse Central and Western Tropical Atlantic section
-    val centralRegex = Regex("Central and Western Tropical Atlantic:(.*?)(?=Eastern Tropical Atlantic|\\$\\$|$)", RegexOption.DOT_MATCHES_ALL)
+    val centralRegex = Regex("Central and Western Tropical Atlantic:(.*?)(?=Eastern Tropical Atlantic|East of the Leeward Islands|\\$\\$|$)", RegexOption.DOT_MATCHES_ALL)
     val centralMatch = centralRegex.find(text)
     if (centralMatch != null) {
         val centralContent = centralMatch.groupValues[1].trim()
@@ -663,6 +670,24 @@ private fun parseIndividualSystems(text: String): List<HurricaneSystem> {
             systems.add(HurricaneSystem(
                 title = "East of the Leeward Islands",
                 content = leewardContent,
+                formationChances = formationChances
+            ))
+        }
+    }
+    
+    // If no structured sections found, try to parse numbered items (1., 2., etc.)
+    if (systems.isEmpty()) {
+        val numberedItems = Regex("(\\d+\\.\\s+.*?)(?=\\d+\\.|\\$\\$|$)", RegexOption.DOT_MATCHES_ALL)
+            .findAll(text)
+            .map { it.groupValues[1].trim() }
+            .filter { it.isNotBlank() }
+            .toList()
+        
+        numberedItems.forEachIndexed { index, item ->
+            val formationChances = parseFormationChancesForSystem(item)
+            systems.add(HurricaneSystem(
+                title = "System ${index + 1}",
+                content = item,
                 formationChances = formationChances
             ))
         }
