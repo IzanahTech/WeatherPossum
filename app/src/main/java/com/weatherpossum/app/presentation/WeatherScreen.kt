@@ -45,10 +45,8 @@ import com.weatherpossum.app.presentation.components.GreetingCard
 import androidx.compose.ui.platform.LocalContext
 import com.weatherpossum.app.presentation.components.UpdateSheetWithContext
 import com.weatherpossum.app.ui.viewmodel.UpdateViewModel
-import kotlinx.coroutines.delay
 
 @OptIn(
-    ExperimentalMaterial3Api::class,
     ExperimentalFoundationApi::class,
     ExperimentalMaterialApi::class
 )
