@@ -44,6 +44,7 @@ object InAppUpdater {
      * @param universalNameHint Hint to prefer universal APK (default: "universal")
      * @return UpdateCandidate if a newer version is available, null otherwise
      */
+    @Suppress("UNUSED_PARAMETER")
     suspend fun checkLatest(
         context: Context,
         owner: String,
@@ -80,12 +81,13 @@ object InAppUpdater {
      * For simplicity, this always returns true (treats latest as newer)
      * In production, you'd want to implement proper semantic version comparison
      */
+    @Suppress("UNUSED_PARAMETER", "UNUSED_VARIABLE")
     fun isNewerThanInstalled(context: Context, tagOrSemver: String): Boolean {
         val pm = context.packageManager
         val pinfo = pm.getPackageInfo(context.packageName, 0)
-        val localCode = if (Build.VERSION.SDK_INT >= 28) 
-            pinfo.longVersionCode 
-        else 
+        val localCode = if (Build.VERSION.SDK_INT >= 28)
+            pinfo.longVersionCode
+        else
             @Suppress("DEPRECATION") pinfo.versionCode.toLong()
         
         // For a quick start, assume tags monotonically increase and always treat latest as newer
@@ -174,7 +176,7 @@ object InAppUpdater {
         val uri = FileProvider.getUriForFile(
             context, "${context.packageName}.fileprovider", apk
         )
-        val intent = Intent(Intent.ACTION_INSTALL_PACKAGE).apply {
+        val intent = Intent(Intent.ACTION_VIEW).apply {
             data = uri
             flags = Intent.FLAG_GRANT_READ_URI_PERMISSION
             putExtra(Intent.EXTRA_RETURN_RESULT, true)
