@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html>
+<head><title>Atlantic Tropical Weather Outlook</title></head>
+<body>
+<p>800 AM EDT Tue Sep 23 2025</p>
+<p>For the North Atlantic...Caribbean Sea and the Gulf of Mexico:</p>
+<p>Active Systems:</p>
+<p>The National Hurricane Center is issuing advisories on Hurricane Franklin, located over the western Atlantic.</p>
+<p>Eastern Tropical Atlantic:</p>
+<p>1. A tropical wave is located over the eastern tropical Atlantic. Environmental conditions are marginally conducive for development. Formation chance through 48 hours...low...10 percent. Formation chance through 7 days...medium...40 percent.</p>
+<p>2. Another area of low pressure is expected to form over the central tropical Atlantic. Development is possible. Formation chance through 48 hours...medium...30 percent. Formation chance through 7 days...high...70 percent.</p>
+<p>$$</p>
+<p>Forecaster Blake</p>
+</body>
+</html>

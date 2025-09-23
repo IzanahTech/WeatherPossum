@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html>
+<head><title>Atlantic Tropical Weather Outlook</title></head>
+<body>
+<p>800 AM EDT Thu Sep 25 2025</p>
+<p>For the North Atlantic...Caribbean Sea and the Gulf of Mexico:</p>
+<p>Active Systems:</p>
+<p>None at this time.</p>
+<p>Eastern Tropical Atlantic:</p>
+<p>1. A tropical wave is moving westward across the eastern tropical Atlantic. Some gradual development is possible. Formation chance through 48 hours...low...20 percent. Formation chance through 7 days...medium...50 percent.</p>
+<p>2. An area of disturbed weather is located over the central tropical Atlantic. Development is unlikely. Formation chance through 48 hours...low...near 0 percent. Formation chance through 7 days...low...10 percent.</p>
+<p>$$</p>
+<p>Forecaster Smith</p>
+</body>
+</html>

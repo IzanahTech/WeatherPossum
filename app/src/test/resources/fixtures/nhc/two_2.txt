@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<html>
+<head><title>Atlantic Tropical Weather Outlook</title></head>
+<body>
+<p>200 PM EDT Wed Sep 24 2025</p>
+<p>For the North Atlantic...Caribbean Sea and the Gulf of Mexico:</p>
+<p>Active Systems:</p>
+<p>The National Hurricane Center is issuing advisories on Tropical Storm Gert, located over the central Atlantic.</p>
+<p>Eastern Tropical Atlantic:</p>
+<p>1. A broad area of low pressure is located several hundred miles west of the Cabo Verde Islands. Environmental conditions are becoming more favorable for development. Formation chance through 48 hours...medium...50 percent. Formation chance through 7 days...high...80 percent.</p>
+<p>$$</p>
+<p>Forecaster Brown</p>
+</body>
+</html>

@@ -1,0 +1,20 @@
+{
+  "activeStorms": [
+    {
+      "id": "AL012024",
+      "name": "Franklin",
+      "basin": "AL",
+      "adv": "15",
+      "stormType": "Hurricane",
+      "productLink": "https://www.nhc.noaa.gov/text/refresh/MIATCPAT2+shtml/012345.shtml"
+    },
+    {
+      "id": "AL022024",
+      "name": "Gert",
+      "basin": "AL",
+      "adv": "8",
+      "stormType": "Tropical Storm",
+      "productLink": "https://www.nhc.noaa.gov/text/refresh/MIATCPAT2+shtml/022345.shtml"
+    }
+  ]
+}
