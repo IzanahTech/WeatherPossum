@@ -199,6 +199,101 @@ object InAppUpdater {
     }
 
     /**
+     * Install an APK file and relaunch the app after successful installation
+     * This method handles the installation process and automatically restarts the app
+     */
+    fun installApkAndRelaunch(context: Context, apk: File) {
+        val uri = FileProvider.getUriForFile(
+            context, "${context.packageName}.fileprovider", apk
+        )
+        
+        // Ensure user has allowed "Install unknown apps" for your app
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O &&
+            !context.packageManager.canRequestPackageInstalls()
+        ) {
+            context.startActivity(Intent(
+                Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES,
+                Uri.parse("package:${context.packageName}")
+            ))
+            return
+        }
+        
+        // Create intent for installation
+        val installIntent = Intent(Intent.ACTION_VIEW).apply {
+            data = uri
+            flags = Intent.FLAG_GRANT_READ_URI_PERMISSION
+            putExtra(Intent.EXTRA_RETURN_RESULT, true)
+        }
+        
+        // Start installation and set up relaunch mechanism
+        try {
+            // For Android 11+ (API 30+), we can use a more direct approach
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                // Use the new package installer API
+                val packageInstaller = context.packageManager.packageInstaller
+                val sessionParams = android.content.pm.PackageInstaller.SessionParams(
+                    android.content.pm.PackageInstaller.SessionParams.MODE_FULL_INSTALL
+                )
+                sessionParams.setAppPackageName(context.packageName)
+                
+                val sessionId = packageInstaller.createSession(sessionParams)
+                val session = packageInstaller.openSession(sessionId)
+                
+                // Copy APK to session
+                apk.inputStream().use { input ->
+                    session.openWrite("package", 0, -1).use { output ->
+                        input.copyTo(output)
+                    }
+                }
+                
+                // Create intent for relaunch
+                val relaunchIntent = Intent(context, context.javaClass).apply {
+                    flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+                }
+                val pendingIntent = android.app.PendingIntent.getActivity(
+                    context, 0, relaunchIntent, 
+                    android.app.PendingIntent.FLAG_UPDATE_CURRENT or android.app.PendingIntent.FLAG_IMMUTABLE
+                )
+                
+                // Commit the session with relaunch intent
+                session.commit(pendingIntent.intentSender)
+                session.close()
+                
+                // Close the current app
+                (context as? android.app.Activity)?.finishAffinity()
+            } else {
+                // Fallback for older Android versions
+                context.startActivity(installIntent)
+                
+                // Schedule relaunch after a delay (less reliable but works on older versions)
+                android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
+                    relaunchApp(context)
+                }, 5000) // 5 second delay to allow installation to complete
+            }
+        } catch (e: Exception) {
+            // Fallback to simple installation if advanced method fails
+            context.startActivity(installIntent)
+        }
+    }
+    
+    /**
+     * Relaunch the app after update installation
+     */
+    private fun relaunchApp(context: Context) {
+        try {
+            val packageManager = context.packageManager
+            val intent = packageManager.getLaunchIntentForPackage(context.packageName)
+            intent?.let {
+                it.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK)
+                context.startActivity(it)
+            }
+        } catch (e: Exception) {
+            // If relaunch fails, at least the app will be updated
+            // User can manually open the app
+        }
+    }
+
+    /**
      * Create GitHub API instance with Moshi converter
      */
     private fun provideGitHubApi(): GitHubApi {

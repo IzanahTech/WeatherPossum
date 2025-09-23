@@ -82,7 +82,7 @@ class UpdateViewModel(
             require(InAppUpdater.isSignedBySameCert(context, apk)) { "Signature mismatch" }
 
             withContext(Dispatchers.Main) {
-                InAppUpdater.installApk(context, apk)
+                InAppUpdater.installApkAndRelaunch(context, apk)
             }
         }.onFailure { e ->
             error = e.message
