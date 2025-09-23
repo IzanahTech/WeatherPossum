@@ -10,6 +10,8 @@ import kotlinx.coroutines.delay
 import org.jsoup.Jsoup
 import org.jsoup.nodes.Document
 import com.weatherpossum.app.data.parser.DominicaWeatherParser
+import com.weatherpossum.app.data.parser.DMOForecastParser
+import com.weatherpossum.app.data.parser.ForecastSection
 
 private const val TAG = "WeatherRepository"
 private const val CACHE_DURATION_MILLIS = 30 * 60 * 1000L // 30 minutes
@@ -93,19 +95,24 @@ class WeatherRepository(
         val cards = mutableListOf<WeatherCard>()
         
         try {
-            // Use the specialized Dominica weather parser
+            // New robust parser call
+            val dmo = DMOForecastParser.parse(doc.html())
+
+            // Decide display title based on section
+            val forecastTitle = when (dmo.section) {
+                is ForecastSection.TODAY_TONIGHT -> "Forecast for Today & Tonight"
+                is ForecastSection.TODAY -> "Forecast for Today"
+                is ForecastSection.TONIGHT -> "Forecast for Tonight"
+                is ForecastSection.TOMORROW -> "Forecast for Tomorrow"
+                is ForecastSection.TWENTY_FOUR_HOURS -> "Forecast for the Next 24 Hours"
+                is ForecastSection.UNKNOWN -> dmo.titleRaw.ifBlank { "Forecast" }
+            }
+
+            // Add the forecast card with the new parser
+            cards.add(WeatherCard(forecastTitle, dmo.body))
+            
+            // Use the specialized Dominica weather parser for other data
             val parsedData = DominicaWeatherParser.parseDominicaArticleBody(doc.html())
-            
-            // Convert parsed data to WeatherCard objects
-            parsedData.forecastTonight?.let { content ->
-                val title = parsedData.forecastTonightTitle ?: "Forecast for Tonight"
-                cards.add(WeatherCard(title, content))
-            }
-            
-            parsedData.forecastTomorrow?.let { content ->
-                val title = parsedData.forecastTomorrowTitle ?: "Forecast for Tomorrow"
-                cards.add(WeatherCard(title, content))
-            }
             
             parsedData.synopsis?.let { 
                 cards.add(WeatherCard("Synopsis", it))

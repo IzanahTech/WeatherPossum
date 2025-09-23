@@ -51,6 +51,7 @@ object InAppUpdater {
         repo: String,
         universalNameHint: String = "universal"
     ): UpdateCandidate? {
+        // Note: context parameter kept for future use (e.g., package info, preferences)
         val api = provideGitHubApi()
         val rel = api.latestRelease(owner, repo)
 
@@ -85,13 +86,15 @@ object InAppUpdater {
     fun isNewerThanInstalled(context: Context, tagOrSemver: String): Boolean {
         val pm = context.packageManager
         val pinfo = pm.getPackageInfo(context.packageName, 0)
-        val localCode = if (Build.VERSION.SDK_INT >= 28)
-            pinfo.longVersionCode
-        else
+        // Note: localCode and tagOrSemver kept for future semantic version comparison
+        val localCode = if (Build.VERSION.SDK_INT >= 28) 
+            pinfo.longVersionCode 
+        else 
             @Suppress("DEPRECATION") pinfo.versionCode.toLong()
         
         // For a quick start, assume tags monotonically increase and always treat latest as newer
         // In production, implement proper semantic version parsing and comparison
+        // TODO: Use tagOrSemver and localCode for proper version comparison
         return true
     }
 

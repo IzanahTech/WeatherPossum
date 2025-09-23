@@ -417,69 +417,25 @@ private fun HurricaneOutlookCard(outlook: AnnotatedString) {
                             onColor = on
                         )
                     }
-                }
-            }
-        }
-    }
-}
-
-/* ========================================================================== */
-/*  HURRICANE SYSTEM CONTAINER - Individual system with formation chances    */
-/* ========================================================================== */
-
-data class HurricaneSystem(
-    val title: String,
-    val content: String,
-    val formationChances: List<Pair<String, String>>
-)
-
-@Composable
-private fun HurricaneSystemContainer(
-    system: HurricaneSystem,
-    onColor: Color
-) {
-    Surface(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 6.dp),
-        shape = RoundedCornerShape(16.dp),
-        color = Color.White.copy(alpha = 0.10f),
-        tonalElevation = 2.dp
-    ) {
-        Column(Modifier.padding(16.dp)) {
-            // System title
-            Text(
-                text = system.title,
-                fontSize = 18.sp,
-                fontWeight = FontWeight.Bold,
-                color = onColor,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
-            
-            Spacer(Modifier.height(8.dp))
-            HorizontalDivider(color = onColor.copy(alpha = 0.12f))
-            Spacer(Modifier.height(8.dp))
-            
-            // System content (remove formation chances since they're shown in pills)
-            val cleanContent = if (system.formationChances.isNotEmpty()) {
-                removeFormationChancesFromText(system.content)
-            } else {
-                system.content
-            }
-            Text(
-                text = cleanContent,
-                color = onColor.copy(alpha = 0.98f),
-                fontSize = 14.sp,
-                lineHeight = 20.sp
-            )
-            
-            // Formation chances in pill containers
-            if (system.formationChances.isNotEmpty()) {
-                Spacer(Modifier.height(12.dp))
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    system.formationChances.forEach { (label, value) ->
-                        Pill(label = label, value = value, onColor = onColor)
+                    
+                    // Fallback: Show original sections if no individual systems found
+                    if (individualSystems.isEmpty()) {
+                        if (activeSystems.isNotBlank()) {
+                            HurricaneSectionBlock(
+                                title = "Active Systems",
+                                content = activeSystems,
+                                onColor = on
+                            )
+                        }
+                        
+                        if (easternTropical.isNotBlank()) {
+                            HurricaneSectionBlock(
+                                title = "Eastern Tropical Atlantic",
+                                content = easternTropical,
+                                onColor = on,
+                                formationChances = formationChances
+                            )
+                        }
                     }
                 }
             }
@@ -583,6 +539,70 @@ private fun HurricaneNeutralCard() {
 }
 
 /* ========================================================================== */
+/*  HURRICANE SYSTEM CONTAINER - Individual system with formation chances    */
+/* ========================================================================== */
+
+data class HurricaneSystem(
+    val title: String,
+    val content: String,
+    val formationChances: List<Pair<String, String>>
+)
+
+@Composable
+private fun HurricaneSystemContainer(
+    system: HurricaneSystem,
+    onColor: Color
+) {
+    Surface(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 6.dp),
+        shape = RoundedCornerShape(16.dp),
+        color = Color.White.copy(alpha = 0.10f),
+        tonalElevation = 2.dp
+    ) {
+        Column(Modifier.padding(16.dp)) {
+            // System title
+            Text(
+                text = system.title,
+                fontSize = 18.sp,
+                fontWeight = FontWeight.Bold,
+                color = onColor,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+
+            Spacer(Modifier.height(8.dp))
+            HorizontalDivider(color = onColor.copy(alpha = 0.12f))
+            Spacer(Modifier.height(8.dp))
+
+            // System content (remove formation chances since they're shown in pills)
+            val cleanContent = if (system.formationChances.isNotEmpty()) {
+                removeFormationChancesFromText(system.content)
+            } else {
+                system.content
+            }
+            Text(
+                text = cleanContent,
+                color = onColor.copy(alpha = 0.98f),
+                fontSize = 14.sp,
+                lineHeight = 20.sp
+            )
+            
+            // Formation chances in pill containers
+            if (system.formationChances.isNotEmpty()) {
+                Spacer(Modifier.height(12.dp))
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    system.formationChances.forEach { (label, value) ->
+                        Pill(label = label, value = value, onColor = onColor)
+                    }
+                }
+            }
+        }
+    }
+}
+
+/* ========================================================================== */
 /*  HELPER FUNCTIONS                                                          */
 /* ========================================================================== */
 
@@ -603,12 +623,42 @@ private fun parseIndividualSystems(text: String): List<HurricaneSystem> {
         }
     }
     
-    // Parse Eastern Tropical Atlantic section
-    val easternRegex = Regex("Eastern Tropical Atlantic:(.*?)(?=\\$\\$|$)", RegexOption.DOT_MATCHES_ALL)
-    val easternMatch = easternRegex.find(text)
+    // Parse Central and Western Tropical Atlantic (AL93)
+    val centralWesternRegex = Regex("Central and Western Tropical Atlantic \\(AL93\\):(.*?)(?=East of the Leeward Islands|\\$\\$|$)", RegexOption.DOT_MATCHES_ALL)
+    val centralMatch = centralWesternRegex.find(text)
+    if (centralMatch != null) {
+        val centralContent = centralMatch.groupValues[1].trim()
+        if (centralContent.isNotBlank()) {
+            val formationChances = parseFormationChancesForSystem(centralContent)
+            systems.add(HurricaneSystem(
+                title = "Central and Western Tropical Atlantic (AL93)",
+                content = centralContent,
+                formationChances = formationChances
+            ))
+        }
+    }
+    
+    // Parse East of the Leeward Islands (AL94)
+    val eastLeewardRegex = Regex("East of the Leeward Islands \\(AL94\\):(.*?)(?=\\$\\$|$)", RegexOption.DOT_MATCHES_ALL)
+    val eastMatch = eastLeewardRegex.find(text)
+    if (eastMatch != null) {
+        val eastContent = eastMatch.groupValues[1].trim()
+        if (eastContent.isNotBlank()) {
+            val formationChances = parseFormationChancesForSystem(eastContent)
+            systems.add(HurricaneSystem(
+                title = "East of the Leeward Islands (AL94)",
+                content = eastContent,
+                formationChances = formationChances
+            ))
+        }
+    }
+    
+    // Parse Eastern Tropical Atlantic (fallback for other systems)
+    val easternTropicalRegex = Regex("Eastern Tropical Atlantic:(.*?)(?=\\$\\$|$)", RegexOption.DOT_MATCHES_ALL)
+    val easternMatch = easternTropicalRegex.find(text)
     if (easternMatch != null) {
         val easternContent = easternMatch.groupValues[1].trim()
-        if (easternContent.isNotBlank()) {
+        if (easternContent.isNotBlank() && systems.none { it.title.contains("Eastern Tropical Atlantic") }) {
             val formationChances = parseFormationChancesForSystem(easternContent)
             systems.add(HurricaneSystem(
                 title = "Eastern Tropical Atlantic",
@@ -618,54 +668,52 @@ private fun parseIndividualSystems(text: String): List<HurricaneSystem> {
         }
     }
     
-    // Parse Central and Western Tropical Atlantic section
-    val centralRegex = Regex("Central and Western Tropical Atlantic:(.*?)(?=Eastern Tropical Atlantic|\\$\\$|$)", RegexOption.DOT_MATCHES_ALL)
-    val centralMatch = centralRegex.find(text)
-    if (centralMatch != null) {
-        val centralContent = centralMatch.groupValues[1].trim()
-        if (centralContent.isNotBlank()) {
-            val formationChances = parseFormationChancesForSystem(centralContent)
-            systems.add(HurricaneSystem(
-                title = "Central and Western Tropical Atlantic",
-                content = centralContent,
-                formationChances = formationChances
-            ))
-        }
-    }
-    
-    // Parse East of the Leeward Islands section
-    val leewardRegex = Regex("East of the Leeward Islands:(.*?)(?=\\$\\$|$)", RegexOption.DOT_MATCHES_ALL)
-    val leewardMatch = leewardRegex.find(text)
-    if (leewardMatch != null) {
-        val leewardContent = leewardMatch.groupValues[1].trim()
-        if (leewardContent.isNotBlank()) {
-            val formationChances = parseFormationChancesForSystem(leewardContent)
-            systems.add(HurricaneSystem(
-                title = "East of the Leeward Islands",
-                content = leewardContent,
-                formationChances = formationChances
-            ))
-        }
-    }
-    
     return systems
 }
 
-
-private fun parseFormationChancesForSystem(text: String): List<Pair<String, String>> {
-    val chances = mutableListOf<Pair<String, String>>()
+private fun parseFormationChancesForSystem(systemText: String): List<Pair<String, String>> {
+    val formationChances = mutableListOf<Pair<String, String>>()
+    val seenLabels = mutableSetOf<String>()
     
-    // Look for formation chance patterns like "Formation chance through 48 hours...near 0 percent"
-    val formationRegex = Regex("Formation chance through (\\d+ hours?)\\s*[^0-9]*?(\\d+)\\s*percent", RegexOption.IGNORE_CASE)
-    val matches = formationRegex.findAll(text)
+    // Look for formation chance patterns - handle various formats
+    val patterns = listOf(
+        // Pattern with asterisk: "* Formation chance through 48 hours...low...10 percent."
+        Regex("\\*\\s*Formation chance through (\\d+) (hours?)\\.\\.\\.(\\w+)\\.\\.\\.(\\d+) percent", RegexOption.IGNORE_CASE),
+        Regex("\\*\\s*Formation chance through (\\d+) (days?)\\.\\.\\.(\\w+)\\.\\.\\.(\\d+) percent", RegexOption.IGNORE_CASE),
+        // Pattern without asterisk (fallback)
+        Regex("Formation chance through (\\d+) (hours?)\\.\\.\\.(\\w+)\\.\\.\\.(\\d+) percent", RegexOption.IGNORE_CASE),
+        Regex("Formation chance through (\\d+) (days?)\\.\\.\\.(\\w+)\\.\\.\\.(\\d+) percent", RegexOption.IGNORE_CASE),
+        // Pattern with % instead of "percent"
+        Regex("\\*\\s*Formation chance through (\\d+) (hours?)\\.\\.\\.(\\w+)\\.\\.\\.(\\d+)%", RegexOption.IGNORE_CASE),
+        Regex("\\*\\s*Formation chance through (\\d+) (days?)\\.\\.\\.(\\w+)\\.\\.\\.(\\d+)%", RegexOption.IGNORE_CASE),
+        Regex("Formation chance through (\\d+) (hours?)\\.\\.\\.(\\w+)\\.\\.\\.(\\d+)%", RegexOption.IGNORE_CASE),
+        Regex("Formation chance through (\\d+) (days?)\\.\\.\\.(\\w+)\\.\\.\\.(\\d+)%", RegexOption.IGNORE_CASE)
+    )
     
-    matches.forEach { match ->
-        val timeFrame = match.groupValues[1]
-        val percentage = match.groupValues[2]
-        chances.add("$timeFrame" to "$percentage%")
+    patterns.forEach { pattern ->
+        val matches = pattern.findAll(systemText)
+        matches.forEach { matchResult ->
+            val timeframe = matchResult.groupValues[1]
+            val unit = matchResult.groupValues[2] // hours or days
+            val level = matchResult.groupValues[3]
+            val percentage = matchResult.groupValues[4]
+            
+            // Use the actual unit from the source text
+            val label = "Formation chance through $timeframe $unit"
+            
+            // Only add if we haven't seen this label before
+            if (!seenLabels.contains(label)) {
+                seenLabels.add(label)
+                
+                // Capitalize the first letter of the level
+                val capitalizedLevel = level.replaceFirstChar { it.uppercase() }
+                val value = "$capitalizedLevel ($percentage%)"
+                formationChances.add(Pair(label, value))
+            }
+        }
     }
     
-    return chances
+    return formationChances
 }
 
 private fun parseActiveSystems(text: String): String {

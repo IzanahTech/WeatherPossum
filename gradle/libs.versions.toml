@@ -71,7 +71,6 @@ time4j-android = { group = "net.time4j", name = "time4j-android", version.ref = 
 # Moshi
 moshi-core = { group = "com.squareup.moshi", name = "moshi", version.ref = "moshi" }
 moshi-kotlin = { group = "com.squareup.moshi", name = "moshi-kotlin", version.ref = "moshi" }
-moshi-kotlin-codegen = { group = "com.squareup.moshi", name = "moshi-kotlin-codegen", version.ref = "moshi" }
 
 androidx-foundation = { group = "androidx.compose.foundation", name = "foundation" }
 

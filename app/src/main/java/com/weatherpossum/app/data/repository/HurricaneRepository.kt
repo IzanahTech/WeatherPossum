@@ -32,15 +32,16 @@ class HurricaneRepository {
             .build()
             .create(HurricaneFeedsApi::class.java)
     }
-
+    
     private val moshi = Moshi.Builder().build()
     private val stormsAdapter = moshi.adapter(CurrentStormsDto::class.java)
-
+    
+    
     private val _hurricaneData = MutableStateFlow<HurricaneData?>(null)
     val hurricaneData: StateFlow<HurricaneData?> = _hurricaneData.asStateFlow()
-
+    
     private var lastFetchTime: Long = 0
-
+    
     suspend fun getActiveHurricanes(forceRefresh: Boolean = false): Result<HurricaneData> =
         withContext(Dispatchers.IO) {
             try {
@@ -72,17 +73,17 @@ class HurricaneRepository {
                 Result.failure(e)
             }
         }
-
+    
     private fun isCacheValid(): Boolean {
-        return _hurricaneData.value != null &&
+        return _hurricaneData.value != null && 
                System.currentTimeMillis() - lastFetchTime < CACHE_DURATION_MILLIS
     }
-
+    
     suspend fun refreshHurricaneData(): Result<HurricaneData> {
         Log.d(TAG, "refreshHurricaneData: called")
         return getActiveHurricanes(forceRefresh = true)
     }
-
+    
     private fun parseCurrentStorms(json: String): List<Hurricane> {
         val dto = stormsAdapter.fromJson(json) ?: return emptyList()
         return dto.activeStorms
@@ -112,7 +113,7 @@ class HurricaneRepository {
         val stormId = storm.id?.lowercase() ?: return false
         return stormId.startsWith("al")
     }
-
+    
     private fun calculateHurricaneCategory(classification: String?, windSpeed: Int): Int {
         return when {
             classification != "HU" -> 0 // Not a hurricane
@@ -124,7 +125,7 @@ class HurricaneRepository {
             else -> 0
         }
     }
-
+    
     private fun formatLocation(latitude: String?, longitude: String?): String {
         return if (!latitude.isNullOrBlank() && !longitude.isNullOrBlank()) {
             "$latitude, $longitude"
@@ -132,7 +133,7 @@ class HurricaneRepository {
             "Location not available"
         }
     }
-
+    
     private fun formatStormStatus(classification: String?, windSpeed: Int): String {
         return when (classification) {
             "HU" -> "Hurricane (Cat ${calculateHurricaneCategory(classification, windSpeed)})"
@@ -142,4 +143,5 @@ class HurricaneRepository {
             else -> classification ?: "Unknown"
         }
     }
+    
 }

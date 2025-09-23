@@ -30,11 +30,11 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.airbnb.lottie.compose.*
+import com.weatherpossum.app.R
+import com.weatherpossum.app.data.model.WeatherCard
 import org.koin.androidx.compose.koinViewModel
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.CoroutineScope
-import com.weatherpossum.app.R
-import com.weatherpossum.app.data.model.WeatherCard
 import com.weatherpossum.app.presentation.components.PillNavBar
 import com.weatherpossum.app.presentation.components.SunCard
 import com.weatherpossum.app.presentation.components.CardHeader
@@ -47,6 +47,7 @@ import com.weatherpossum.app.presentation.components.UpdateSheetWithContext
 import com.weatherpossum.app.ui.viewmodel.UpdateViewModel
 
 @OptIn(
+    ExperimentalMaterial3Api::class,
     ExperimentalFoundationApi::class,
     ExperimentalMaterialApi::class
 )
