@@ -1,7 +1,9 @@
 # Android Studio / IntelliJ IDEA
 /.idea/
 *.iml
-.DS_Store # macOS
+# macOS
+.DS_Store
+**/.DS_Store
 
 # VSCode
 /.vscode/
