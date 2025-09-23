@@ -8,7 +8,7 @@ set -e
 # Configuration
 REPO_OWNER="IzanahTech"
 REPO_NAME="WeatherPossum"
-APK_PATH="app/build/outputs/apk/release/app-release.apk"
+APK_PATH="app/release/app-release.apk"
 
 # Colors for output
 RED='\033[0;31m'
