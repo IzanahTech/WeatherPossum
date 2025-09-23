@@ -377,13 +377,6 @@ private fun HurricaneOutlookCard(outlook: AnnotatedString) {
     // Parse individual systems from the outlook text
     val individualSystems = parseIndividualSystems(outlookText)
     
-    // Debug: Log the outlook text and parsed systems
-    android.util.Log.d("HurricaneOutlook", "Outlook text: $outlookText")
-    android.util.Log.d("HurricaneOutlook", "Parsed ${individualSystems.size} individual systems")
-    individualSystems.forEach { system ->
-        android.util.Log.d("HurricaneOutlook", "System: ${system.title} - ${system.formationChances.size} formation chances")
-    }
-    
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(22.dp),
@@ -423,26 +416,6 @@ private fun HurricaneOutlookCard(outlook: AnnotatedString) {
                             system = system,
                             onColor = on
                         )
-                    }
-                    
-                    // Fallback: Show original sections if no individual systems found
-                    if (individualSystems.isEmpty()) {
-                        if (activeSystems.isNotBlank()) {
-                            HurricaneSectionBlock(
-                                title = "Active Systems",
-                                content = activeSystems,
-                                onColor = on
-                            )
-                        }
-                        
-                        if (easternTropical.isNotBlank()) {
-                            HurricaneSectionBlock(
-                                title = "Eastern Tropical Atlantic",
-                                content = easternTropical,
-                                onColor = on,
-                                formationChances = formationChances
-                            )
-                        }
                     }
                 }
             }
@@ -616,62 +589,26 @@ private fun HurricaneNeutralCard() {
 private fun parseIndividualSystems(text: String): List<HurricaneSystem> {
     val systems = mutableListOf<HurricaneSystem>()
     
-    // Parse Active Systems section - more flexible pattern
-    val activeSystemsRegex = Regex("Active Systems:(.*?)(?=Eastern Tropical Atlantic|Central and Western Tropical Atlantic|East of the Leeward Islands|\\$\\$|$)", RegexOption.DOT_MATCHES_ALL)
-    val activeMatch = activeSystemsRegex.find(text)
-    if (activeMatch != null) {
-        val activeContent = activeMatch.groupValues[1].trim()
-        if (activeContent.isNotBlank()) {
-            systems.add(HurricaneSystem(
-                title = "Active Systems",
-                content = activeContent,
-                formationChances = emptyList()
-            ))
-        }
-    }
+    // First, try to parse structured sections
+    val sectionPatterns = listOf(
+        "Active Systems" to Regex("Active Systems:(.*?)(?=Eastern Tropical Atlantic|Central and Western Tropical Atlantic|East of the Leeward Islands|\\$\\$|$)", RegexOption.DOT_MATCHES_ALL),
+        "Eastern Tropical Atlantic" to Regex("Eastern Tropical Atlantic:(.*?)(?=Central and Western Tropical Atlantic|East of the Leeward Islands|\\$\\$|$)", RegexOption.DOT_MATCHES_ALL),
+        "Central and Western Tropical Atlantic" to Regex("Central and Western Tropical Atlantic:(.*?)(?=Eastern Tropical Atlantic|East of the Leeward Islands|\\$\\$|$)", RegexOption.DOT_MATCHES_ALL),
+        "East of the Leeward Islands" to Regex("East of the Leeward Islands:(.*?)(?=\\$\\$|$)", RegexOption.DOT_MATCHES_ALL)
+    )
     
-    // Parse Eastern Tropical Atlantic section
-    val easternRegex = Regex("Eastern Tropical Atlantic:(.*?)(?=Central and Western Tropical Atlantic|East of the Leeward Islands|\\$\\$|$)", RegexOption.DOT_MATCHES_ALL)
-    val easternMatch = easternRegex.find(text)
-    if (easternMatch != null) {
-        val easternContent = easternMatch.groupValues[1].trim()
-        if (easternContent.isNotBlank()) {
-            val formationChances = parseFormationChancesForSystem(easternContent)
-            systems.add(HurricaneSystem(
-                title = "Eastern Tropical Atlantic",
-                content = easternContent,
-                formationChances = formationChances
-            ))
-        }
-    }
-    
-    // Parse Central and Western Tropical Atlantic section
-    val centralRegex = Regex("Central and Western Tropical Atlantic:(.*?)(?=Eastern Tropical Atlantic|East of the Leeward Islands|\\$\\$|$)", RegexOption.DOT_MATCHES_ALL)
-    val centralMatch = centralRegex.find(text)
-    if (centralMatch != null) {
-        val centralContent = centralMatch.groupValues[1].trim()
-        if (centralContent.isNotBlank()) {
-            val formationChances = parseFormationChancesForSystem(centralContent)
-            systems.add(HurricaneSystem(
-                title = "Central and Western Tropical Atlantic",
-                content = centralContent,
-                formationChances = formationChances
-            ))
-        }
-    }
-    
-    // Parse East of the Leeward Islands section
-    val leewardRegex = Regex("East of the Leeward Islands:(.*?)(?=\\$\\$|$)", RegexOption.DOT_MATCHES_ALL)
-    val leewardMatch = leewardRegex.find(text)
-    if (leewardMatch != null) {
-        val leewardContent = leewardMatch.groupValues[1].trim()
-        if (leewardContent.isNotBlank()) {
-            val formationChances = parseFormationChancesForSystem(leewardContent)
-            systems.add(HurricaneSystem(
-                title = "East of the Leeward Islands",
-                content = leewardContent,
-                formationChances = formationChances
-            ))
+    sectionPatterns.forEach { (title, regex) ->
+        val match = regex.find(text)
+        if (match != null) {
+            val content = match.groupValues[1].trim()
+            if (content.isNotBlank()) {
+                val formationChances = if (title == "Active Systems") emptyList() else parseFormationChancesForSystem(content)
+                systems.add(HurricaneSystem(
+                    title = title,
+                    content = content,
+                    formationChances = formationChances
+                ))
+            }
         }
     }
     
@@ -691,6 +628,15 @@ private fun parseIndividualSystems(text: String): List<HurricaneSystem> {
                 formationChances = formationChances
             ))
         }
+    }
+    
+    // If still no systems found, create a single system from the entire text
+    if (systems.isEmpty() && text.isNotBlank()) {
+        systems.add(HurricaneSystem(
+            title = "Tropical Weather Outlook",
+            content = text,
+            formationChances = parseFormationChancesForSystem(text)
+        ))
     }
     
     return systems
