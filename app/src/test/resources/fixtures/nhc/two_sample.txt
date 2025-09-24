@@ -1,0 +1,45 @@
+Active Systems:
+The National Hurricane Center is issuing advisories on Hurricane 
+Gabrielle, located over the central subtropical Atlantic.
+
+Central and Western Tropical Atlantic (AL93):
+Shower and thunderstorm activity associated with an elongated area 
+of low pressure located several hundred miles east of the Leeward 
+Islands continues to show signs of organization.  Environmental 
+conditions are forecast to be favorable for further development, and 
+a tropical depression is likely to form later today or Thursday 
+while the system moves west-northwestward to northwestward into the 
+western tropical Atlantic, well north of the Leeward Islands. 
+Additional information on this system, including gale warnings, can 
+be found in High Seas Forecasts issued by the National Weather 
+Service.
+* Formation chance through 48 hours...high...90 percent.
+* Formation chance through 7 days...high...90 percent.
+
+Eastern Caribbean Sea (AL94):
+A tropical wave over the northeastern Caribbean Sea is producing 
+disorganized showers and thunderstorms.  This wave is expected to 
+move west-northwestward at 15 to 20 mph, spreading heavy rainfall 
+and gusty winds into Puerto Rico and the Virgin Islands today, and 
+across the Dominican Republic beginning tonight.  The system is then 
+expected to slow down and turn northwestward when it reaches the 
+southwestern Atlantic late this week.  Environmental conditions are 
+forecast to be more conducive for development in a few days, and a 
+tropical depression is likely to form when the disturbance is in the 
+vicinity of the Bahamas.  Interests in the Virgin Islands, Puerto 
+Rico, the Dominican Republic, the Turks and Caicos Islands, and the 
+Bahamas should monitor the progress of this system. An Air Force 
+Hurricane Hunter Aircraft is scheduled to perform a system survey 
+this afternoon to gather data from the surrounding environment, if 
+necessary.
+* Formation chance through 48 hours...low...30 percent.
+* Formation chance through 7 days...high...80 percent.
+
+&&
+
+High Seas Forecasts issued by the National Weather Service
+can be found under AWIPS header NFDHSFAT1, WMO header FZNT01 
+KWBC, and online at ocean.weather.gov/shtml/NFDHSFAT1.php
+
+$$
+Forecaster Kelly

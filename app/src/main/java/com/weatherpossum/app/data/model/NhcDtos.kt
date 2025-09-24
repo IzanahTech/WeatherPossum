@@ -12,6 +12,10 @@ data class CurrentStormsDto(
 data class StormDto(
     val id: String?,
     val name: String?,
+    val basin: String?,            // AL, EP, etc.
+    val adv: String?,              // Advisory number
+    val stormType: String?,        // Hurricane, Tropical Storm, etc.
+    val productLink: String?,      // Link to advisory
     val classification: String?,    // HU, TS, TD, etc.
     val intensity: String?,        // Wind speed in mph
     val pressure: String?,         // Pressure in mb

@@ -39,7 +39,6 @@ object DMOForecastParser {
             .filter { it.isNotBlank() }
 
         val body = bodyParts.joinToString("\n\n").ifBlank {
-            // fallback: full container text minus title
             val full = normalizeSpaces(container.text())
             full.removePrefix(titleRaw).trim().ifBlank { full }
         }
@@ -60,36 +59,93 @@ object DMOForecastParser {
 
     private fun normalizeSpaces(s: String): String =
         s.replace('\u00A0', ' ')      // NBSP -> space
-         .replace(Regex("\\s+"), " ")
-         .trim()
+            .replace(Regex("\\s+"), " ")
+            .trim()
 
+    // -------------------- Title normalization & patterns --------------------
+
+    // Connectors that join two time windows
+    private const val CONNECT = "(?:\\s*(?:and|through|into|to|/|,|;|–|—)\\s*)"
+
+    // Buckets for matching (broader vocabulary)
+    private const val TODAY_WORD =
+        "(?:today|this\\s+(?:morning|afternoon|day)|rest\\s+of\\s+today|remainder\\s+of\\s+today|rest\\s+of\\s+the\\s+day)"
+    private const val TONIGHT_WORD =
+        "(?:tonight|overnight|late\\s+tonight|this\\s+evening|late\\s+evening|rest\\s+of\\s+tonight|remainder\\s+of\\s+tonight)"
+    private const val TOMORROW_WORD =
+        "(?:tomorrow(?:\\s+(?:morning|afternoon|evening|night))?|next\\s*day)"
+
+    // Precompiled combo regexes (explicit first to guarantee your six titles)
+    private val RE_COMBO_MORNING_TONIGHT = Regex("\\bthis\\s*morning\\b$CONNECT\\b$TONIGHT_WORD\\b", RegexOption.IGNORE_CASE)
+    private val RE_COMBO_AFTERNOON_TONIGHT = Regex("\\bthis\\s*afternoon\\b$CONNECT\\b$TONIGHT_WORD\\b", RegexOption.IGNORE_CASE)
+    private val RE_COMBO_EVENING_TONIGHT = Regex("\\bthis\\s*evening\\b$CONNECT\\b$TONIGHT_WORD\\b", RegexOption.IGNORE_CASE)
+    private val RE_COMBO_TODAY_TONIGHT_GENERIC = Regex("\\b$TODAY_WORD\\b$CONNECT\\b$TONIGHT_WORD\\b", RegexOption.IGNORE_CASE)
+    private val RE_COMBO_TONIGHT_TOMORROW = Regex("\\b$TONIGHT_WORD\\b$CONNECT\\b$TOMORROW_WORD\\b", RegexOption.IGNORE_CASE)
+
+    // Singles
+    private val RE_TODAY_SINGLE = Regex("\\b$TODAY_WORD\\b", RegexOption.IGNORE_CASE)
+    private val RE_TONIGHT_SINGLE = Regex("\\b$TONIGHT_WORD\\b", RegexOption.IGNORE_CASE)
+    private val RE_TOMORROW_SINGLE = Regex("\\b$TOMORROW_WORD\\b", RegexOption.IGNORE_CASE)
+
+    // Windows
+    private val RE_24H = Regex("\\b(?:next|the\\s*next)\\s*24\\s*(?:hours|hrs?)\\b", RegexOption.IGNORE_CASE)
+    private val RE_48H = Regex("\\b(?:next|the\\s*next)\\s*48\\s*(?:hours|hrs?)\\b", RegexOption.IGNORE_CASE)
+
+    // Prefix like "Forecast for:" / "FORECAST –"
+    private val RE_FORECAST_PREFIX = Regex("(?i)^\\s*forecast(?:s)?\\s*(?:for)?\\s*[:\\-–—]?\\s*")
+
+    // Normalize punctuation & synonyms so classification is easier
     private fun canonicalizeTitle(s: String): String =
         normalizeSpaces(
             s.lowercase()
-             .replace("&", "and")
-             .replace(Regex("\\bforecast\\b"), "")
-             .replace(Regex("\\bfor\\b"), "")
-             .replace(Regex(":+\\s*$"), "")
+                .replace(RE_FORECAST_PREFIX, "") // drop "Forecast for:"
+                .replace("&", " and ")           // unify &
+                .replace(Regex("\\s+–\\s+|\\s+—\\s+|\\s+-\\s+"), " - ") // normalize dashes to " - "
+                .replace(Regex("(?i)late\\s+night"), " late tonight")
+                .replace(Regex("(?i)tonight\\s*/\\s*tomorrow"), "tonight and tomorrow")
+                .replace(Regex(":+\\s*$"), "")   // trailing colon(s)
         )
+
+    // -------------------- Classification --------------------
 
     private fun classifyTitle(raw: String): ForecastSection {
         val t = canonicalizeTitle(raw)
+
+        // 1) Explicit combos to guarantee your listed titles
+        when {
+            RE_COMBO_MORNING_TONIGHT.containsMatchIn(t) -> return ForecastSection.TODAY_TONIGHT
+            RE_COMBO_AFTERNOON_TONIGHT.containsMatchIn(t) -> return ForecastSection.TODAY_TONIGHT
+            RE_COMBO_EVENING_TONIGHT.containsMatchIn(t) -> return ForecastSection.TODAY_TONIGHT
+            RE_COMBO_TONIGHT_TOMORROW.containsMatchIn(t) -> return ForecastSection.TODAY_TONIGHT
+            RE_COMBO_TODAY_TONIGHT_GENERIC.containsMatchIn(t) -> return ForecastSection.TODAY_TONIGHT
+        }
+
+        // 2) Multi-hour windows
+        if (RE_24H.containsMatchIn(t) || RE_48H.containsMatchIn(t)) {
+            return ForecastSection.TWENTY_FOUR_HOURS
+        }
+
+        // 3) Singles
+        val hasTonight = RE_TONIGHT_SINGLE.containsMatchIn(t)
+        val hasToday = RE_TODAY_SINGLE.containsMatchIn(t)
+        val hasTomorrow = RE_TOMORROW_SINGLE.containsMatchIn(t)
+
+        // If both today+tonight appear but missed by combo (odd punctuation), still map to TODAY_TONIGHT
+        if (hasToday && hasTonight) return ForecastSection.TODAY_TONIGHT
+
+        if (hasToday && !hasTonight) return ForecastSection.TODAY
+        if (hasTonight && !hasTomorrow) return ForecastSection.TONIGHT
+        if (hasTomorrow) return ForecastSection.TOMORROW
+
+        // 4) Heuristics
         return when {
-            Regex("(?i)\\btoday\\b.*\\btonight\\b").containsMatchIn(t) -> ForecastSection.TODAY_TONIGHT
-            Regex("(?i)\\bthis\\s*evening\\b.*\\btonight\\b").containsMatchIn(t) -> ForecastSection.TODAY_TONIGHT
-            Regex("(?i)\\btoday\\b(?!.*tonight)").containsMatchIn(t) -> ForecastSection.TODAY
-            Regex("(?i)\\b(tonight|overnight)\\b").containsMatchIn(t) -> ForecastSection.TONIGHT
-            Regex("(?i)\\b(tomorrow|next\\s*day)\\b").containsMatchIn(t) -> ForecastSection.TOMORROW
-            Regex("(?i)\\b(next\\s*24\\s*hours|the\\s*next\\s*24\\s*hours|24\\s*hrs?)\\b").containsMatchIn(t) ->
-                ForecastSection.TWENTY_FOUR_HOURS
-            else -> {
-                // Heuristic nudge: infer TODAY/TONIGHT when UNKNOWN but text clearly includes those words
-                when {
-                    Regex("(?i)\\btonight\\b").containsMatchIn(t) -> ForecastSection.TONIGHT
-                    Regex("(?i)\\btoday\\b").containsMatchIn(t) -> ForecastSection.TODAY
-                    else -> ForecastSection.UNKNOWN(raw)
-                }
-            }
+            Regex("\\bthis\\s+afternoon\\b", RegexOption.IGNORE_CASE).containsMatchIn(t) -> ForecastSection.TODAY
+            Regex("\\bthis\\s+morning\\b", RegexOption.IGNORE_CASE).containsMatchIn(t) -> ForecastSection.TODAY
+            Regex("\\bthis\\s+evening\\b", RegexOption.IGNORE_CASE).containsMatchIn(t) -> ForecastSection.TONIGHT
+            Regex("\\btonight\\b", RegexOption.IGNORE_CASE).containsMatchIn(t) -> ForecastSection.TONIGHT
+            Regex("\\btoday\\b", RegexOption.IGNORE_CASE).containsMatchIn(t) -> ForecastSection.TODAY
+            Regex("\\btomorrow\\b", RegexOption.IGNORE_CASE).containsMatchIn(t) -> ForecastSection.TOMORROW
+            else -> ForecastSection.UNKNOWN(raw)
         }
     }
 }

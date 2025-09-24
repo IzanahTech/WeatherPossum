@@ -25,11 +25,31 @@ object TwoTextParser {
         val items = mutableListOf<String>()
         val numbered = Regex("(?=\\b\\d+\\.)").split(text).map { it.trim() }.filter { it.matches(Regex("^\\d+\\..+")) }
         if (numbered.isNotEmpty()) items += numbered
-        val active = Regex("Active Systems:\\s*(.+?)(?=$|\\d+\\.|\\$\\$)", RegexOption.DOT_MATCHES_ALL)
+        
+        // 4) Parse specific sections for better separation
+        val activeSystems = Regex("Active Systems:(.*?)(?=Central and Western Tropical Atlantic|Eastern Caribbean Sea|Eastern Tropical Atlantic|\\$\\$|$)", RegexOption.DOT_MATCHES_ALL)
             .find(text)?.groupValues?.get(1)?.trim()
-        if (!active.isNullOrBlank()) items.add("Active Systems: $active")
-
-        // 4) Formation chances (48h, 7 days) are usually inline; keep as part of items text
+        if (!activeSystems.isNullOrBlank()) {
+            items.add("Active Systems: $activeSystems")
+        }
+        
+        val centralWestern = Regex("Central and Western Tropical Atlantic \\(AL93\\):(.*?)(?=Eastern Caribbean Sea|Eastern Tropical Atlantic|\\$\\$|$)", RegexOption.DOT_MATCHES_ALL)
+            .find(text)?.groupValues?.get(1)?.trim()
+        if (!centralWestern.isNullOrBlank()) {
+            items.add("Central and Western Tropical Atlantic (AL93): $centralWestern")
+        }
+        
+        val easternCaribbean = Regex("Eastern Caribbean Sea \\(AL94\\):(.*?)(?=Eastern Tropical Atlantic|\\$\\$|$)", RegexOption.DOT_MATCHES_ALL)
+            .find(text)?.groupValues?.get(1)?.trim()
+        if (!easternCaribbean.isNullOrBlank()) {
+            items.add("Eastern Caribbean Sea (AL94): $easternCaribbean")
+        }
+        
+        val easternTropical = Regex("Eastern Tropical Atlantic:(.*?)(?=\\$\\$|$)", RegexOption.DOT_MATCHES_ALL)
+            .find(text)?.groupValues?.get(1)?.trim()
+        if (!easternTropical.isNullOrBlank()) {
+            items.add("Eastern Tropical Atlantic: $easternTropical")
+        }
 
         // 5) Build cleaned string for the card
         val header = issued?.let { "Issued: $it" } ?: "Atlantic Tropical Weather Outlook"

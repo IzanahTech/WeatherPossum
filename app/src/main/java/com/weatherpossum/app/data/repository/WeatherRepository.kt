@@ -100,7 +100,14 @@ class WeatherRepository(
 
             // Decide display title based on section
             val forecastTitle = when (dmo.section) {
-                is ForecastSection.TODAY_TONIGHT -> "Forecast for Today & Tonight"
+                is ForecastSection.TODAY_TONIGHT -> {
+                    // Check if the original title contains "afternoon" to use more specific title
+                    if (dmo.titleRaw.contains("afternoon", ignoreCase = true)) {
+                        "Forecast for This Afternoon & Tonight"
+                    } else {
+                        "Forecast for Today & Tonight"
+                    }
+                }
                 is ForecastSection.TODAY -> "Forecast for Today"
                 is ForecastSection.TONIGHT -> "Forecast for Tonight"
                 is ForecastSection.TOMORROW -> "Forecast for Tomorrow"

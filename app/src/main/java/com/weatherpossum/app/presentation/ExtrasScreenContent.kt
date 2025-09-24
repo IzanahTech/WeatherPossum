@@ -590,7 +590,7 @@ private fun parseIndividualSystems(text: String): List<HurricaneSystem> {
     val systems = mutableListOf<HurricaneSystem>()
     
     // Parse Active Systems section
-    val activeSystemsRegex = Regex("Active Systems:(.*?)(?=Central and Western Tropical Atlantic|Eastern Tropical Atlantic|East of the Leeward Islands|\\$\\$|$)", RegexOption.DOT_MATCHES_ALL)
+    val activeSystemsRegex = Regex("Active Systems:(.*?)(?=Central and Western Tropical Atlantic|Eastern Caribbean Sea|Eastern Tropical Atlantic|\\$\\$|$)", RegexOption.DOT_MATCHES_ALL)
     val activeMatch = activeSystemsRegex.find(text)
     if (activeMatch != null) {
         val activeContent = activeMatch.groupValues[1].trim()
@@ -604,7 +604,7 @@ private fun parseIndividualSystems(text: String): List<HurricaneSystem> {
     }
     
     // Parse Central and Western Tropical Atlantic (AL93)
-    val centralWesternRegex = Regex("Central and Western Tropical Atlantic \\(AL93\\):(.*?)(?=East of the Leeward Islands|\\$\\$|$)", RegexOption.DOT_MATCHES_ALL)
+    val centralWesternRegex = Regex("Central and Western Tropical Atlantic \\(AL93\\):(.*?)(?=Eastern Caribbean Sea|Eastern Tropical Atlantic|\\$\\$|$)", RegexOption.DOT_MATCHES_ALL)
     val centralMatch = centralWesternRegex.find(text)
     if (centralMatch != null) {
         val centralContent = centralMatch.groupValues[1].trim()
@@ -618,16 +618,16 @@ private fun parseIndividualSystems(text: String): List<HurricaneSystem> {
         }
     }
     
-    // Parse East of the Leeward Islands (AL94)
-    val eastLeewardRegex = Regex("East of the Leeward Islands \\(AL94\\):(.*?)(?=\\$\\$|$)", RegexOption.DOT_MATCHES_ALL)
-    val eastMatch = eastLeewardRegex.find(text)
-    if (eastMatch != null) {
-        val eastContent = eastMatch.groupValues[1].trim()
-        if (eastContent.isNotBlank()) {
-            val formationChances = parseFormationChancesForSystem(eastContent)
+    // Parse Eastern Caribbean Sea (AL94)
+    val easternCaribbeanRegex = Regex("Eastern Caribbean Sea \\(AL94\\):(.*?)(?=Eastern Tropical Atlantic|\\$\\$|$)", RegexOption.DOT_MATCHES_ALL)
+    val easternCaribbeanMatch = easternCaribbeanRegex.find(text)
+    if (easternCaribbeanMatch != null) {
+        val easternCaribbeanContent = easternCaribbeanMatch.groupValues[1].trim()
+        if (easternCaribbeanContent.isNotBlank()) {
+            val formationChances = parseFormationChancesForSystem(easternCaribbeanContent)
             systems.add(HurricaneSystem(
-                title = "East of the Leeward Islands (AL94)",
-                content = eastContent,
+                title = "Eastern Caribbean Sea (AL94)",
+                content = easternCaribbeanContent,
                 formationChances = formationChances
             ))
         }

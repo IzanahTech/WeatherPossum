@@ -13,7 +13,7 @@ android {
         minSdk = 31
         targetSdk = 36
         versionCode = 2
-        versionName = "1.4.6"
+        versionName = "1.4.7"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
@@ -38,6 +38,10 @@ android {
     
     kotlinOptions {
         jvmTarget = "17"
+        freeCompilerArgs += listOf(
+            "-opt-in=kotlin.RequiresOptIn",
+            "-opt-in=org.koin.core.annotation.KoinExperimentalAPI"
+        )
     }
     
     buildFeatures {
@@ -45,6 +49,7 @@ android {
         buildConfig = true  // Enable BuildConfig generation
     }
     
+    @Suppress("UnstableApiUsage")
     composeOptions {
         kotlinCompilerExtensionVersion = libs.versions.composeCompiler.get()
     }
@@ -81,9 +86,9 @@ dependencies {
     implementation(libs.okhttp.logging.interceptor)
     
     // Moshi
-    implementation("com.squareup.moshi:moshi:1.15.1")
-    implementation("com.squareup.moshi:moshi-kotlin:1.15.1")
-    ksp("com.squareup.moshi:moshi-kotlin-codegen:1.15.1")
+    implementation(libs.moshi.core)
+    implementation(libs.moshi.kotlin)
+    ksp(libs.moshi.kotlin.codegen)
     
     // Lottie for animations
     implementation(libs.lottie.compose)

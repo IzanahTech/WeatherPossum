@@ -51,4 +51,12 @@ class DMOForecastParserTest {
         assertTrue(res.section is ForecastSection.UNKNOWN)
         assertTrue(res.body.isNotBlank())
     }
+
+    @Test fun afternoon_and_tonight_is_classified_as_today_tonight() {
+        val html = loadFixture("forecast_afternoon_tonight.html")
+        val res = DMOForecastParser.parse(html)
+        assertTrue(res.section is ForecastSection.TODAY_TONIGHT)
+        assertTrue(res.body.contains("Cloudy to overcast"))
+        assertTrue(res.titleRaw.contains("Afternoon"))
+    }
 }
