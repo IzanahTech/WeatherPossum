@@ -7,6 +7,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -122,7 +123,9 @@ fun ExtrasScreenContent(
                     !tropicalOutlook.isNullOrBlank() -> {
                         // Show only the outlook card (which includes active systems)
                         HurricaneOutlookCard(
-                            outlook = parseMarkdownText(tropicalOutlook)
+                            outlook = parseMarkdownText(tropicalOutlook),
+                            forecaster = state.hurricaneData.forecaster,
+                            issued = state.hurricaneData.issued
                         )
                     }
                     else -> {
@@ -340,7 +343,11 @@ private fun HurricaneActiveCard(
 }
 
 @Composable
-private fun HurricaneOutlookCard(outlook: AnnotatedString) {
+private fun HurricaneOutlookCard(
+    outlook: AnnotatedString,
+    forecaster: String? = null,
+    issued: String? = null
+) {
     val gradient = Brush.verticalGradient(listOf(Color(0xFF4A90E2), Color(0xFF1E3A8A))) // darker info blue
     val on = Color.White
     
@@ -415,6 +422,98 @@ private fun HurricaneOutlookCard(outlook: AnnotatedString) {
                                 onColor = on,
                                 formationChances = formationChances
                             )
+                        }
+                    }
+                }
+                
+                // Cute containers for forecaster and issued time at the bottom
+                if (forecaster != null || issued != null) {
+                    Spacer(modifier = Modifier.height(16.dp))
+                    
+                    Column(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        // Issued time container
+                        if (issued != null) {
+                            Surface(
+                                modifier = Modifier.fillMaxWidth(),
+                                shape = RoundedCornerShape(12.dp),
+                                color = on.copy(alpha = 0.15f),
+                                border = BorderStroke(1.dp, on.copy(alpha = 0.3f))
+                            ) {
+                                Column(
+                                    modifier = Modifier.padding(12.dp),
+                                    horizontalAlignment = Alignment.CenterHorizontally
+                                ) {
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                    ) {
+                                        Text(
+                                            text = "Issued",
+                                            fontSize = 10.sp,
+                                            color = on.copy(alpha = 0.7f),
+                                            fontWeight = FontWeight.Medium
+                                        )
+                                        Text(
+                                            text = "📅",
+                                            fontSize = 16.sp,
+                                            color = on.copy(alpha = 0.8f)
+                                        )
+                                    }
+                                    Spacer(modifier = Modifier.height(4.dp))
+                                    Text(
+                                        text = issued,
+                                        fontSize = 11.sp,
+                                        color = on,
+                                        fontWeight = FontWeight.SemiBold,
+                                        textAlign = TextAlign.Center,
+                                        lineHeight = 13.sp
+                                    )
+                                }
+                            }
+                        }
+                        
+                        // Forecaster container
+                        if (forecaster != null) {
+                            Surface(
+                                modifier = Modifier.fillMaxWidth(),
+                                shape = RoundedCornerShape(12.dp),
+                                color = on.copy(alpha = 0.15f),
+                                border = BorderStroke(1.dp, on.copy(alpha = 0.3f))
+                            ) {
+                                Column(
+                                    modifier = Modifier.padding(12.dp),
+                                    horizontalAlignment = Alignment.CenterHorizontally
+                                ) {
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                    ) {
+                                        Text(
+                                            text = "Forecaster",
+                                            fontSize = 10.sp,
+                                            color = on.copy(alpha = 0.7f),
+                                            fontWeight = FontWeight.Medium
+                                        )
+                                        Text(
+                                            text = "👨‍💼",
+                                            fontSize = 16.sp,
+                                            color = on.copy(alpha = 0.8f)
+                                        )
+                                    }
+                                    Spacer(modifier = Modifier.height(4.dp))
+                                    Text(
+                                        text = forecaster.replace("Forecaster ", ""),
+                                        fontSize = 11.sp,
+                                        color = on,
+                                        fontWeight = FontWeight.SemiBold,
+                                        textAlign = TextAlign.Center,
+                                        lineHeight = 13.sp
+                                    )
+                                }
+                            }
                         }
                     }
                 }

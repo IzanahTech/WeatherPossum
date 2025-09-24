@@ -47,12 +47,26 @@ class HurricaneViewModel(
                     },
                     onFailure = { exception ->
                         Log.e(TAG, "Error refreshing hurricane data", exception)
-                        _uiState.value = HurricaneUiState.Error(exception.message ?: "Failed to fetch hurricane data")
+                        val userMessage = when {
+                            exception.message?.contains("UnknownHostException") == true -> 
+                                "Unable to connect to hurricane data service. Please check your internet connection."
+                            exception.message?.contains("timeout") == true -> 
+                                "Connection timeout. Please try again."
+                            else -> "Failed to fetch hurricane data. Please try again."
+                        }
+                        _uiState.value = HurricaneUiState.Error(userMessage)
                     }
                 )
             } catch (e: Exception) {
                 Log.e(TAG, "Error refreshing hurricane data", e)
-                _uiState.value = HurricaneUiState.Error(e.message ?: "Failed to fetch hurricane data")
+                val userMessage = when {
+                    e.message?.contains("UnknownHostException") == true -> 
+                        "Unable to connect to hurricane data service. Please check your internet connection."
+                    e.message?.contains("timeout") == true -> 
+                        "Connection timeout. Please try again."
+                    else -> "Failed to fetch hurricane data. Please try again."
+                }
+                _uiState.value = HurricaneUiState.Error(userMessage)
             }
         }
     }

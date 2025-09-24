@@ -3,6 +3,7 @@ package com.weatherpossum.app.presentation
 import androidx.compose.animation.*
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -264,6 +265,9 @@ fun NowTabContent(
                             if (card.title.contains("Weather Outlook", ignoreCase = true)) {
                                 // Your special Outlook card remains
                                 OutlookWeatherCard(card = card, lottieRes = R.raw.outlook)
+                            } else if (card.title.contains("Forecast", ignoreCase = true)) {
+                                // Special forecast card with day/night animations
+                                ForecastCard(card = card)
                             } else if (card.title.contains("sun", ignoreCase = true) || 
                                        card.value.contains("sunrise", ignoreCase = true) || 
                                        card.value.contains("sunset", ignoreCase = true)) {
@@ -550,6 +554,215 @@ fun getLottieResForCard(card: WeatherCard): Int {
         text.contains("outlook") -> R.raw.outlook
         text.contains("synopsis") -> R.raw.sunny
         else -> R.raw.neutral
+    }
+}
+
+@Composable
+private fun ForecastCard(card: WeatherCard) {
+    val gradient = Brush.verticalGradient(listOf(Color(0xFF86A8E7), Color(0xFF7F7FD5))) // Purple gradient
+    val on = Color.White
+    
+    // Check if content contains both Today and Tonight
+    val content = card.value
+    val title = card.title
+    
+    // If title contains "Today" and content contains "Forecast for Tonight", then we have both
+    val hasToday = title.contains("Today", ignoreCase = true) || 
+                   content.contains("Forecast for Today", ignoreCase = true) || 
+                   content.contains("Today:", ignoreCase = true)
+    val hasTonight = content.contains("Forecast for Tonight", ignoreCase = true) || 
+                     content.contains("Tonight:", ignoreCase = true)
+    
+    // Special case: if title is "Forecast for Today" and content has "Forecast for Tonight", we have both
+    val hasBothSections = title.contains("Today", ignoreCase = true) && hasTonight
+    
+    // Determine the display title
+    val displayTitle = if (hasBothSections) "Forecast" else title
+    
+    // Debug logging to see what we're detecting
+    println("ForecastCard Debug:")
+    println("  Title: ${card.title}")
+    println("  Content: $content")
+    println("  Has Today: $hasToday")
+    println("  Has Tonight: $hasTonight")
+    println("  Has Both Sections: $hasBothSections")
+    println("  Display Title: $displayTitle")
+    
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(22.dp),
+        elevation = CardDefaults.cardElevation(10.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.Transparent)
+    ) {
+        Box(
+            Modifier
+                .enhancedCardBackground(gradient)
+                .fillMaxWidth()
+                .padding(16.dp)
+        ) {
+            GradientNoiseOverlay()
+            
+            Column {
+                CardHeader(
+                    title = displayTitle.uppercase(),
+                    endContent = {
+                        Box(
+                            modifier = Modifier.size(40.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            // Use forecast.json animation for all forecast cards
+                            val lottieRes = R.raw.forecast
+                            
+                            val composition by rememberLottieComposition(LottieCompositionSpec.RawRes(lottieRes))
+                            val progress by animateLottieCompositionAsState(composition, iterations = LottieConstants.IterateForever)
+                            
+                            LottieAnimation(
+                                composition = composition,
+                                progress = { progress },
+                                modifier = Modifier.fillMaxSize()
+                            )
+                        }
+                    },
+                    onColor = on
+                )
+
+                // Display forecast content
+                if (hasBothSections) {
+                    // Split into separate containers
+                    val todayContent = extractSectionContent(content, "Today")
+                    val tonightContent = extractSectionContent(content, "Tonight")
+                    
+                    println("Extracted Today content: '$todayContent'")
+                    println("Extracted Tonight content: '$tonightContent'")
+                    
+                    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                        // Today container
+                        ForecastSectionContainer(
+                            title = "Today",
+                            content = todayContent,
+                            lottieRes = R.raw.suncloud,
+                            onColor = on
+                        )
+                        
+                        // Tonight container
+                        ForecastSectionContainer(
+                            title = "Tonight",
+                            content = tonightContent,
+                            lottieRes = R.raw.luna,
+                            onColor = on
+                        )
+                    }
+                } else {
+                    // Single container
+                    Text(
+                        text = content,
+                        color = on.copy(alpha = 0.98f),
+                        fontSize = 14.sp,
+                        lineHeight = 20.sp
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun ForecastSectionContainer(
+    title: String,
+    content: String,
+    lottieRes: Int,
+    onColor: Color
+) {
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(12.dp),
+        color = onColor.copy(alpha = 0.1f),
+        border = BorderStroke(1.dp, onColor.copy(alpha = 0.2f))
+    ) {
+        Row(
+            modifier = Modifier.padding(12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            // Lottie animation
+            val composition by rememberLottieComposition(LottieCompositionSpec.RawRes(lottieRes))
+            val progress by animateLottieCompositionAsState(composition, iterations = LottieConstants.IterateForever)
+            
+            Box(
+                modifier = Modifier.size(32.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                LottieAnimation(
+                    composition = composition,
+                    progress = { progress },
+                    modifier = Modifier.fillMaxSize()
+                )
+            }
+            
+            Spacer(modifier = Modifier.width(12.dp))
+            
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = title,
+                    color = onColor,
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Bold
+                )
+                Text(
+                    text = content,
+                    color = onColor.copy(alpha = 0.9f),
+                    fontSize = 13.sp,
+                    lineHeight = 16.sp
+                )
+            }
+        }
+    }
+}
+
+private fun extractSectionContent(fullContent: String, section: String): String {
+    val text = fullContent.trim()
+    
+    return when (section.lowercase()) {
+        "today" -> {
+            // Look for Today content - handle various formats
+            val patterns = listOf(
+                Regex("Forecast for Today[:\\.]?\\s*(.*?)(?=Forecast for Tonight|$)", RegexOption.DOT_MATCHES_ALL),
+                Regex("Today[:\\.]?\\s*(.*?)(?=Tonight|Forecast for Tonight|$)", RegexOption.DOT_MATCHES_ALL),
+                Regex("FORECAST FOR TODAY[:\\.]?\\s*(.*?)(?=FORECAST FOR TONIGHT|TONIGHT|$)", RegexOption.DOT_MATCHES_ALL),
+                // Special case: content starts directly with Today's forecast (when title is "Forecast for Today")
+                Regex("^(.*?)(?=Forecast for Tonight|$)", RegexOption.DOT_MATCHES_ALL)
+            )
+            
+            for (pattern in patterns) {
+                val match = pattern.find(text)
+                if (match != null) {
+                    val content = match.groupValues[1].trim()
+                    if (content.isNotBlank()) {
+                        return content
+                    }
+                }
+            }
+            ""
+        }
+        "tonight" -> {
+            // Look for Tonight content - handle various formats
+            val patterns = listOf(
+                Regex("Forecast for Tonight[:\\.]?\\s*(.*?)$", RegexOption.DOT_MATCHES_ALL),
+                Regex("Tonight[:\\.]?\\s*(.*?)$", RegexOption.DOT_MATCHES_ALL),
+                Regex("FORECAST FOR TONIGHT[:\\.]?\\s*(.*?)$", RegexOption.DOT_MATCHES_ALL)
+            )
+            
+            for (pattern in patterns) {
+                val match = pattern.find(text)
+                if (match != null) {
+                    val content = match.groupValues[1].trim()
+                    if (content.isNotBlank()) {
+                        return content
+                    }
+                }
+            }
+            ""
+        }
+        else -> ""
     }
 }
 

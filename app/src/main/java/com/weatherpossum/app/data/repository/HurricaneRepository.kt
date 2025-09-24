@@ -12,6 +12,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.delay
 import retrofit2.Retrofit
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
@@ -20,11 +21,22 @@ import java.io.IOException
 
 private const val TAG = "HurricaneRepository"
 private const val CACHE_DURATION_MILLIS = 60 * 60 * 1000L // 1 hour
+private const val MAX_RETRIES = 2
+private const val INITIAL_RETRY_DELAY = 500L
 
 class HurricaneRepository {
     private val nhcApi: HurricaneFeedsApi by lazy {
         val client = OkHttpClient.Builder()
-            .addInterceptor(HttpLoggingInterceptor().apply { level = HttpLoggingInterceptor.Level.BASIC })
+            .connectTimeout(10, java.util.concurrent.TimeUnit.SECONDS)
+            .readTimeout(15, java.util.concurrent.TimeUnit.SECONDS)
+            .writeTimeout(10, java.util.concurrent.TimeUnit.SECONDS)
+            .addInterceptor { chain ->
+                val request = chain.request().newBuilder()
+                    .addHeader("User-Agent", "WeatherPossum/1.4.8 (Android)")
+                    .build()
+                chain.proceed(request)
+            }
+            .addInterceptor(HttpLoggingInterceptor().apply { level = HttpLoggingInterceptor.Level.BODY })
             .build()
         Retrofit.Builder()
             .baseUrl("https://www.nhc.noaa.gov/")
@@ -49,17 +61,41 @@ class HurricaneRepository {
                     return@withContext Result.success(_hurricaneData.value!!)
                 }
 
-                // Fetch & parse CurrentStorms.json
-                val stormsJson = nhcApi.currentStorms().string()
+                // Fetch & parse CurrentStorms.json (fast attempt first)
+                val stormsJson = try {
+                    Log.d(TAG, "Attempting to fetch CurrentStorms.json")
+                    val response = nhcApi.currentStorms()
+                    Log.d(TAG, "Got response, converting to string")
+                    response.string()
+                } catch (e: Exception) {
+                    Log.w(TAG, "First attempt failed for storms, retrying: ${e.message}", e)
+                    retryWithTimeout { 
+                        Log.d(TAG, "Retry attempt for CurrentStorms.json")
+                        nhcApi.currentStorms().string() 
+                    }
+                }
                 val storms = parseCurrentStorms(stormsJson)
 
-                // Fetch & parse TWO text
-                val twoHtml = nhcApi.atlanticTwoText().string()
+                // Fetch & parse TWO text (fast attempt first)
+                val twoHtml = try {
+                    Log.d(TAG, "Attempting to fetch TWO text")
+                    val response = nhcApi.atlanticTwoText()
+                    Log.d(TAG, "Got TWO response, converting to string")
+                    response.string()
+                } catch (e: Exception) {
+                    Log.w(TAG, "First attempt failed for TWO, retrying: ${e.message}", e)
+                    retryWithTimeout { 
+                        Log.d(TAG, "Retry attempt for TWO text")
+                        nhcApi.atlanticTwoText().string() 
+                    }
+                }
                 val two = TwoTextParser.parse(twoHtml)
 
                 val data = HurricaneData(
                     activeStorms = storms,
                     tropicalOutlook = two.cleaned,
+                    forecaster = two.forecaster,
+                    issued = two.issued,
                     lastUpdated = System.currentTimeMillis(),
                     isFromCache = false
                 )
@@ -69,8 +105,22 @@ class HurricaneRepository {
                 Result.success(data)
             } catch (e: Exception) {
                 Log.e(TAG, "Error fetching hurricane data", e)
-                _hurricaneData.value?.let { return@withContext Result.success(it.copy(isFromCache = true)) }
-                Result.failure(e)
+                // Return cached data if available, otherwise return failure
+                _hurricaneData.value?.let { 
+                    Log.w(TAG, "Network error. Returning cached data.")
+                    return@withContext Result.success(it.copy(isFromCache = true)) 
+                }
+                // If no cached data, create a minimal error response instead of failing completely
+                Log.w(TAG, "No cached data available. Creating empty hurricane data.")
+                val emptyData = HurricaneData(
+                    activeStorms = emptyList(),
+                    tropicalOutlook = "Unable to fetch hurricane data. Please check your internet connection and try again.",
+                    forecaster = null,
+                    issued = null,
+                    lastUpdated = System.currentTimeMillis(),
+                    isFromCache = false
+                )
+                Result.success(emptyData)
             }
         }
     
@@ -82,6 +132,34 @@ class HurricaneRepository {
     suspend fun refreshHurricaneData(): Result<HurricaneData> {
         Log.d(TAG, "refreshHurricaneData: called")
         return getActiveHurricanes(forceRefresh = true)
+    }
+    
+    private suspend fun <T> retryWithTimeout(block: suspend () -> T): T {
+        var delayTime = INITIAL_RETRY_DELAY
+        repeat(MAX_RETRIES) {
+            try {
+                return withContext(Dispatchers.IO) { block() }
+            } catch (e: Exception) {
+                Log.w(TAG, "Retry attempt ${it + 1} failed: ${e.message}")
+                
+                // Only retry on specific network errors, not all exceptions
+                val shouldRetry = when {
+                    e.message?.contains("UnknownHostException") == true -> true
+                    e.message?.contains("timeout") == true -> true
+                    e.message?.contains("Connection") == true -> true
+                    e is IOException -> true
+                    else -> false
+                }
+                
+                if (it < MAX_RETRIES - 1 && shouldRetry) {
+                    delay(delayTime)
+                    delayTime *= 2
+                } else {
+                    throw e // Don't retry if it's not a network error
+                }
+            }
+        }
+        throw IOException("All retries failed after $MAX_RETRIES attempts")
     }
     
     private fun parseCurrentStorms(json: String): List<Hurricane> {

@@ -3,6 +3,8 @@ package com.weatherpossum.app.data.model
 data class HurricaneData(
     val activeStorms: List<Hurricane>,
     val tropicalOutlook: String? = null,
+    val forecaster: String? = null,
+    val issued: String? = null,
     val lastUpdated: Long,
     val isFromCache: Boolean = false
 )
