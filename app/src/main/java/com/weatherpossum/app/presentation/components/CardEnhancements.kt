@@ -23,21 +23,23 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.weatherpossum.app.presentation.components.WavyLineProgressIndicator
 
 /**
- * Adds a subtle noise overlay to kill banding on large gradient cards
+ * Adds a subtle noise overlay for Expressive texture and vibrancy.
  */
 @Composable
 fun GradientNoiseOverlay(
     modifier: Modifier = Modifier,
-    alpha: Float = 0.06f
+    alpha: Float = 0.10f // Increased default alpha for visibility
 ) {
     Canvas(modifier.fillMaxSize()) {
-        val step = 6
+        val step = 4 // Smaller steps for denser noise pattern
         val rnd = java.util.Random(42)
         for (y in 0 until size.height.toInt() step step) {
             for (x in 0 until size.width.toInt() step step) {
-                val a = (rnd.nextFloat() * alpha).coerceIn(0f, 0.12f)
+                // Increased range for a more noticeable noise contrast
+                val a = (rnd.nextFloat() * alpha).coerceIn(0f, 0.2f) 
                 drawRect(
                     Color.White.copy(alpha = a),
                     topLeft = Offset(x.toFloat(), y.toFloat()),
@@ -49,7 +51,7 @@ fun GradientNoiseOverlay(
 }
 
 /**
- * Creates parallax and scale effects for cards based on scroll position
+ * Creates exaggerated parallax and scale effects for cards based on scroll position.
  */
 @Composable
 fun ParallaxCard(
@@ -60,9 +62,12 @@ fun ParallaxCard(
 ) {
     val first = listState.firstVisibleItemIndex
     val offset = listState.firstVisibleItemScrollOffset
-    val progress = ((index - first) * 1f - offset / 300.0f).coerceIn(-1f, 1f)
-    val scale = 1f - (0.02f * progress.coerceAtLeast(0f))
-    val translate = (progress * 8f)
+    // Exaggerated progress factor for more movement
+    val progress = ((index - first) * 1f - offset / 200.0f).coerceIn(-1f, 1f) 
+    
+    // Increased scale and translation ranges for a dramatic 3D effect
+    val scale = 1f - (0.04f * progress.coerceAtLeast(0f)) // Stronger squash/scale
+    val translate = (progress * 16f) // Larger vertical translation
     
     Box(
         modifier = modifier.graphicsLayer {
@@ -76,23 +81,25 @@ fun ParallaxCard(
 }
 
 /**
- * Enhanced card modifier with gradient background, noise overlay, and translucent border
+ * Enhanced card modifier with gradient background, noise overlay, and vibrant border.
  */
 fun Modifier.enhancedCardBackground(
     gradient: Brush,
-    cornerRadius: androidx.compose.ui.unit.Dp = 22.dp,
-    borderAlpha: Float = 0.10f
+    // Exaggerated corner radius for expressive shapes
+    cornerRadius: androidx.compose.ui.unit.Dp = 32.dp, 
+    // Increased border alpha for a stronger 'glow' or defining line
+    borderAlpha: Float = 0.25f 
 ): Modifier = this
     .clip(RoundedCornerShape(cornerRadius))
     .background(gradient)
     .border(
-        width = 1.dp,
+        width = 2.dp, // Thicker border
         color = Color.White.copy(alpha = borderAlpha),
         shape = RoundedCornerShape(cornerRadius)
     )
 
 /**
- * Standardized card header pattern for consistent styling across all cards
+ * Standardized card header pattern with Assertive Typography.
  */
 @Composable
 fun CardHeader(
@@ -108,52 +115,70 @@ fun CardHeader(
     ) {
         Column(
             modifier = Modifier.weight(1f),
-            verticalArrangement = Arrangement.spacedBy(4.dp)
+            verticalArrangement = Arrangement.spacedBy(6.dp) // More space
         ) {
             Text(
                 title, 
                 color = onColor, 
-                fontSize = 18.sp, 
-                fontWeight = FontWeight.SemiBold,
+                fontSize = 20.sp, // Larger font size
+                fontWeight = FontWeight.Black, // Assertive boldness
+                letterSpacing = 1.0.sp, // More open spacing
                 maxLines = 3,
                 overflow = TextOverflow.Ellipsis
             )
             if (subtitle != null) {
                 Text(
                     subtitle, 
-                    color = onColor.copy(0.92f), 
-                    fontSize = 14.sp
+                    color = onColor.copy(0.95f), 
+                    fontSize = 15.sp, // Larger subtitle
+                    fontWeight = FontWeight.SemiBold
                 )
             }
         }
         
-        // Icon gets fixed space on the right
+        // Icon gets fixed space on the right (and is visually separated)
         Box(
-            modifier = Modifier.padding(start = 12.dp),
+            modifier = Modifier.padding(start = 16.dp), // More separation
             contentAlignment = Alignment.Center
         ) {
             endContent?.invoke()
         }
     }
+    Spacer(Modifier.height(8.dp)) // More space after header block
+    HorizontalDivider(color = onColor.copy(0.3f), thickness = 2.dp) // Thicker divider
     Spacer(Modifier.height(6.dp))
-    HorizontalDivider(color = onColor.copy(0.18f))
-    Spacer(Modifier.height(4.dp))
 }
 
 /**
  * Day progress chip showing percentage of daylight passed
+ * Uses Material You Expressive wavy line indicator
  */
 @Composable
 fun DayProgressChip(percent: Int, on: Color) {
-    Row(
+    Column(
         Modifier
-            .clip(RoundedCornerShape(16.dp))
-            .background(Color.White.copy(0.14f))
-            .padding(horizontal = 10.dp, vertical = 6.dp),
-        verticalAlignment = Alignment.CenterVertically
+            .clip(RoundedCornerShape(20.dp)) // Larger rounding
+            .background(Color.White.copy(0.25f)) // Brighter background fill
+            .padding(horizontal = 16.dp, vertical = 10.dp), // Increased padding
+        verticalArrangement = Arrangement.spacedBy(8.dp) // More space
     ) {
-        Box(Modifier.size(8.dp).background(on, CircleShape))
-        Spacer(Modifier.width(8.dp))
-        Text("$percent% of daylight", color = on, fontSize = 12.sp, fontWeight = FontWeight.Medium)
+        Row(
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                "$percent% DAYLIGHT PROGRESS", 
+                color = on, 
+                fontSize = 14.sp, // Larger text
+                fontWeight = FontWeight.ExtraBold, // Bolder
+                letterSpacing = 1.0.sp
+            )
+        }
+        WavyLineProgressIndicator(
+            progress = percent / 100f,
+            color = on,
+            backgroundColor = on.copy(alpha = 0.3f), // Brighter background
+            height = 4.dp, // Thicker line
+            modifier = Modifier.fillMaxWidth()
+        )
     }
 }

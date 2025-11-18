@@ -12,69 +12,97 @@ import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 
+// -------------------------------------------------------------------
+// EXPRESSIVE LIGHT COLOR SCHEME: High contrast, saturated colors
+// -------------------------------------------------------------------
 private val LightColorScheme = lightColorScheme(
-    primary = Color(0xFF006C51),
+    // Primary: Vibrant Teal/Aqua for main focus
+    primary = Color(0xFF00BFA5),
     onPrimary = Color.White,
-    primaryContainer = Color(0xFF89F8D7),
-    onPrimaryContainer = Color(0xFF002114),
-    secondary = Color(0xFF4C6358),
-    onSecondary = Color.White,
-    secondaryContainer = Color(0xFFCEE9DA),
-    onSecondaryContainer = Color(0xFF092016),
-    tertiary = Color(0xFF3D6373),
+    primaryContainer = Color(0xFF64FFDA), // Brighter container
+    onPrimaryContainer = Color(0xFF004D40), // Darker, higher contrast text
+    
+    // Secondary: Bold Yellow/Gold for accents
+    secondary = Color(0xFFFFC107),
+    onSecondary = Color(0xFF2B2B2B), // Dark text on bright yellow
+    secondaryContainer = Color(0xFFFFEB3B),
+    onSecondaryContainer = Color(0xFF424242),
+    
+    // Tertiary: Deep Royal Blue for secondary accents
+    tertiary = Color(0xFF3F51B5),
     onTertiary = Color.White,
-    tertiaryContainer = Color(0xFFC1E8FB),
-    onTertiaryContainer = Color(0xFF001F29),
-    error = Color(0xFFBA1A1A),
-    errorContainer = Color(0xFFFFDAD6),
+    tertiaryContainer = Color(0xFFC5CAE9),
+    onTertiaryContainer = Color(0xFF1A237E),
+    
+    error = Color(0xFFD32F2F),
+    errorContainer = Color(0xFFFFCDD2),
     onError = Color.White,
-    onErrorContainer = Color(0xFF410002),
-    background = Color(0xFFFBFDF9),
+    onErrorContainer = Color(0xFF421415),
+    
+    // Surfaces: Clean White for maximum pop of color
+    background = Color(0xFFF5F5F5), // Slightly off-white
     onBackground = Color(0xFF191C1A),
-    surface = Color(0xFFFBFDF9),
+    surface = Color(0xFFFFFFFF), 
     onSurface = Color(0xFF191C1A),
-    surfaceVariant = Color(0xFFDBE5DE),
+    surfaceVariant = Color(0xFFE0E0E0),
     onSurfaceVariant = Color(0xFF404944),
-    outline = Color(0xFF707973),
-    inverseOnSurface = Color(0xFFEFF1ED),
-    inverseSurface = Color(0xFF2E312F),
+    
+    outline = Color(0xFFBDBDBD),
+    inverseOnSurface = Color(0xFF111413),
+    inverseSurface = Color(0xFFE0E0E0),
     inversePrimary = Color(0xFF6CDBBC),
-    surfaceTint = Color(0xFF006C51),
+    surfaceTint = Color(0xFF00BFA5),
     outlineVariant = Color(0xFFBFC9C2),
     scrim = Color(0xFF000000),
 )
 
+// -------------------------------------------------------------------
+// EXPRESSIVE DARK COLOR SCHEME: Deep background, neon-like highlights
+// -------------------------------------------------------------------
 private val DarkColorScheme = darkColorScheme(
-    primary = Color(0xFF7DE8C8),
-    onPrimary = Color(0xFF002B1D),
-    primaryContainer = Color(0xFF004D3A),
-    onPrimaryContainer = Color(0xFFA0FFE0),
-    secondary = Color(0xFFC4DED0),
-    onSecondary = Color(0xFF1A2F26),
-    secondaryContainer = Color(0xFF2F453B),
-    onSecondaryContainer = Color(0xFFD8F5E4),
-    tertiary = Color(0xFFB5DCEF),
-    onTertiary = Color(0xFF052D3B),
-    tertiaryContainer = Color(0xFF1E4352),
-    onTertiaryContainer = Color(0xFFD1F0FF),
+    // Primary: Brighter Aqua for high visibility
+    primary = Color(0xFF26A69A),
+    onPrimary = Color(0xFF000000), // Pure black text for ultimate pop
+    primaryContainer = Color(0xFF004D40),
+    onPrimaryContainer = Color(0xFFB2FF59), // Neon green highlight
+    
+    // Secondary: Bright Orange for energy
+    secondary = Color(0xFFFF9800),
+    onSecondary = Color(0xFF000000),
+    secondaryContainer = Color(0xFFC64900),
+    onSecondaryContainer = Color(0xFFFFD180),
+    
+    // Tertiary: Electric Purple/Pink
+    tertiary = Color(0xFFD1C4E9),
+    onTertiary = Color(0xFF280A4B),
+    tertiaryContainer = Color(0xFF512DA8),
+    onTertiaryContainer = Color(0xFFEFEBE9),
+    
     error = Color(0xFFFFB4AB),
     errorContainer = Color(0xFF93000A),
     onError = Color(0xFF690005),
     onErrorContainer = Color(0xFFFFDAD6),
-    background = Color(0xFF111413),
-    onBackground = Color(0xFFE8EAE6),
-    surface = Color(0xFF111413),
-    onSurface = Color(0xFFE8EAE6),
-    surfaceVariant = Color(0xFF2D3530),
-    onSurfaceVariant = Color(0xFFC5CFC8),
+    
+    // Surfaces: Near-Black for contrast and depth
+    background = Color(0xFF121212),
+    onBackground = Color(0xFFFFFFFF),
+    surface = Color(0xFF1D1D1D), 
+    onSurface = Color(0xFFFFFFFF),
+    surfaceVariant = Color(0xFF383838),
+    onSurfaceVariant = Color(0xFFD6D6D6),
+    
     outline = Color(0xFF8F9A93),
-    inverseOnSurface = Color(0xFF111413),
+    inverseOnSurface = Color(0xFF212121),
     inverseSurface = Color(0xFFE8EAE6),
     inversePrimary = Color(0xFF005A42),
-    surfaceTint = Color(0xFF7DE8C8),
-    outlineVariant = Color(0xFF2D3530),
+    surfaceTint = Color(0xFF26A69A),
+    outlineVariant = Color(0xFF404944),
     scrim = Color(0xFF000000),
 )
+
+// -------------------------------------------------------------------
+// THEME COMPOSABLE
+// -------------------------------------------------------------------
 
 @Composable
 fun WeatherPossumTheme(
@@ -85,6 +113,7 @@ fun WeatherPossumTheme(
     val colorScheme = when {
         dynamicColor -> {
             val context = LocalContext.current
+            // Note: Dynamic color will override the expressive themes above if enabled
             if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
         }
         darkTheme -> DarkColorScheme
@@ -95,14 +124,16 @@ fun WeatherPossumTheme(
     if (!view.isInEditMode) {
         DisposableEffect(darkTheme) {
             val activity = view.context as ComponentActivity
+            // Enable edge-to-edge drawing
             activity.enableEdgeToEdge(
+                // Use a subtle, expressive dimming of the surface for status bar scrims
                 statusBarStyle = SystemBarStyle.auto(
-                    lightScrim = colorScheme.surface.toArgb(),
-                    darkScrim = colorScheme.surface.toArgb()
+                    lightScrim = colorScheme.surface.copy(alpha = 0.9f).toArgb(),
+                    darkScrim = colorScheme.surface.copy(alpha = 0.9f).toArgb()
                 ),
                 navigationBarStyle = SystemBarStyle.auto(
-                    lightScrim = colorScheme.surface.toArgb(),
-                    darkScrim = colorScheme.surface.toArgb()
+                    lightScrim = colorScheme.surface.copy(alpha = 0.9f).toArgb(),
+                    darkScrim = colorScheme.surface.copy(alpha = 0.9f).toArgb()
                 )
             )
             onDispose {}
@@ -111,7 +142,9 @@ fun WeatherPossumTheme(
 
     MaterialTheme(
         colorScheme = colorScheme,
+        // Assuming Typography and Shapes are defined in companion files (Typography.kt and Shapes.kt)
         typography = Typography,
+        shapes = Shapes,
         content = content
     )
-} 
+}

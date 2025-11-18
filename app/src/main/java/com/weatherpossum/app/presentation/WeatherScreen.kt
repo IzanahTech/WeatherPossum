@@ -1,6 +1,8 @@
 package com.weatherpossum.app.presentation
 
 import androidx.compose.animation.*
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.spring
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.BorderStroke
@@ -20,8 +22,10 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
@@ -30,7 +34,10 @@ import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.airbnb.lottie.compose.*
+import com.weatherpossum.app.presentation.components.AnimatedWeatherIcon
+import com.weatherpossum.app.presentation.components.WeatherIconType
+import com.weatherpossum.app.presentation.components.getWeatherIconType
+import androidx.compose.foundation.Image
 import com.weatherpossum.app.R
 import com.weatherpossum.app.data.model.WeatherCard
 import org.koin.androidx.compose.koinViewModel
@@ -46,6 +53,7 @@ import com.weatherpossum.app.presentation.components.GreetingCard
 import androidx.compose.ui.platform.LocalContext
 import com.weatherpossum.app.presentation.components.UpdateSheetWithContext
 import com.weatherpossum.app.ui.viewmodel.UpdateViewModel
+import com.weatherpossum.app.presentation.components.ExpressiveLoadingIndicator
 
 @OptIn(
     ExperimentalMaterial3Api::class,
@@ -66,18 +74,19 @@ fun WeatherScreen(
     val context = LocalContext.current
 
     val isDarkMode = isSystemInDarkTheme()
+    // EXPRESSIVE: Use higher contrast/more saturated colors based on weather
     val bgColors = when {
         isDarkMode -> when {
-            synopsis?.contains("rain", ignoreCase = true) == true -> listOf(Color(0xFF1A237E), Color(0xFF0D1421))
-            synopsis?.contains("cloud", ignoreCase = true) == true -> listOf(Color(0xFF263238), Color(0xFF1A1A1A))
-            synopsis?.contains("wind", ignoreCase = true) == true -> listOf(Color(0xFF004D40), Color(0xFF0D1B1A))
-            else -> listOf(Color(0xFF0D1421), Color(0xFF1A1A1A))
+            synopsis?.contains("rain", ignoreCase = true) == true -> listOf(Color(0xFF2C3E50), Color(0xFF1C2833)) // Darker, deep blue
+            synopsis?.contains("cloud", ignoreCase = true) == true -> listOf(Color(0xFF4A4A4A), Color(0xFF2C3E50)) // Deeper gray
+            synopsis?.contains("wind", ignoreCase = true) == true -> listOf(Color(0xFF00695C), Color(0xFF1E8449)) // Rich teal to green
+            else -> listOf(Color(0xFF151C2C), Color(0xFF0F172A)) // Deep night
         }
         else -> when {
-            synopsis?.contains("rain", ignoreCase = true) == true -> listOf(Color(0xFF90CAF9), Color(0xFFE3F2FD))
-            synopsis?.contains("cloud", ignoreCase = true) == true -> listOf(Color(0xFFB0BEC5), Color(0xFFECEFF1))
-            synopsis?.contains("wind", ignoreCase = true) == true -> listOf(Color(0xFF80DEEA), Color(0xFFE0F7FA))
-            else -> listOf(Color(0xFFB3E5FC), Color(0xFFE1F5FE))
+            synopsis?.contains("rain", ignoreCase = true) == true -> listOf(Color(0xFF64B5F6), Color(0xFF90CAF9)) // Brighter, saturated blue
+            synopsis?.contains("cloud", ignoreCase = true) == true -> listOf(Color(0xFFB0BEC5), Color(0xFFCFD8DC)) // Light, distinct gray
+            synopsis?.contains("wind", ignoreCase = true) == true -> listOf(Color(0xFF4DB6AC), Color(0xFF80CBC4)) // Brighter aqua
+            else -> listOf(Color(0xFF4FC3F7), Color(0xFF81D4FA)) // Vibrant day sky
         }
     }
 
@@ -107,16 +116,20 @@ fun WeatherScreen(
                     .pullRefresh(pullRefreshState)
                     .padding(padding)
             ) {
+                // 1. EXPRESSIVE MOTION: Use bouncy spring animation for tab switching
                 AnimatedContent(
                     targetState = selectedTab,
                     transitionSpec = {
-                        if (targetState == "Extras" && initialState == "Now") {
-                            (slideInHorizontally { width -> width } + fadeIn()) togetherWith
-                                    (slideOutHorizontally { width -> -width } + fadeOut())
-                        } else {
-                            (slideInHorizontally { width -> -width } + fadeIn()) togetherWith
-                                    (slideOutHorizontally { width -> width } + fadeOut())
-                        }
+                        val direction = if (targetState == "Extras" && initialState == "Now") 1 else -1
+                        
+                        // Custom spring motion for expressive tab sliding
+                        val springSpec = spring<IntOffset>(
+                            dampingRatio = Spring.DampingRatioMediumBouncy,
+                            stiffness = Spring.StiffnessLow
+                        )
+
+                        (slideInHorizontally(initialOffsetX = { width -> direction * width }, animationSpec = springSpec) + fadeIn()) togetherWith
+                        (slideOutHorizontally(targetOffsetX = { width -> -direction * width }, animationSpec = springSpec) + fadeOut())
                     },
                     label = "TabSwitch"
                 ) { tab ->
@@ -128,7 +141,9 @@ fun WeatherScreen(
                 PullRefreshIndicator(
                     refreshing = isRefreshing,
                     state = pullRefreshState,
-                    modifier = Modifier.align(Alignment.TopCenter)
+                    modifier = Modifier.align(Alignment.TopCenter),
+                    // EXPRESSIVE: Use primary color for indicator
+                    contentColor = MaterialTheme.colorScheme.primary 
                 )
                 Box(
                     modifier = Modifier
@@ -143,22 +158,18 @@ fun WeatherScreen(
                 }
             }
         }
+        
+        LaunchedEffect(Unit) {
+            kotlinx.coroutines.delay(2000)
+            updateViewModel.checkForUpdates(context)
+        }
+        
+        UpdateSheetWithContext(
+            vm = updateViewModel,
+            context = context,
+            onDismiss = { updateViewModel.dismissUpdate() }
+        )
     }
-    
-    // Automatically check for updates in the background on app launch
-    // Only shows dialog if update is available - completely silent otherwise
-    LaunchedEffect(Unit) {
-        // Add a small delay to ensure app is fully loaded before checking
-        kotlinx.coroutines.delay(2000)
-        updateViewModel.checkForUpdates(context)
-    }
-    
-    // Show update dialog if available
-    UpdateSheetWithContext(
-        vm = updateViewModel,
-        context = context,
-        onDismiss = { updateViewModel.dismissUpdate() }
-    )
 }
 
 @Composable
@@ -183,50 +194,58 @@ fun NowTabContent(
             var nameInput by remember { mutableStateOf("") }
 
             if (showNameDialog) {
-                val composition by rememberLottieComposition(LottieCompositionSpec.RawRes(R.raw.sunny))
-                val progress by animateLottieCompositionAsState(composition, iterations = LottieConstants.IterateForever)
-
+                // 3. EXPRESSIVE DIALOGUE STYLING
                 AlertDialog(
                     onDismissRequest = {},
                     confirmButton = {
-                        Button(onClick = {
-                            if (nameInput.isNotBlank()) {
-                                viewModel.saveUserName(nameInput.trim())
-                                showNameDialog = false
-                            }
-                        }, shape = RoundedCornerShape(16.dp)) {
-                            Text("OK", style = MaterialTheme.typography.labelLarge)
+                        Button(
+                            onClick = {
+                                if (nameInput.isNotBlank()) {
+                                    viewModel.saveUserName(nameInput.trim())
+                                    showNameDialog = false
+                                }
+                            }, 
+                            // Exaggerated corner shape
+                            shape = RoundedCornerShape(20.dp), 
+                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
+                        ) {
+                            Text("OK", style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold))
                         }
                     },
                     title = {
-                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                            // Bolder Welcome text
                             Text(
-                                text = "Welcome",
-                                style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold)
+                                text = "WELCOME ABOARD!",
+                                style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Black)
                             )
-                            Box(modifier = Modifier.size(48.dp), contentAlignment = Alignment.Center) {
-                                LottieAnimation(composition = composition, progress = { progress }, modifier = Modifier.fillMaxSize())
+                            // Larger icon
+                            Box(modifier = Modifier.size(60.dp), contentAlignment = Alignment.Center) {
+                                AnimatedWeatherIcon(
+                                    type = WeatherIconType.SUNNY,
+                                    modifier = Modifier.fillMaxSize()
+                                )
                             }
                         }
                     },
                     text = {
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Text("What shall I call you?", style = MaterialTheme.typography.bodyLarge)
-                            Spacer(Modifier.height(12.dp))
+                            Text("What shall I call you?", style = MaterialTheme.typography.bodyLarge.copy(fontSize = 16.sp))
+                            Spacer(Modifier.height(16.dp))
                             OutlinedTextField(
                                 value = nameInput,
                                 onValueChange = { nameInput = it },
                                 placeholder = { Text("Enter your name") },
                                 singleLine = true,
-                                shape = RoundedCornerShape(12.dp)
+                                shape = RoundedCornerShape(16.dp) // Expressive rounding
                             )
                         }
                     },
-                    shape = RoundedCornerShape(28.dp),
-                    containerColor = MaterialTheme.colorScheme.surfaceVariant,
-                    tonalElevation = 12.dp,
-                    titleContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                    textContentColor = MaterialTheme.colorScheme.onSurfaceVariant
+                    shape = RoundedCornerShape(32.dp), // Exaggerated outer shape
+                    containerColor = MaterialTheme.colorScheme.surfaceColorAtElevation(10.dp), // Higher elevation surface
+                    tonalElevation = 18.dp,
+                    titleContentColor = MaterialTheme.colorScheme.onSurface,
+                    textContentColor = MaterialTheme.colorScheme.onSurface
                 )
             }
 
@@ -238,8 +257,9 @@ fun NowTabContent(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(horizontal = 16.dp),
-                contentPadding = PaddingValues(top = 16.dp, bottom = 112.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
+                // Tighter padding to give cards more space to breathe and parallax
+                contentPadding = PaddingValues(top = 20.dp, bottom = 120.dp), 
+                verticalArrangement = Arrangement.spacedBy(16.dp) // Increased spacing
             ) {
                 item {
                     GreetingCard(userName = userName, synopsis = synopsis)
@@ -251,33 +271,32 @@ fun NowTabContent(
                         WeatherInfoCard(
                             title = warningCard.title,
                             description = warningCard.value,
-                            lottieRes = R.raw.warning
+                            iconType = WeatherIconType.ADVISORY
                         )
                     }
                 }
 
                 itemsIndexed(uniqueCards.filterNot { it.title.equals("Warning/Advisory", ignoreCase = true) }) { index, card ->
+                    // 4. Parallax Effect Enhancement
                     ParallaxCard(index = index, listState = listState) {
                         AnimatedVisibility(
                             visible = true,
-                            enter = fadeIn() + slideInVertically(initialOffsetY = { it / 2 })
+                            // Expressive: Simple entry animation to match the overall feel
+                            enter = fadeIn() + slideInVertically(initialOffsetY = { it / 4 })
                         ) {
                             if (card.title.contains("Weather Outlook", ignoreCase = true)) {
-                                // Your special Outlook card remains
-                                OutlookWeatherCard(card = card, lottieRes = R.raw.outlook)
+                                OutlookWeatherCard(card = card, iconType = getWeatherIconType("${card.title} ${card.value}"))
                             } else if (card.title.contains("Forecast", ignoreCase = true)) {
-                                // Special forecast card with day/night animations
                                 ForecastCard(card = card)
                             } else if (card.title.contains("sun", ignoreCase = true) || 
-                                       card.value.contains("sunrise", ignoreCase = true) || 
-                                       card.value.contains("sunset", ignoreCase = true)) {
-                                // Use the new SunCard for sun-related content
+                                    card.value.contains("sunrise", ignoreCase = true) || 
+                                    card.value.contains("sunset", ignoreCase = true)) {
                                 SunCard()
                             } else {
                                 WeatherInfoCard(
                                     title = card.title,
                                     description = card.value,
-                                    lottieRes = getLottieResForCard(card)
+                                    iconType = getWeatherIconType("${card.title} ${card.value}")
                                 )
                             }
                         }
@@ -291,7 +310,7 @@ fun NowTabContent(
 @Composable
 fun SplashScreen() {
     Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-        CircularProgressIndicator()
+        ExpressiveLoadingIndicator()
     }
 }
 
@@ -300,32 +319,37 @@ fun ErrorContent(errorMessage: String, onRetry: () -> Unit) {
     Column(
         Modifier
             .fillMaxSize()
-            .padding(16.dp),
+            .padding(24.dp), // More generous padding
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
-        Text(errorMessage, color = MaterialTheme.colorScheme.error)
-        Spacer(Modifier.height(16.dp))
-        Button(onClick = onRetry) { Text("Retry") }
+        Text(errorMessage, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.titleMedium)
+        Spacer(Modifier.height(20.dp)) // More space
+        Button(
+            onClick = onRetry,
+            shape = RoundedCornerShape(16.dp), // Expressive button shape
+            elevation = ButtonDefaults.buttonElevation(defaultElevation = 8.dp) // Lifted button
+        ) { 
+            Text("TRY AGAIN!", fontWeight = FontWeight.Bold) // Assertive text
+        }
     }
 }
 
 /* ──────────────────────────────────────────────────────────────────────────────
-   NEW: Styled WeatherInfoCard + helpers
+   NEW/MODIFIED: Styled WeatherInfoCard + helpers
    ────────────────────────────────────────────────────────────────────────────── */
 
 @Composable
-fun WeatherInfoCard(title: String, description: String, lottieRes: Int) {
-    val style = remember(title, description) { chooseInfoStyle(title, description) }
-
-    val composition by rememberLottieComposition(LottieCompositionSpec.RawRes(lottieRes))
-    val progress by animateLottieCompositionAsState(composition, iterations = LottieConstants.IterateForever)
-
+fun WeatherInfoCard(title: String, description: String, iconType: WeatherIconType) {
+    val style = chooseInfoStyle(title, description)
     val annotated = remember(description) { boldKnownLabels(description, style.boldLabels) }
 
+    // Use expressive shape everywhere
+    val expressiveShape = remember { RoundedCornerShape(28.dp) } 
+
     Card(
-        shape = RoundedCornerShape(22.dp),
-        elevation = CardDefaults.cardElevation(10.dp),
+        shape = expressiveShape,
+        elevation = CardDefaults.cardElevation(14.dp), // Higher elevation
         colors = CardDefaults.cardColors(containerColor = Color.Transparent),
         modifier = Modifier.fillMaxWidth()
     ) {
@@ -333,20 +357,19 @@ fun WeatherInfoCard(title: String, description: String, lottieRes: Int) {
             Modifier
                 .enhancedCardBackground(style.gradient)
                 .fillMaxWidth()
-                .padding(16.dp)
+                .padding(20.dp) // More padding
         ) {
             GradientNoiseOverlay()
             
             Column {
-                // Header
+                // Header (modified for Expressive Typography)
                 CardHeader(
                     title = style.headerTitle ?: title.uppercase(),
                     subtitle = style.subtitle,
                     endContent = {
                         Box(Modifier.size(style.iconSize), contentAlignment = Alignment.Center) {
-                            LottieAnimation(
-                                composition = composition,
-                                progress = { progress },
+                            AnimatedWeatherIcon(
+                                type = iconType,
                                 modifier = Modifier.fillMaxSize()
                             )
                         }
@@ -354,10 +377,10 @@ fun WeatherInfoCard(title: String, description: String, lottieRes: Int) {
                     onColor = style.onColor
                 )
 
-                // Body
+                // Body content logic remains the same, but uses expressive typography below
                 when {
                     style.rows.isNotEmpty() -> {
-                        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                             style.rows.forEach { (label, valueProvider) ->
                                 val v = valueProvider(description)
                                 if (!v.isNullOrBlank()) {
@@ -372,7 +395,7 @@ fun WeatherInfoCard(title: String, description: String, lottieRes: Int) {
                         }
                     }
                     style.pills.isNotEmpty() -> {
-                        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                             style.pills.forEach { (label, valueProvider) ->
                                 val v = valueProvider(description)
                                 if (!v.isNullOrBlank()) {
@@ -385,8 +408,9 @@ fun WeatherInfoCard(title: String, description: String, lottieRes: Int) {
                         Text(
                             text = annotated,
                             color = style.onColor.copy(alpha = 0.98f),
-                            fontSize = 14.sp,
-                            lineHeight = 20.sp
+                            // Expressive Body Text: slightly larger and more generous line height
+                            fontSize = 16.sp, 
+                            lineHeight = 22.sp 
                         )
                     }
                 }
@@ -400,34 +424,38 @@ private data class InfoStyle(
     val onColor: Color = Color.White,
     val headerTitle: String? = null,
     val subtitle: String? = null,
-    val iconSize: Dp = 56.dp,
-    val labelWidth: Dp = 110.dp,
+    val iconSize: Dp = 64.dp, // Increased default icon size
+    val labelWidth: Dp = 120.dp, // Wider label for complex data
     val rows: List<Pair<String, (String) -> String?>> = emptyList(),
     val pills: List<Pair<String, (String) -> String?>> = emptyList(),
     val boldLabels: List<String> = emptyList()
 )
 
+@Composable
 private fun chooseInfoStyle(title: String, description: String): InfoStyle {
     val t = title.lowercase()
     val text = "$title $description".lowercase()
+    val colorScheme = MaterialTheme.colorScheme // Access MaterialTheme colors
 
-    // Warning / Advisory
+    // Warning / Advisory (Using Primary/Error for high urgency)
     if (t.contains("warning") || t.contains("advisory") || text.contains("alert")) {
         return InfoStyle(
-            gradient = Brush.verticalGradient(listOf(Color(0xFFFFE08A), Color(0xFFFF7A59))),
-            onColor = Color(0xFF2B2B2B),
-            headerTitle = "WEATHER ADVISORY",
+            gradient = Brush.verticalGradient(listOf(colorScheme.error, colorScheme.primary)),
+            onColor = colorScheme.onPrimary,
+            headerTitle = "CRITICAL ALERT",
+            iconSize = 72.dp, // Even larger
             boldLabels = listOf("area:", "valid until:", "impact:", "advice:")
         )
     }
 
-    // Tides / Sea
+    // Tides / Sea (Using Secondary/Tertiary for calm water tones)
     if (t.contains("tide") || text.contains("low tide") || text.contains("high tide") || text.contains("sea")) {
         return InfoStyle(
-            gradient = Brush.verticalGradient(listOf(Color(0xFF42A5F5), Color(0xFF1976D2))),
-            onColor = Color.White,
-            headerTitle = "SEA & TIDES",
-            labelWidth = 100.dp,
+            gradient = Brush.verticalGradient(listOf(colorScheme.secondaryContainer, colorScheme.tertiaryContainer)),
+            onColor = colorScheme.onSecondaryContainer,
+            headerTitle = "MARINE CONDITIONS",
+            iconSize = 64.dp,
+            labelWidth = 110.dp,
             pills = listOf(
                 "Low Tide" to { s: String -> findValueAfterLabel(s, "Low Tide:") },
                 "High Tide" to { s: String -> findValueAfterLabel(s, "High Tide:") }
@@ -440,43 +468,45 @@ private fun chooseInfoStyle(title: String, description: String): InfoStyle {
         )
     }
 
-    // Sun (sunrise/sunset)
+    // Sun (sunrise/sunset) (Using Vibrant Yellow/Orange)
     if (t.contains("sun") || text.contains("sunrise") || text.contains("sunset")) {
         return InfoStyle(
-            gradient = Brush.verticalGradient(listOf(Color(0xFFFFB75E), Color(0xFFED8F03))),
+            gradient = Brush.verticalGradient(listOf(Color(0xFFFFB75E), Color(0xFFFF9800))),
             onColor = Color.White,
-            headerTitle = "SUN",
+            headerTitle = "SOLAR EVENTS",
+            iconSize = 64.dp,
             pills = listOf(
                 "Sunrise" to { s: String -> findValueAfterLabel(s, "Sunrise:") },
-                "Sunset"  to { s: String -> findValueAfterLabel(s, "Sunset:") }
+                "Sunset" to { s: String -> findValueAfterLabel(s, "Sunset:") }
             ),
             boldLabels = listOf("Sunrise:", "Sunset:")
         )
     }
 
-    // Wind
+    // Wind (Using Green/Cyan for moving air)
     if (t.contains("wind") || text.contains("gust") || text.contains("breeze")) {
         return InfoStyle(
-            gradient = Brush.verticalGradient(listOf(Color(0xFF81C784), Color(0xFF388E3C))),
-            onColor = Color.White,
-            headerTitle = "WIND CONDITIONS",
+            gradient = Brush.verticalGradient(listOf(Color(0xFF80CBC4), Color(0xFF4DB6AC))),
+            onColor = Color(0xFF004D40),
+            headerTitle = "WIND VELOCITY",
+            iconSize = 64.dp,
             rows = listOf("Summary" to { s: String -> s.takeIf { it.isNotBlank() } })
         )
     }
 
-    // Outlook / Synopsis
+    // Outlook / Synopsis (Using Primary/Secondary for general purpose)
     if (t.contains("outlook") || t.contains("synopsis")) {
         return InfoStyle(
-            gradient = Brush.verticalGradient(listOf(Color(0xFF86A8E7), Color(0xFF7F7FD5))),
-            onColor = Color.White,
+            gradient = Brush.verticalGradient(listOf(colorScheme.primary, colorScheme.secondary)),
+            onColor = colorScheme.onPrimary,
             headerTitle = title.uppercase()
         )
     }
 
     // Generic fallback
     return InfoStyle(
-        gradient = Brush.verticalGradient(listOf(Color(0xFF6A4C93), Color(0xFF9A4C95))),
-        onColor = Color.White,
+        gradient = Brush.verticalGradient(listOf(colorScheme.surfaceTint, colorScheme.primary)),
+        onColor = colorScheme.onPrimary,
         headerTitle = title.uppercase()
     )
 }
@@ -492,11 +522,16 @@ private fun LabelValueRow(label: String, value: String, onColor: Color, labelWid
         Text(
             "$label:",
             color = onColor,
-            fontWeight = FontWeight.SemiBold,
-            fontSize = 14.sp,
+            fontWeight = FontWeight.ExtraBold, // Bolder label
+            fontSize = 15.sp, // Slightly larger
             modifier = Modifier.width(labelWidth)
         )
-        Text(value, color = onColor.copy(alpha = 0.96f), fontSize = 14.sp, lineHeight = 18.sp)
+        Text(
+            value, 
+            color = onColor.copy(alpha = 0.96f), 
+            fontSize = 15.sp, // Slightly larger
+            lineHeight = 20.sp
+        )
     }
 }
 
@@ -505,14 +540,14 @@ private fun Pill(label: String, value: String, onColor: Color) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier
-            .clip(RoundedCornerShape(20.dp))
-            .background(Color.White.copy(alpha = 0.12f))
-            .padding(horizontal = 12.dp, vertical = 8.dp)
+            .clip(RoundedCornerShape(24.dp)) // More rounded pill
+            .background(Color.White.copy(alpha = 0.2f)) // Brighter overlay
+            .padding(horizontal = 16.dp, vertical = 10.dp) // More padding
             .fillMaxWidth()
     ) {
-        Text(label, color = onColor, fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
-        Spacer(Modifier.width(8.dp))
-        Text(value, color = onColor.copy(alpha = 0.95f), fontSize = 13.sp)
+        Text(label, color = onColor, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+        Spacer(Modifier.width(10.dp))
+        Text(value, color = onColor.copy(alpha = 0.95f), fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
     }
 }
 
@@ -522,7 +557,7 @@ private fun boldKnownLabels(text: String, labels: List<String>): AnnotatedString
             val trimmed = line.trim()
             val label = labels.firstOrNull { trimmed.startsWith(it, ignoreCase = true) }
             if (label != null) {
-                withStyle(SpanStyle(fontWeight = FontWeight.Bold)) { append(label) }
+                withStyle(SpanStyle(fontWeight = FontWeight.Black)) { append(label) } // Max boldness
                 append(" " + trimmed.removePrefix(label).trim())
             } else {
                 append(trimmed)
@@ -532,73 +567,43 @@ private fun boldKnownLabels(text: String, labels: List<String>): AnnotatedString
     }
 }
 
-/* ──────────────────────────────────────────────────────────────────────────────
-   Existing helper unchanged: pick Lottie based on content
-   ────────────────────────────────────────────────────────────────────────────── */
-
+@Deprecated("Use getWeatherIconType instead - this function is kept for reference only")
 fun getLottieResForCard(card: WeatherCard): Int {
-    val title = card.title.lowercase()
-    val value = card.value.lowercase()
-    val text = "$title $value"
-    if (title.contains("wind conditions")) return R.raw.wind
-    if (text.contains("partly cloudy")) return R.raw.partlycloudy
-    return when {
-        text.contains("thunderstorm") || text.contains("thunder") -> R.raw.thunder
-        text.contains("rain") || text.contains("shower") -> R.raw.rain
-        text.contains("cloud") || text.contains("overcast") -> R.raw.cloudy
-        text.contains("wind") || text.contains("breeze") || text.contains("gust") -> R.raw.wind
-        text.contains("sea") -> {
-            val hour = java.time.LocalTime.now().hour
-            if (hour in 6..18) R.raw.seaconday else R.raw.seaconnight
-        }
-        text.contains("outlook") -> R.raw.outlook
-        text.contains("synopsis") -> R.raw.sunny
-        else -> R.raw.neutral
-    }
+    // This function is deprecated and no longer used
+    // All drawable resources have been removed
+    // Use getWeatherIconType("${card.title} ${card.value}") instead
+    return 0 // Dummy return - function should not be called
 }
 
 @Composable
 private fun ForecastCard(card: WeatherCard) {
-    val gradient = Brush.verticalGradient(listOf(Color(0xFF86A8E7), Color(0xFF7F7FD5))) // Purple gradient
-    val on = Color.White
+    val gradient = Brush.verticalGradient(listOf(MaterialTheme.colorScheme.primary, MaterialTheme.colorScheme.tertiary))
+    val on = MaterialTheme.colorScheme.onPrimary
     
-    // Check if content contains both Today and Tonight
     val content = card.value
     val title = card.title
     
-    // If title contains "Today" and content contains "Forecast for Tonight", then we have both
     val hasToday = title.contains("Today", ignoreCase = true) || 
                    content.contains("Forecast for Today", ignoreCase = true) || 
                    content.contains("Today:", ignoreCase = true)
     val hasTonight = content.contains("Forecast for Tonight", ignoreCase = true) || 
                      content.contains("Tonight:", ignoreCase = true)
     
-    // Special case: if title is "Forecast for Today" and content has "Forecast for Tonight", we have both
     val hasBothSections = title.contains("Today", ignoreCase = true) && hasTonight
     
-    // Determine the display title
     val displayTitle = if (hasBothSections) "Forecast" else title
-    
-    // Debug logging to see what we're detecting
-    println("ForecastCard Debug:")
-    println("  Title: ${card.title}")
-    println("  Content: $content")
-    println("  Has Today: $hasToday")
-    println("  Has Tonight: $hasTonight")
-    println("  Has Both Sections: $hasBothSections")
-    println("  Display Title: $displayTitle")
     
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(22.dp),
-        elevation = CardDefaults.cardElevation(10.dp),
+        shape = RoundedCornerShape(28.dp), // Exaggerated shape
+        elevation = CardDefaults.cardElevation(14.dp), // Higher elevation
         colors = CardDefaults.cardColors(containerColor = Color.Transparent)
     ) {
         Box(
             Modifier
                 .enhancedCardBackground(gradient)
                 .fillMaxWidth()
-                .padding(16.dp)
+                .padding(20.dp) // More padding
         ) {
             GradientNoiseOverlay()
             
@@ -607,18 +612,11 @@ private fun ForecastCard(card: WeatherCard) {
                     title = displayTitle.uppercase(),
                     endContent = {
                         Box(
-                            modifier = Modifier.size(40.dp),
+                            modifier = Modifier.size(50.dp), // Larger icon
                             contentAlignment = Alignment.Center
                         ) {
-                            // Use forecast.json animation for all forecast cards
-                            val lottieRes = R.raw.forecast
-                            
-                            val composition by rememberLottieComposition(LottieCompositionSpec.RawRes(lottieRes))
-                            val progress by animateLottieCompositionAsState(composition, iterations = LottieConstants.IterateForever)
-                            
-                            LottieAnimation(
-                                composition = composition,
-                                progress = { progress },
+                            AnimatedWeatherIcon(
+                                type = WeatherIconType.FORECAST,
                                 modifier = Modifier.fillMaxSize()
                             )
                         }
@@ -626,39 +624,33 @@ private fun ForecastCard(card: WeatherCard) {
                     onColor = on
                 )
 
-                // Display forecast content
                 if (hasBothSections) {
-                    // Split into separate containers
                     val todayContent = extractSectionContent(content, "Today")
                     val tonightContent = extractSectionContent(content, "Tonight")
                     
-                    println("Extracted Today content: '$todayContent'")
-                    println("Extracted Tonight content: '$tonightContent'")
-                    
-                    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Column(verticalArrangement = Arrangement.spacedBy(14.dp)) { // More spacing
                         // Today container
                         ForecastSectionContainer(
-                            title = "Today",
+                            title = "Day Forecast", // More descriptive title
                             content = todayContent,
-                            lottieRes = R.raw.suncloud,
+                            iconType = WeatherIconType.PARTLY_CLOUDY,
                             onColor = on
                         )
                         
                         // Tonight container
                         ForecastSectionContainer(
-                            title = "Tonight",
+                            title = "Night Forecast",
                             content = tonightContent,
-                            lottieRes = R.raw.luna,
+                            iconType = WeatherIconType.NIGHT,
                             onColor = on
                         )
                     }
                 } else {
-                    // Single container
                     Text(
                         text = content,
                         color = on.copy(alpha = 0.98f),
-                        fontSize = 14.sp,
-                        lineHeight = 20.sp
+                        fontSize = 16.sp, // Larger body text
+                        lineHeight = 22.sp
                     )
                 }
             }
@@ -670,48 +662,47 @@ private fun ForecastCard(card: WeatherCard) {
 private fun ForecastSectionContainer(
     title: String,
     content: String,
-    lottieRes: Int,
+    iconType: WeatherIconType,
     onColor: Color
 ) {
     Surface(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(12.dp),
-        color = onColor.copy(alpha = 0.1f),
-        border = BorderStroke(1.dp, onColor.copy(alpha = 0.2f))
+        shape = RoundedCornerShape(16.dp), // Larger rounding
+        color = onColor.copy(alpha = 0.15f), // Brighter overlay
+        border = BorderStroke(2.dp, onColor.copy(alpha = 0.3f)), // Thicker, more prominent border
+        tonalElevation = 4.dp
     ) {
         Row(
-            modifier = Modifier.padding(12.dp),
+            modifier = Modifier.padding(16.dp), // More padding
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Lottie animation
-            val composition by rememberLottieComposition(LottieCompositionSpec.RawRes(lottieRes))
-            val progress by animateLottieCompositionAsState(composition, iterations = LottieConstants.IterateForever)
-            
+            // AVD animation
             Box(
-                modifier = Modifier.size(32.dp),
+                modifier = Modifier.size(40.dp), // Larger icon
                 contentAlignment = Alignment.Center
             ) {
-                LottieAnimation(
-                    composition = composition,
-                    progress = { progress },
-                    modifier = Modifier.fillMaxSize()
+                AnimatedWeatherIcon(
+                    type = iconType,
+                    modifier = Modifier.fillMaxSize(),
+                    color = onColor // Match color
                 )
             }
             
-            Spacer(modifier = Modifier.width(12.dp))
+            Spacer(modifier = Modifier.width(16.dp)) // More space
             
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = title,
+                    text = title.uppercase(),
                     color = onColor,
-                    fontSize = 12.sp,
-                    fontWeight = FontWeight.Bold
+                    fontSize = 14.sp, // Larger label
+                    fontWeight = FontWeight.Black, // Max boldness
+                    letterSpacing = 0.5.sp
                 )
                 Text(
                     text = content,
-                    color = onColor.copy(alpha = 0.9f),
-                    fontSize = 13.sp,
-                    lineHeight = 16.sp
+                    color = onColor.copy(alpha = 0.95f),
+                    fontSize = 14.sp, 
+                    lineHeight = 18.sp
                 )
             }
         }
@@ -723,12 +714,10 @@ private fun extractSectionContent(fullContent: String, section: String): String 
     
     return when (section.lowercase()) {
         "today" -> {
-            // Look for Today content - handle various formats
             val patterns = listOf(
                 Regex("Forecast for Today[:\\.]?\\s*(.*?)(?=Forecast for Tonight|$)", RegexOption.DOT_MATCHES_ALL),
                 Regex("Today[:\\.]?\\s*(.*?)(?=Tonight|Forecast for Tonight|$)", RegexOption.DOT_MATCHES_ALL),
                 Regex("FORECAST FOR TODAY[:\\.]?\\s*(.*?)(?=FORECAST FOR TONIGHT|TONIGHT|$)", RegexOption.DOT_MATCHES_ALL),
-                // Special case: content starts directly with Today's forecast (when title is "Forecast for Today")
                 Regex("^(.*?)(?=Forecast for Tonight|$)", RegexOption.DOT_MATCHES_ALL)
             )
             
@@ -744,7 +733,6 @@ private fun extractSectionContent(fullContent: String, section: String): String 
             ""
         }
         "tonight" -> {
-            // Look for Tonight content - handle various formats
             val patterns = listOf(
                 Regex("Forecast for Tonight[:\\.]?\\s*(.*?)$", RegexOption.DOT_MATCHES_ALL),
                 Regex("Tonight[:\\.]?\\s*(.*?)$", RegexOption.DOT_MATCHES_ALL),
@@ -767,25 +755,21 @@ private fun extractSectionContent(fullContent: String, section: String): String 
 }
 
 @Composable
-private fun OutlookWeatherCard(card: WeatherCard, lottieRes: Int) {
-    val gradient = Brush.verticalGradient(listOf(Color(0xFF86A8E7), Color(0xFF7F7FD5))) // Purple gradient
-    val on = Color.White
-    
-    // Outlook Lottie animation
-    val composition by rememberLottieComposition(LottieCompositionSpec.RawRes(lottieRes))
-    val progress by animateLottieCompositionAsState(composition, iterations = LottieConstants.IterateForever)
+private fun OutlookWeatherCard(card: WeatherCard, iconType: WeatherIconType) {
+    val gradient = Brush.verticalGradient(listOf(MaterialTheme.colorScheme.secondary, MaterialTheme.colorScheme.tertiary))
+    val on = MaterialTheme.colorScheme.onSecondary
     
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(22.dp),
-        elevation = CardDefaults.cardElevation(10.dp),
+        shape = RoundedCornerShape(28.dp), // Expressive shape
+        elevation = CardDefaults.cardElevation(14.dp),
         colors = CardDefaults.cardColors(containerColor = Color.Transparent)
     ) {
         Box(
             Modifier
                 .enhancedCardBackground(gradient)
                 .fillMaxWidth()
-                .padding(16.dp)
+                .padding(20.dp) // More padding
         ) {
             GradientNoiseOverlay()
             
@@ -794,12 +778,11 @@ private fun OutlookWeatherCard(card: WeatherCard, lottieRes: Int) {
                     title = card.title.uppercase(),
                     endContent = {
                         Box(
-                            modifier = Modifier.size(100.dp),
+                            modifier = Modifier.size(110.dp), // Larger Icon
                             contentAlignment = Alignment.Center
                         ) {
-                            LottieAnimation(
-                                composition = composition,
-                                progress = { progress },
+                            AnimatedWeatherIcon(
+                                type = iconType,
                                 modifier = Modifier.fillMaxSize()
                             )
                         }
@@ -807,12 +790,11 @@ private fun OutlookWeatherCard(card: WeatherCard, lottieRes: Int) {
                     onColor = on
                 )
 
-                // Display main forecast text
                 Text(
                     text = card.value,
                     color = on.copy(alpha = 0.98f),
-                    fontSize = 14.sp,
-                    lineHeight = 20.sp
+                    fontSize = 16.sp, // Larger body text
+                    lineHeight = 22.sp
                 )
             }
         }

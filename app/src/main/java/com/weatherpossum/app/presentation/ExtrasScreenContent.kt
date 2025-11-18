@@ -14,7 +14,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.res.painterResource
+import com.weatherpossum.app.presentation.components.AnimatedWeatherIcon
+import com.weatherpossum.app.presentation.components.WeatherIconType
+import com.weatherpossum.app.presentation.components.AnimatedMoonPhaseIcon
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -26,9 +28,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import org.koin.androidx.compose.koinViewModel
-import com.airbnb.lottie.compose.*
+import androidx.compose.foundation.Image
 import com.weatherpossum.app.R
-import com.weatherpossum.app.presentation.components.FunFactCard
+import com.weatherpossum.app.presentation.components.ExpressiveLoadingIndicator
+import com.weatherpossum.app.presentation.components.FunFactCardExpressive
 import com.weatherpossum.app.presentation.components.GreetingCard
 import com.weatherpossum.app.presentation.components.ExtendedForecastCard
 import com.weatherpossum.app.ui.viewmodel.MoonViewModel
@@ -72,7 +75,7 @@ fun ExtrasScreenContent(
     ) {
         GreetingCard(userName = userName, synopsis = synopsis)
 
-        FunFactCard(facts = caribbeanWeatherFacts)
+        FunFactCardExpressive(facts = caribbeanWeatherFacts)
 
         // ───────────────────────────────────────────────────────────────────
         // MOON PHASE – styled card
@@ -101,7 +104,7 @@ fun ExtrasScreenContent(
         when {
             isLoading -> {
                 Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-                    CircularProgressIndicator()
+                    ExpressiveLoadingIndicator()
                 }
             }
             error != null -> {
@@ -177,12 +180,17 @@ private fun MoonPhaseCard(data: MoonData) {
                 CardHeader(
                     title = "MOON PHASE",
                     endContent = {
-                        Icon(
-                            painter = painterResource(id = data.iconResId),
-                            contentDescription = "Moon",
-                            tint = Color(0xFFFFD700),
-                            modifier = Modifier.size(44.dp)
-                        )
+                        Box(
+                            modifier = Modifier.size(64.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            AnimatedMoonPhaseIcon(
+                                phase = data.phase,
+                                illumination = data.illumination,
+                                modifier = Modifier.fillMaxSize(),
+                                color = Color(0xFFFFD700)
+                            )
+                        }
                     },
                     onColor = on
                 )
@@ -271,9 +279,7 @@ private fun HurricaneActiveCard(
     val gradient = Brush.verticalGradient(listOf(Color(0xFFFFE08A), Color(0xFFFF7A59)))
     val on = Color(0xFF2B2B2B)
     
-    // Hurricane Lottie animation
-    val composition by rememberLottieComposition(LottieCompositionSpec.RawRes(R.raw.hurricane))
-    val progress by animateLottieCompositionAsState(composition, iterations = LottieConstants.IterateForever)
+    // Hurricane AVD animation
 
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -298,9 +304,8 @@ private fun HurricaneActiveCard(
                             modifier = Modifier.size(48.dp),
                             contentAlignment = Alignment.Center
                         ) {
-                            LottieAnimation(
-                                composition = composition,
-                                progress = { progress },
+                            AnimatedWeatherIcon(
+                                type = WeatherIconType.HURRICANE,
                                 modifier = Modifier.fillMaxSize()
                             )
                         }
@@ -351,9 +356,7 @@ private fun HurricaneOutlookCard(
     val gradient = Brush.verticalGradient(listOf(Color(0xFF4A90E2), Color(0xFF1E3A8A))) // darker info blue
     val on = Color.White
     
-    // Hurricane Lottie animation
-    val composition by rememberLottieComposition(LottieCompositionSpec.RawRes(R.raw.hurricane))
-    val progress by animateLottieCompositionAsState(composition, iterations = LottieConstants.IterateForever)
+    // Hurricane AVD animation
     
     // Parse the outlook text into sections
     val outlookText = outlook.toString()
@@ -386,9 +389,8 @@ private fun HurricaneOutlookCard(
                             modifier = Modifier.size(40.dp),
                             contentAlignment = Alignment.Center
                         ) {
-                            LottieAnimation(
-                                composition = composition,
-                                progress = { progress },
+                            AnimatedWeatherIcon(
+                                type = WeatherIconType.HURRICANE,
                                 modifier = Modifier.fillMaxSize()
                             )
                         }
@@ -927,7 +929,7 @@ private fun LoadingGradientCard(title: String, gradient: Brush) {
                     fontWeight = FontWeight.SemiBold
                 )
                 Spacer(Modifier.height(12.dp))
-                CircularProgressIndicator(color = Color.White)
+                ExpressiveLoadingIndicator(color = Color.White)
             }
         }
     }

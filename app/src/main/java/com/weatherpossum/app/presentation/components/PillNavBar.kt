@@ -8,11 +8,10 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
+import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -21,13 +20,15 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
-import com.airbnb.lottie.compose.*
-import com.weatherpossum.app.R
+import com.weatherpossum.app.presentation.components.AnimatedWeatherIcon
+import com.weatherpossum.app.presentation.components.WeatherIconType
+import com.weatherpossum.app.ui.theme.Shapes
 
 @Composable
 fun PillNavBar(
@@ -36,98 +37,109 @@ fun PillNavBar(
     modifier: Modifier = Modifier
 ) {
     val tabs = listOf("Now", "Extras")
-    val lottieRes = mapOf("Now" to R.raw.sunny, "Extras" to R.raw.extras)
+    val iconTypes = mapOf("Now" to WeatherIconType.PARTLY_CLOUDY, "Extras" to WeatherIconType.EXTRAS)
+
+    // Material You Expressive theming
+    val colorScheme = MaterialTheme.colorScheme
+    val typography = MaterialTheme.typography
+    val shapes = MaterialTheme.shapes
+    
+    // Check interaction state for the press/squash effect
+    val interactionSource = remember { MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
 
     // Sizes
-    val tabWidth: Dp = 148.dp
+    val tabWidth: Dp = 160.dp
     val pillWidth = tabWidth * tabs.size
-    val pillHeight = 64.dp
-    val cornerShape = RoundedCornerShape(28.dp)
+    val pillHeight = 72.dp
+    val cornerShape = shapes.extraLarge // M3 extraLarge shape (e.g., 28.dp)
 
-    // Theme-aware colors
-    val dark = isSystemInDarkTheme()
-    val glassBg = if (dark) Color(0x4DFFFFFF) else Color(0x99FFFFFF)     // more opaque glass
-    val onGlass = if (dark) Color(0xFFECEFF4) else Color(0xFF1F2937)
+    // Expressive colors
+    // Use an elevated surface color for better contrast/depth
+    val baseSurfaceColor = colorScheme.surfaceColorAtElevation(3.dp) 
+    val onSurfaceColor = colorScheme.onSurface
+    val activeTabColor = colorScheme.primary
+    val onActiveTabColor = colorScheme.onPrimary
 
-    val borderBrush = if (dark) {
-        Brush.linearGradient(listOf(Color(0x33FFFFFF), Color(0x22FFFFFF)))
-    } else {
-        Brush.linearGradient(listOf(Color(0x66FFFFFF), Color(0x33FFFFFF)))
-    }
-
-    val indicatorBrush = if (dark) {
-        Brush.verticalGradient(listOf(Color(0xFF3B82F6), Color(0xFF2563EB)))
-    } else {
-        Brush.verticalGradient(listOf(Color(0xFF60A5FA), Color(0xFF3B82F6)))
-    }
-
-    // Indicator animation
+    // 1. EXPRESSIVE MOTION: Bouncy, highly reactive indicator movement
     val selectedIndex = tabs.indexOf(selectedTab).coerceAtLeast(0)
     val highlightOffset by animateDpAsState(
         targetValue = tabWidth * selectedIndex,
-        animationSpec = spring(dampingRatio = 0.8f, stiffness = Spring.StiffnessMediumLow),
+        animationSpec = spring(
+            // Low damping ratio for exaggerated oscillation (more bounce)
+            dampingRatio = Spring.DampingRatioLowBouncy, 
+            // Low stiffness for a slower, more dramatic movement
+            stiffness = Spring.StiffnessLow 
+        ),
         label = "highlightOffset"
-    )
-    val indicatorElevation by animateDpAsState(
-        targetValue = if (selectedIndex == 0) 8.dp else 10.dp,
-        label = "indicatorElevation"
-    )
-    val labelAlpha by animateFloatAsState(
-        targetValue = 1f,
-        animationSpec = spring(stiffness = Spring.StiffnessLow),
-        label = "labelAlpha"
     )
 
     Box(
         modifier = modifier
             .fillMaxWidth()
-            .padding(bottom = 24.dp),
+            .padding(horizontal = 16.dp, vertical = 16.dp),
         contentAlignment = Alignment.Center
     ) {
-        // Outer glass pill
+        // Material You Expressive navigation surface
         Surface(
             modifier = Modifier
                 .width(pillWidth)
                 .height(pillHeight)
-                .shadow(elevation = 14.dp, shape = cornerShape, clip = false),
+                // Use higher manual shadow for expressive lift
+                .shadow(
+                    elevation = 12.dp, 
+                    shape = cornerShape
+                ),
             shape = cornerShape,
-            color = Color.Transparent
+            color = baseSurfaceColor, // Use elevated surface color
+            tonalElevation = 6.dp // High tonal elevation for visual depth
         ) {
-            // glass background + subtle gradient tint to match app
             Box(
                 modifier = Modifier
                     .fillMaxSize()
                     .clip(cornerShape)
-                    .background(
-                        Brush.verticalGradient(
-                            listOf(
-                                glassBg,
-                                glassBg.copy(alpha = if (dark) 0.4f else 0.5f)
-                            )
-                        )
+                    .background(baseSurfaceColor)
+                    .border( // Maintain a light border for definition
+                        width = 1.dp,
+                        color = colorScheme.outline.copy(alpha = 0.12f),
+                        shape = cornerShape
                     )
-                    .border(width = 1.dp, brush = borderBrush, shape = cornerShape)
             ) {
-                // Indicator (animated) – sits behind content but above glass bg
+                // Material You Expressive indicator (animated)
                 Box(
                     modifier = Modifier
                         .offset(x = highlightOffset)
                         .width(tabWidth)
                         .height(pillHeight)
-                        .padding(4.dp)
+                        .padding(8.dp) // Increased padding for visual lift and shape contrast
                         .zIndex(1f)
                 ) {
-                    // Rounded gradient chip
-                    Box(
+                    // Indicator Surface (Primary color with expressive shape)
+                    Surface(
                         modifier = Modifier
                             .fillMaxSize()
-                            .clip(cornerShape)
-                            .background(indicatorBrush)
-                            .shadow(indicatorElevation, cornerShape, clip = false)
-                    )
+                            .clip(shapes.large), // Contrastive shape to container
+                        color = activeTabColor,
+                        tonalElevation = 10.dp // Very high elevation for a 'popping' feel
+                    ) {
+                        // Gradient overlay for depth and vibrancy (Expressive touch)
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .background(
+                                    Brush.verticalGradient(
+                                        listOf(
+                                            activeTabColor.copy(alpha = 0.9f),
+                                            activeTabColor,
+                                            activeTabColor.copy(alpha = 0.9f)
+                                        )
+                                    )
+                                )
+                        )
+                    }
                 }
 
-                // Tabs
+                // Tabs with Material You Expressive motion and typography
                 Row(
                     modifier = Modifier
                         .fillMaxSize()
@@ -135,47 +147,77 @@ fun PillNavBar(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.SpaceEvenly
                 ) {
-                    tabs.forEachIndexed { _, tab ->
+                    tabs.forEach { tab ->
                         val isSelected = tab == selectedTab
-                        val composition by rememberLottieComposition(
-                            LottieCompositionSpec.RawRes(lottieRes[tab]!!)
-                        )
-                        val progress by animateLottieCompositionAsState(
-                            composition,
-                            isPlaying = isSelected,
-                            speed = if (isSelected) 1.2f else 0.6f
-                        )
+                        val localInteractionSource = remember { MutableInteractionSource() }
+                        val isTabPressed by localInteractionSource.collectIsPressedAsState()
+                        
+                        // 2. EXPRESSIVE MOTION for Pressed/Selected Tab Element
+                        val targetScale = when {
+                            isSelected -> 1.05f // Subtle lift on selected item
+                            isTabPressed -> 0.95f // Gentle squash on press
+                            else -> 1f
+                        }
 
-                        val interactionSource = remember { MutableInteractionSource() }
+                        val elementScale by animateFloatAsState(
+                            targetValue = targetScale,
+                            animationSpec = spring(
+                                dampingRatio = Spring.DampingRatioLowBouncy, // More reactive element movement
+                                stiffness = Spring.StiffnessLow 
+                            ),
+                            label = "elementScale_$tab"
+                        )
 
                         Column(
                             modifier = Modifier
                                 .width(tabWidth)
                                 .fillMaxHeight()
+                                .graphicsLayer { // Apply the scale animation here
+                                    scaleX = elementScale
+                                    scaleY = elementScale
+                                }
                                 .clip(cornerShape)
                                 .clickable(
-                                    interactionSource = interactionSource,
+                                    interactionSource = localInteractionSource,
                                     indication = null,
                                     onClick = { onTabSelected(tab) }
-                                ),
+                                )
+                                .padding(horizontal = 12.dp, vertical = 10.dp),
                             verticalArrangement = Arrangement.Center,
                             horizontalAlignment = Alignment.CenterHorizontally
                         ) {
-                            // Icon
-                            LottieAnimation(
-                                composition = composition,
-                                progress = { progress },
-                                modifier = Modifier.size(28.dp)
-                            )
+                            // Icon with expressive color shift
+                            Box(
+                                modifier = Modifier,
+                                contentAlignment = Alignment.Center
+                            ) {
+                                AnimatedWeatherIcon(
+                                    type = iconTypes[tab]!!,
+                                    modifier = Modifier.size(28.dp),
+                                    // Use primary color for unselected tabs to increase vibrancy
+                                    color = if (isSelected) onActiveTabColor else activeTabColor.copy(alpha = 0.7f) 
+                                )
+                            }
                             Spacer(Modifier.height(4.dp))
-                            // Label
+                            
+                            // Label with Material You Expressive typography
                             Text(
-                                text = tab,
-                                fontSize = 12.sp,
-                                fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Medium,
-                                color = if (isSelected) Color.White else onGlass.copy(alpha = 0.85f),
-                                letterSpacing = 0.2.sp,
-                                modifier = Modifier.alpha(labelAlpha)
+                                text = tab.uppercase(),
+                                style = if (isSelected) {
+                                    // Use a heavier weight and slightly larger size when selected
+                                    typography.labelLarge.copy(
+                                        fontWeight = FontWeight.Black, 
+                                        letterSpacing = 1.0.sp 
+                                    )
+                                } else {
+                                    typography.labelMedium.copy(fontWeight = FontWeight.SemiBold)
+                                },
+                                color = if (isSelected) {
+                                    onActiveTabColor
+                                } else {
+                                    onSurfaceColor.copy(alpha = 0.7f)
+                                },
+                                maxLines = 1
                             )
                         }
                     }

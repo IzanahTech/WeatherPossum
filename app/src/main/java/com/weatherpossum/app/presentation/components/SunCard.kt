@@ -16,6 +16,8 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.*
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.drawscope.rotate
+import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
@@ -25,6 +27,9 @@ import com.weatherpossum.app.util.SunCalculator
 import kotlin.math.cos
 import kotlin.math.sin
 import com.weatherpossum.app.presentation.components.CardHeader
+import com.weatherpossum.app.presentation.components.WavyCircleProgressIndicator
+import androidx.compose.animation.core.*
+import kotlin.math.PI
 
 @Composable
 fun SunCard(
@@ -71,16 +76,22 @@ fun SunCard(
                     Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    SunProgressRing(
-                        progress = sunProgress / 100f,
-                        showNoonTick = sunriseSunsetMoments.first != null && 
-                                      sunriseSunsetMoments.second != null && 
-                                      solarNoonMoment != null,
-                        size = 120.dp,
-                        stroke = 10.dp,
-                        bgAlpha = 0.18f,
-                        fg = onColor
-                    )
+                    Box(contentAlignment = Alignment.Center) {
+                        WavyCircleProgressIndicator(
+                            progress = sunProgress / 100f,
+                            color = onColor,
+                            backgroundColor = onColor.copy(alpha = 0.18f),
+                            strokeWidth = 10.dp,
+                            modifier = Modifier.size(120.dp)
+                        )
+                        // Inner label showing percentage
+                        Text(
+                            text = "$sunProgress%",
+                            color = onColor,
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                    }
 
                     Spacer(Modifier.width(16.dp))
 
@@ -124,14 +135,101 @@ private fun LabelRow(label: String, value: String, onColor: Color) {
 
 @Composable
 private fun SunGlyph(color: Color) {
+    val infiniteTransition = rememberInfiniteTransition(label = "sunGlyph")
+    
+    // Rotating sun rays
+    val rotation by infiniteTransition.animateFloat(
+        initialValue = 0f,
+        targetValue = 360f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(8000, easing = LinearEasing),
+            repeatMode = RepeatMode.Restart
+        ),
+        label = "rotation"
+    )
+    
+    // Pulsing glow effect
+    val glowIntensity by infiniteTransition.animateFloat(
+        initialValue = 0.8f,
+        targetValue = 1.2f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(2000, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "glowIntensity"
+    )
+    
+    // Scale animation for breathing effect
+    val scale by infiniteTransition.animateFloat(
+        initialValue = 1f,
+        targetValue = 1.1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(3000, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "scale"
+    )
+    
     Box(
         modifier = Modifier
-            .size(44.dp)
+            .size(64.dp)
             .background(color.copy(alpha = 0.15f), shape = CircleShape),
         contentAlignment = Alignment.Center
     ) {
-        Canvas(modifier = Modifier.size(24.dp)) {
-            drawCircle(color = color, radius = this.size.minDimension / 2f)
+        Canvas(modifier = Modifier.size(48.dp)) {
+            val center = Offset(size.width / 2f, size.height / 2f)
+            val baseRadius = size.minDimension * 0.25f
+            val radius = baseRadius * scale
+            
+            // Outer glow rings
+            for (i in 1..3) {
+                val glowRadius = radius * (1f + i * 0.3f) * glowIntensity
+                drawCircle(
+                    color = color.copy(alpha = (0.15f / i) * (glowIntensity - 0.8f) * 2.5f),
+                    radius = glowRadius,
+                    center = center
+                )
+            }
+            
+            // Rotating sun with rays
+            rotate(rotation, pivot = center) {
+                // Central sun circle
+                drawCircle(
+                    color = color,
+                    radius = radius,
+                    center = center
+                )
+                
+                // Multiple layers of rays for depth
+                for (rayLayer in 0 until 2) {
+                    val rayLength = radius * (0.6f + rayLayer * 0.2f)
+                    val rayCount = if (rayLayer == 0) 12 else 8
+                    val rayOffset = if (rayLayer == 0) 0f else 15f
+                    
+                    for (i in 0 until rayCount) {
+                        val angle = (i * (360f / rayCount) + rayOffset) * PI.toFloat() / 180f
+                        val startX = center.x + radius * cos(angle)
+                        val startY = center.y + radius * sin(angle)
+                        val endX = center.x + (radius + rayLength) * cos(angle)
+                        val endY = center.y + (radius + rayLength) * sin(angle)
+                        
+                        drawLine(
+                            color = color.copy(alpha = 0.9f - rayLayer * 0.2f),
+                            start = Offset(startX, startY),
+                            end = Offset(endX, endY),
+                            strokeWidth = (3f - rayLayer).dp.toPx(),
+                            cap = StrokeCap.Round
+                        )
+                    }
+                }
+            }
+            
+            // Inner highlight for 3D effect
+            drawCircle(
+                color = color.copy(alpha = 0.4f),
+                radius = radius * 0.4f,
+                center = Offset(center.x - radius * 0.2f, center.y - radius * 0.2f)
+            )
         }
     }
 }

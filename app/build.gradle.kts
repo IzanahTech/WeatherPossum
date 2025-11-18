@@ -77,6 +77,7 @@ dependencies {
     implementation(libs.androidx.material)
     implementation(libs.androidx.material.icons.extended)
     
+    
     // Retrofit & OkHttp
     implementation(libs.retrofit.core)
     implementation(libs.retrofit.converter.scalars)
@@ -89,9 +90,6 @@ dependencies {
     implementation(libs.moshi.core)
     implementation(libs.moshi.kotlin)
     ksp(libs.moshi.kotlin.codegen)
-    
-    // Lottie for animations
-    implementation(libs.lottie.compose)
     
     // JSoup for HTML parsing
     implementation(libs.jsoup)
