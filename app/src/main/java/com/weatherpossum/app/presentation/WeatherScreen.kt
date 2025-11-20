@@ -12,6 +12,8 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.ScrollState
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.material.pullrefresh.PullRefreshIndicator
@@ -22,7 +24,6 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.IntOffset
@@ -37,8 +38,6 @@ import androidx.compose.ui.unit.sp
 import com.weatherpossum.app.presentation.components.AnimatedWeatherIcon
 import com.weatherpossum.app.presentation.components.WeatherIconType
 import com.weatherpossum.app.presentation.components.getWeatherIconType
-import androidx.compose.foundation.Image
-import com.weatherpossum.app.R
 import com.weatherpossum.app.data.model.WeatherCard
 import org.koin.androidx.compose.koinViewModel
 import kotlinx.coroutines.launch
@@ -91,6 +90,7 @@ fun WeatherScreen(
     }
 
     val listState = rememberLazyListState()
+    val extrasScrollState = rememberScrollState()
     val pullRefreshState = rememberPullRefreshState(
         refreshing = isRefreshing,
         onRefresh = {
@@ -116,6 +116,18 @@ fun WeatherScreen(
                     .pullRefresh(pullRefreshState)
                     .padding(padding)
             ) {
+                // Reset scroll position when switching tabs
+                LaunchedEffect(selectedTab) {
+                    when (selectedTab) {
+                        "Now" -> {
+                            listState.animateScrollToItem(0)
+                        }
+                        "Extras" -> {
+                            extrasScrollState.animateScrollTo(0)
+                        }
+                    }
+                }
+                
                 // 1. EXPRESSIVE MOTION: Use bouncy spring animation for tab switching
                 AnimatedContent(
                     targetState = selectedTab,
@@ -133,9 +145,11 @@ fun WeatherScreen(
                     },
                     label = "TabSwitch"
                 ) { tab ->
-                    when (tab) {
-                        "Now" -> NowTabContent(uiState, synopsis, userName, viewModel, listState, scope)
-                        "Extras" -> ExtrasScreenContent()
+                    key(tab) {
+                        when (tab) {
+                            "Now" -> NowTabContent(uiState, synopsis, userName, viewModel, listState, scope)
+                            "Extras" -> ExtrasScreenContent(scrollState = extrasScrollState)
+                        }
                     }
                 }
                 PullRefreshIndicator(
@@ -568,10 +582,10 @@ private fun boldKnownLabels(text: String, labels: List<String>): AnnotatedString
 }
 
 @Deprecated("Use getWeatherIconType instead - this function is kept for reference only")
-fun getLottieResForCard(card: WeatherCard): Int {
+fun getLottieResForCard(_card: WeatherCard): Int {
     // This function is deprecated and no longer used
     // All drawable resources have been removed
-    // Use getWeatherIconType("${card.title} ${card.value}") instead
+    // Use getWeatherIconType("${_card.title} ${_card.value}") instead
     return 0 // Dummy return - function should not be called
 }
 

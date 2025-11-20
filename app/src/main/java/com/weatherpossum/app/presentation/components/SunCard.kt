@@ -41,8 +41,6 @@ fun SunCard(
     val dayLength = remember { SunCalculator.calculateDayLength() }
     val sunPosition = remember { SunCalculator.calculateCurrentSunPosition() }
     val sunProgress = remember { SunCalculator.calculateSunProgress() }
-    val sunriseSunsetMoments = remember { SunCalculator.getSunriseSunsetMoments() }
-    val solarNoonMoment = remember { SunCalculator.getSolarNoonMoment() }
 
     val gradient = Brush.verticalGradient(listOf(Color(0xFFFFB75E), Color(0xFFED8F03)))
     val onColor = Color.White

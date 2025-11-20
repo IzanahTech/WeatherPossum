@@ -32,7 +32,7 @@ class HurricaneRepository {
             .writeTimeout(10, java.util.concurrent.TimeUnit.SECONDS)
             .addInterceptor { chain ->
                 val request = chain.request().newBuilder()
-                    .addHeader("User-Agent", "WeatherPossum/1.4.8 (Android)")
+                    .addHeader("User-Agent", "WeatherPossum/1.5.0 (Android)")
                     .build()
                 chain.proceed(request)
             }

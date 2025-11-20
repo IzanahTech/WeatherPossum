@@ -79,23 +79,49 @@ object InAppUpdater {
 
     /**
      * Check if the given tag/version is newer than the currently installed version
-     * For simplicity, this always returns true (treats latest as newer)
-     * In production, you'd want to implement proper semantic version comparison
+     * Compares semantic versions (e.g., "1.5.0" vs "1.4.9") and version codes
      */
-    @Suppress("UNUSED_PARAMETER", "UNUSED_VARIABLE")
     fun isNewerThanInstalled(context: Context, tagOrSemver: String): Boolean {
         val pm = context.packageManager
         val pinfo = pm.getPackageInfo(context.packageName, 0)
-        // Note: localCode and tagOrSemver kept for future semantic version comparison
-        val localCode = if (Build.VERSION.SDK_INT >= 28) 
-            pinfo.longVersionCode 
-        else 
-            @Suppress("DEPRECATION") pinfo.versionCode.toLong()
         
-        // For a quick start, assume tags monotonically increase and always treat latest as newer
-        // In production, implement proper semantic version parsing and comparison
-        // TODO: Use tagOrSemver and localCode for proper version comparison
-        return true
+        val installedVersionName = pinfo.versionName ?: "0.0.0"
+        
+        // Strip "v" prefix from tag if present (e.g., "v1.5.0" -> "1.5.0")
+        // Also handle cases where version might be in release name format like "WeatherPossum 1.5.0"
+        val remoteVersion = tagOrSemver
+            .removePrefix("v")
+            .removePrefix("V")
+            .replace("WeatherPossum", "", ignoreCase = true)
+            .trim()
+        
+        // Compare semantic versions
+        val versionComparison = compareSemanticVersions(remoteVersion, installedVersionName)
+        return versionComparison > 0 // Return true only if remote is newer
+    }
+    
+    /**
+     * Compare two semantic version strings (e.g., "1.5.0" vs "1.4.9")
+     * Returns: positive if v1 > v2, negative if v1 < v2, 0 if equal
+     */
+    private fun compareSemanticVersions(v1: String, v2: String): Int {
+        val parts1 = v1.split(".").mapNotNull { it.toIntOrNull() }
+        val parts2 = v2.split(".").mapNotNull { it.toIntOrNull() }
+        
+        val maxLength = maxOf(parts1.size, parts2.size)
+        
+        for (i in 0 until maxLength) {
+            val part1 = parts1.getOrElse(i) { 0 }
+            val part2 = parts2.getOrElse(i) { 0 }
+            
+            when {
+                part1 > part2 -> return 1
+                part1 < part2 -> return -1
+                // Continue to next part if equal
+            }
+        }
+        
+        return 0 // Versions are equal
     }
 
     /**

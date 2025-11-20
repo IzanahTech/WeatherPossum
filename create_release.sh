@@ -41,10 +41,40 @@ sha256sum "$APK_PATH" > "$CHECKSUM_FILE"
 CHECKSUM=$(cat "$CHECKSUM_FILE")
 echo "  Checksum: $CHECKSUM"
 
-# Get version from APK
+# Get version from APK or build.gradle.kts
 echo -e "${YELLOW}📋 Extracting version information...${NC}"
-VERSION_NAME=$(aapt dump badging "$APK_PATH" | grep "versionName" | sed "s/.*versionName='\([^']*\)'.*/\1/")
-VERSION_CODE=$(aapt dump badging "$APK_PATH" | grep "versionCode" | sed "s/.*versionCode='\([^']*\)'.*/\1/")
+
+# Try to find aapt in common Android SDK locations
+AAPT_CMD=""
+if command -v aapt &> /dev/null; then
+    AAPT_CMD="aapt"
+elif [ -n "$ANDROID_HOME" ] && [ -f "$ANDROID_HOME/build-tools"/*/aapt ]; then
+    AAPT_CMD=$(find "$ANDROID_HOME/build-tools" -name aapt 2>/dev/null | head -1)
+elif [ -n "$ANDROID_SDK_ROOT" ] && [ -f "$ANDROID_SDK_ROOT/build-tools"/*/aapt ]; then
+    AAPT_CMD=$(find "$ANDROID_SDK_ROOT/build-tools" -name aapt 2>/dev/null | head -1)
+fi
+
+if [ -n "$AAPT_CMD" ] && [ -f "$APK_PATH" ]; then
+    VERSION_NAME=$("$AAPT_CMD" dump badging "$APK_PATH" 2>/dev/null | grep "versionName" | sed "s/.*versionName='\([^']*\)'.*/\1/" || echo "")
+    VERSION_CODE=$("$AAPT_CMD" dump badging "$APK_PATH" 2>/dev/null | grep "versionCode" | sed "s/.*versionCode='\([^']*\)'.*/\1/" || echo "")
+fi
+
+# Fallback to reading from build.gradle.kts if aapt failed or not found
+if [ -z "$VERSION_NAME" ] || [ -z "$VERSION_CODE" ]; then
+    echo "  ⚠️  aapt not found, reading from build.gradle.kts..."
+    if [ -f "app/build.gradle.kts" ]; then
+        VERSION_NAME=$(grep "versionName" app/build.gradle.kts | sed -E 's/^[^"]*"([^"]+)".*/\1/')
+        VERSION_CODE=$(grep "versionCode" app/build.gradle.kts | awk -F'=' '{print $2}' | tr -d ' ')
+    fi
+fi
+
+# Final fallback: prompt user
+if [ -z "$VERSION_NAME" ] || [ -z "$VERSION_CODE" ]; then
+    echo -e "${YELLOW}  Please enter version information:${NC}"
+    read -p "  Version Name (e.g., 1.5.0): " VERSION_NAME
+    read -p "  Version Code (e.g., 3): " VERSION_CODE
+fi
+
 echo "  Version Name: $VERSION_NAME"
 echo "  Version Code: $VERSION_CODE"
 

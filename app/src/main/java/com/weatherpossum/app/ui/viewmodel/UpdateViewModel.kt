@@ -46,8 +46,15 @@ class UpdateViewModel(
         hasChecked = true
         runCatching {
             val cand = InAppUpdater.checkLatest(context, owner, repo)
-            if (cand != null && InAppUpdater.isNewerThanInstalled(context, cand.tag)) {
-                candidate = cand
+            if (cand != null) {
+                // Try both tag and versionName for comparison (tag is usually "v1.5.0", versionName might be "1.5.0" or "WeatherPossum 1.5.0")
+                val isNewer = InAppUpdater.isNewerThanInstalled(context, cand.tag) || 
+                              InAppUpdater.isNewerThanInstalled(context, cand.versionName)
+                if (isNewer) {
+                    candidate = cand
+                } else {
+                    candidate = null
+                }
             } else {
                 candidate = null
             }

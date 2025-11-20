@@ -5,10 +5,13 @@ import androidx.compose.animation.core.spring
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.LinearWavyProgressIndicator
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
@@ -70,6 +73,7 @@ private fun ensureAA(on: Color, bg: Color): Color {
 // --- End of Utility Functions ---
 
 
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun GreetingCard(
     userName: String?,
@@ -190,13 +194,15 @@ fun GreetingCard(
     Card(
         modifier = modifier
             .fillMaxWidth()
-            .addExpressiveTexture(),
+            .addExpressiveTexture()
+            .clip(expressiveShape),
         shape = expressiveShape,
-        elevation = CardDefaults.cardElevation(defaultElevation = 10.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
         colors = CardDefaults.cardColors(containerColor = Color.Transparent)
     ) {
         Box(
             modifier = Modifier
+                .clip(expressiveShape)
                 .background(gradient)
                 .fillMaxWidth()
                 .padding(16.dp)
@@ -236,6 +242,26 @@ fun GreetingCard(
                         style = MaterialTheme.typography.bodyLarge,
                         color = onColor.copy(alpha = 0.9f),
                         textAlign = TextAlign.Start
+                    )
+                }
+
+                // Daylight progress bar
+                Spacer(modifier = Modifier.height(16.dp))
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Text(
+                        text = "${sunProgressPercent}% DAYLIGHT",
+                        color = onColor,
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Bold,
+                        letterSpacing = 0.5.sp
+                    )
+                    LinearWavyProgressIndicator(
+                        progress = { sunFrac },
+                        modifier = Modifier.fillMaxWidth(),
+                        color = onColor,
+                        trackColor = onColor.copy(alpha = 0.3f),
                     )
                 }
             }

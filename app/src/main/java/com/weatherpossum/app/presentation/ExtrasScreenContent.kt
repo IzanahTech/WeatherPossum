@@ -3,6 +3,7 @@ package com.weatherpossum.app.presentation
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -45,6 +46,7 @@ import com.weatherpossum.app.presentation.components.CardHeader
 
 @Composable
 fun ExtrasScreenContent(
+    scrollState: ScrollState = rememberScrollState(),
     weatherViewModel: WeatherViewModel = koinViewModel(),
     extendedForecastViewModel: ExtendedForecastViewModel = viewModel(),
     moonViewModel: MoonViewModel = koinViewModel(),
@@ -67,7 +69,7 @@ fun ExtrasScreenContent(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .verticalScroll(rememberScrollState())
+            .verticalScroll(scrollState)
             .padding(vertical = 24.dp)
             .padding(horizontal = 16.dp)
             .padding(bottom = 112.dp),

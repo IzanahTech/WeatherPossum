@@ -50,7 +50,7 @@ fun AnimatedWeatherIcon(
     type: WeatherIconType,
     modifier: Modifier = Modifier,
     color: Color = Color.Unspecified,
-    contentDescription: String? = null
+    contentDescription: String? = null // Reserved for accessibility
 ) {
     Box(modifier = modifier) {
         when (type) {
@@ -534,7 +534,6 @@ fun AnimatedPartlyCloudyIcon(
     
     Canvas(modifier = modifier.fillMaxSize()) {
         // Draw sun (partially visible)
-        val center = Offset(size.width / 2f, size.height / 2f)
         val sunRadius = size.minDimension * 0.25f
         val sunCenter = Offset(size.width * 0.3f, size.height * 0.3f)
         

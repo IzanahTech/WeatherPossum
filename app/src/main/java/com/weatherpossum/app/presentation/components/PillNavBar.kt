@@ -44,10 +44,6 @@ fun PillNavBar(
     val typography = MaterialTheme.typography
     val shapes = MaterialTheme.shapes
     
-    // Check interaction state for the press/squash effect
-    val interactionSource = remember { MutableInteractionSource() }
-    val isPressed by interactionSource.collectIsPressedAsState()
-
     // Sizes
     val tabWidth: Dp = 160.dp
     val pillWidth = tabWidth * tabs.size

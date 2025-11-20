@@ -12,8 +12,8 @@ android {
         applicationId = "com.weatherpossum.app"
         minSdk = 31
         targetSdk = 36
-        versionCode = 2
-        versionName = "1.4.9"
+        versionCode = 4
+        versionName = "1.5.1"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
@@ -40,7 +40,8 @@ android {
         jvmTarget = "17"
         freeCompilerArgs += listOf(
             "-opt-in=kotlin.RequiresOptIn",
-            "-opt-in=org.koin.core.annotation.KoinExperimentalAPI"
+            "-opt-in=org.koin.core.annotation.KoinExperimentalAPI",
+            "-opt-in=androidx.compose.material3.ExperimentalMaterial3Api"
         )
     }
     
@@ -72,7 +73,9 @@ dependencies {
     implementation(libs.androidx.ui)
     implementation(libs.androidx.ui.graphics)
     implementation(libs.androidx.ui.tooling.preview)
-    implementation(libs.androidx.material3)
+    // Explicit Material3 version for LinearWavyProgressIndicator (requires 1.4.0-alpha04+)
+    // This explicit version should override the BOM version
+    implementation("androidx.compose.material3:material3:1.4.0-alpha04")
     implementation(libs.androidx.foundation)
     implementation(libs.androidx.material)
     implementation(libs.androidx.material.icons.extended)

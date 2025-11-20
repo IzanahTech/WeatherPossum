@@ -23,8 +23,6 @@ import com.weatherpossum.app.R
 fun FunFactCardExpressive(facts: List<String>, modifier: Modifier = Modifier) {
     // 1. STATE MANAGEMENT with Rich Motion Hook
     var currentFact by remember { mutableStateOf(facts.random()) }
-    // A key change for smooth text transition
-    val factKey by remember { mutableStateOf(0) }
 
     // 2. DYNAMIC COLOR ADOPTION
     // Use Tertiary/Accent colors for an expressive, non-primary look
@@ -92,7 +90,7 @@ fun FunFactCardExpressive(facts: List<String>, modifier: Modifier = Modifier) {
                     AnimatedContent(
                         targetState = currentFact, // Animate content changes based on fact
                         transitionSpec = {
-                            fadeIn(tween(300)) + slideInVertically(tween(300)) { fullHeight -> fullHeight } with
+                            fadeIn(tween(300)) + slideInVertically(tween(300)) { fullHeight -> fullHeight } togetherWith
                                     fadeOut(tween(300)) + slideOutVertically(tween(300)) { fullHeight -> -fullHeight }
                         },
                         label = "FactTextTransition"
