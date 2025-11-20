@@ -47,20 +47,33 @@ class UpdateViewModel(
         runCatching {
             val cand = InAppUpdater.checkLatest(context, owner, repo)
             if (cand != null) {
+                val pm = context.packageManager
+                val pinfo = pm.getPackageInfo(context.packageName, 0)
+                val installedVersion = pinfo.versionName ?: "0.0.0"
+                
                 // Try both tag and versionName for comparison (tag is usually "v1.5.0", versionName might be "1.5.0" or "WeatherPossum 1.5.0")
-                val isNewer = InAppUpdater.isNewerThanInstalled(context, cand.tag) || 
-                              InAppUpdater.isNewerThanInstalled(context, cand.versionName)
+                val isNewerByTag = InAppUpdater.isNewerThanInstalled(context, cand.tag)
+                val isNewerByName = InAppUpdater.isNewerThanInstalled(context, cand.versionName)
+                val isNewer = isNewerByTag || isNewerByName
+                
+                android.util.Log.d("UpdateViewModel", "Update check: installed=$installedVersion, remote tag=${cand.tag}, remote name=${cand.versionName}, isNewer=$isNewer")
+                
                 if (isNewer) {
                     candidate = cand
                 } else {
                     candidate = null
                 }
             } else {
+                android.util.Log.d("UpdateViewModel", "Update check: No candidate found (no APK in release?)")
                 candidate = null
             }
         }.onFailure { 
-            // Silently handle errors - don't show to user unless critical
+            // Log errors for debugging
+            android.util.Log.e("UpdateViewModel", "Update check failed", it)
             error = it.message
+        }.also {
+            // Reset hasChecked after check completes to allow re-checking
+            hasChecked = false
         }
     }
 
