@@ -22,11 +22,11 @@ import com.weatherpossum.app.util.InAppUpdater
 import com.weatherpossum.app.widget.WeatherWidgetUpdateManager
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 
 // ── Moon ─────────────────────────────────────────────────────────────────────
 
@@ -245,66 +245,76 @@ class UpdateViewModel(
 
     fun checkForUpdates(context: Context) = viewModelScope.launch {
         if (hasChecked) return@launch
+        hasChecked = true
 
         val appContext = context.applicationContext
-        hasChecked = true
         runCatching {
-            val cand = InAppUpdater.checkLatest(appContext, owner, repo)
+            withContext(Dispatchers.IO) {
+                InAppUpdater.checkLatest(appContext, owner, repo)
+            }
+        }.onSuccess { cand ->
             if (cand != null) {
                 val isNewer = InAppUpdater.isNewerThanInstalled(appContext, cand.tag) ||
                     InAppUpdater.isNewerThanInstalled(appContext, cand.versionName)
                 candidate = if (isNewer) cand else null
-            } else {
-                candidate = null
             }
         }.onFailure {
             Log.e("UpdateViewModel", "Update check failed", it)
-            error = it.message
-        }.also {
-            hasChecked = false
         }
     }
 
-    fun downloadAndInstall(context: Context) = viewModelScope.launch(Dispatchers.IO) {
+    fun downloadAndInstall(context: Context) = viewModelScope.launch {
         val cand = candidate ?: return@launch
         val appContext = context.applicationContext
 
-        runCatching {
-            downloading = true
-            progressText = application.getString(R.string.update_downloading)
-            downloadProgress = 0f
+        downloading = true
+        error = null
+        progressText = application.getString(R.string.update_downloading)
+        downloadProgress = 0f
 
-            val apk = InAppUpdater.downloadToCache(
-                appContext,
-                cand.apkUrl,
-                "update.apk",
-                onProgress = { downloadProgress = it }
-            )
+        try {
+            val apk = withContext(Dispatchers.IO) {
+                InAppUpdater.downloadToCache(
+                    appContext,
+                    cand.apkUrl,
+                    "update.apk",
+                    onProgress = { progress ->
+                        withContext(Dispatchers.Main) { downloadProgress = progress }
+                    }
+                )
+            }
 
             if (cand.shaUrl.isNotBlank()) {
                 progressText = application.getString(R.string.update_verifying_checksum)
                 downloadProgress = 0.9f
-                val shaFile = InAppUpdater.downloadToCache(appContext, cand.shaUrl, "update.apk.sha256")
-                val expected = InAppUpdater.readSha256File(shaFile)
-                val actual = InAppUpdater.computeSha256(apk)
-                require(expected == actual) { "Checksum mismatch" }
+                withContext(Dispatchers.IO) {
+                    val shaFile = InAppUpdater.downloadToCache(
+                        appContext,
+                        cand.shaUrl,
+                        "update.apk.sha256"
+                    )
+                    val expected = InAppUpdater.readSha256File(shaFile)
+                    val actual = InAppUpdater.computeSha256(apk)
+                    require(expected == actual) { "Checksum mismatch" }
+                }
             }
 
             progressText = application.getString(R.string.update_verifying_signature)
             downloadProgress = 0.95f
-            require(InAppUpdater.isSignedBySameCert(appContext, apk)) { "Signature mismatch" }
+            withContext(Dispatchers.IO) {
+                require(InAppUpdater.isSignedBySameCert(appContext, apk)) { "Signature mismatch" }
+            }
 
             downloadProgress = 1.0f
-
-            withContext(Dispatchers.Main) {
-                InAppUpdater.installApkAndRelaunch(appContext, apk)
-            }
-        }.onFailure { e ->
+            progressText = application.getString(R.string.update_installing)
+            InAppUpdater.installApk(context, apk)
+        } catch (e: Exception) {
+            Log.e("UpdateViewModel", "Update install failed", e)
             error = e.message
-        }.also {
-            downloading = false
             progressText = null
             downloadProgress = 0f
+        } finally {
+            downloading = false
         }
     }
 

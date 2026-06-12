@@ -10,6 +10,7 @@ import android.provider.Settings
 import androidx.core.content.FileProvider
 import okhttp3.OkHttpClient
 import okhttp3.Request
+import okhttp3.Interceptor
 import com.weatherpossum.app.data.api.GhRelease
 import com.weatherpossum.app.data.api.GitHubApi
 import com.squareup.moshi.Moshi
@@ -85,44 +86,8 @@ object InAppUpdater {
     fun isNewerThanInstalled(context: Context, tagOrSemver: String): Boolean {
         val pm = context.packageManager
         val pinfo = pm.getPackageInfo(context.packageName, 0)
-        
         val installedVersionName = pinfo.versionName ?: "0.0.0"
-        
-        // Strip "v" prefix from tag if present (e.g., "v1.5.0" -> "1.5.0")
-        // Also handle cases where version might be in release name format like "WeatherPossum 1.5.0"
-        val remoteVersion = tagOrSemver
-            .removePrefix("v")
-            .removePrefix("V")
-            .replace("WeatherPossum", "", ignoreCase = true)
-            .trim()
-        
-        // Compare semantic versions
-        val versionComparison = compareSemanticVersions(remoteVersion, installedVersionName)
-        return versionComparison > 0 // Return true only if remote is newer
-    }
-    
-    /**
-     * Compare two semantic version strings (e.g., "1.5.0" vs "1.4.9")
-     * Returns: positive if v1 > v2, negative if v1 < v2, 0 if equal
-     */
-    private fun compareSemanticVersions(v1: String, v2: String): Int {
-        val parts1 = v1.split(".").mapNotNull { it.toIntOrNull() }
-        val parts2 = v2.split(".").mapNotNull { it.toIntOrNull() }
-        
-        val maxLength = maxOf(parts1.size, parts2.size)
-        
-        for (i in 0 until maxLength) {
-            val part1 = parts1.getOrElse(i) { 0 }
-            val part2 = parts2.getOrElse(i) { 0 }
-            
-            when {
-                part1 > part2 -> return 1
-                part1 < part2 -> return -1
-                // Continue to next part if equal
-            }
-        }
-        
-        return 0 // Versions are equal
+        return AppVersion.isNewer(tagOrSemver, installedVersionName)
     }
 
     /**
@@ -130,13 +95,13 @@ object InAppUpdater {
      * @param onProgress Optional callback for download progress (0.0 to 1.0)
      */
     suspend fun downloadToCache(
-        context: Context, 
-        url: String, 
+        context: Context,
+        url: String,
         fileName: String,
-        onProgress: ((Float) -> Unit)? = null
+        onProgress: (suspend (Float) -> Unit)? = null
     ): File {
         return withContext(Dispatchers.IO) {
-            val client = OkHttpClient()
+            val client = githubHttpClient()
             val req = Request.Builder().url(url).build()
             val resp = client.newCall(req).execute()
             require(resp.isSuccessful) { "HTTP ${resp.code}" }
@@ -159,7 +124,7 @@ object InAppUpdater {
                         
                         if (contentLength > 0 && onProgress != null) {
                             val progress = (totalBytesRead.toFloat() / contentLength).coerceIn(0f, 1f)
-                            onProgress(progress)
+                            onProgress.invoke(progress)
                         }
                     }
                 }
@@ -221,98 +186,30 @@ object InAppUpdater {
     }
 
     /**
-     * Install an APK file and relaunch the app after successful installation
-     * This method handles the installation process and automatically restarts the app
+     * Launch the system package installer for [apk].
+     * Pass an [Activity] context when possible so the install UI appears above the app.
      */
-    fun installApkAndRelaunch(context: Context, apk: File) {
-        val uri = FileProvider.getUriForFile(
-            context, "${context.packageName}.fileprovider", apk
-        )
-        
-        // Ensure user has allowed "Install unknown apps" for your app
+    fun installApk(context: Context, apk: File) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O &&
             !context.packageManager.canRequestPackageInstalls()
         ) {
-            context.startActivity(Intent(
+            val settingsIntent = Intent(
                 Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES,
                 Uri.parse("package:${context.packageName}")
-            ))
+            )
+            if (context !is Activity) {
+                settingsIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            }
+            context.startActivity(settingsIntent)
             return
         }
-        
-        val installIntent = installIntent(context, uri)
 
-        // Start installation and set up relaunch mechanism
-        try {
-            // For Android 11+ (API 30+), we can use a more direct approach
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-                // Use the new package installer API
-                val packageInstaller = context.packageManager.packageInstaller
-                val sessionParams = android.content.pm.PackageInstaller.SessionParams(
-                    android.content.pm.PackageInstaller.SessionParams.MODE_FULL_INSTALL
-                )
-                sessionParams.setAppPackageName(context.packageName)
-                
-                val sessionId = packageInstaller.createSession(sessionParams)
-                val session = packageInstaller.openSession(sessionId)
-                
-                // Copy APK to session
-                apk.inputStream().use { input ->
-                    session.openWrite("package", 0, -1).use { output ->
-                        input.copyTo(output)
-                    }
-                }
-                
-                // Create intent for relaunch
-                val relaunchIntent = Intent(context, context.javaClass).apply {
-                    flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
-                }
-                val pendingIntent = android.app.PendingIntent.getActivity(
-                    context, 0, relaunchIntent, 
-                    android.app.PendingIntent.FLAG_UPDATE_CURRENT or android.app.PendingIntent.FLAG_IMMUTABLE
-                )
-                
-                // Commit the session with relaunch intent
-                session.commit(pendingIntent.intentSender)
-                session.close()
-                
-                // Close the current app
-                (context as? android.app.Activity)?.finishAffinity()
-            } else {
-                // Fallback for older Android versions
-                context.startActivity(installIntent)
-                
-                // Schedule relaunch after a delay (less reliable but works on older versions)
-                android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
-                    relaunchApp(context)
-                }, 5000) // 5 second delay to allow installation to complete
-            }
-        } catch (e: Exception) {
-            // Fallback to simple installation if advanced method fails
-            context.startActivity(installIntent)
-        }
-    }
-    
-    /**
-     * Relaunch the app after update installation
-     */
-    private fun relaunchApp(context: Context) {
-        try {
-            val packageManager = context.packageManager
-            val intent = packageManager.getLaunchIntentForPackage(context.packageName)
-            intent?.let {
-                it.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK)
-                context.startActivity(it)
-            }
-        } catch (e: Exception) {
-            // If relaunch fails, at least the app will be updated
-            // User can manually open the app
-        }
+        val uri = FileProvider.getUriForFile(
+            context, "${context.packageName}.fileprovider", apk
+        )
+        context.startActivity(installIntent(context, uri))
     }
 
-    /**
-     * Create GitHub API instance with Moshi converter
-     */
     private fun installIntent(context: Context, uri: Uri): Intent {
         return Intent(Intent.ACTION_VIEW).apply {
             setDataAndType(uri, "application/vnd.android.package-archive")
@@ -323,9 +220,22 @@ object InAppUpdater {
         }
     }
 
+    private fun githubHttpClient(): OkHttpClient = OkHttpClient.Builder()
+        .addInterceptor(githubUserAgentInterceptor())
+        .build()
+
+    private fun githubUserAgentInterceptor(): Interceptor = Interceptor { chain ->
+        val request = chain.request().newBuilder()
+            .header("Accept", "application/vnd.github+json")
+            .header("User-Agent", "WeatherPossum-InAppUpdater")
+            .build()
+        chain.proceed(request)
+    }
+
     private fun provideGitHubApi(): GitHubApi {
         val retrofit = Retrofit.Builder()
             .baseUrl("https://api.github.com/")
+            .client(githubHttpClient())
             .addConverterFactory(MoshiConverterFactory.create(Moshi.Builder().build()))
             .build()
         return retrofit.create(GitHubApi::class.java)
