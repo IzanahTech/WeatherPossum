@@ -1,7 +1,10 @@
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+
 plugins {
-    id("com.android.application")
-    id("org.jetbrains.kotlin.android")
-    id("com.google.devtools.ksp") version "1.9.23-1.0.20"
+    alias(libs.plugins.android.application)
+    alias(libs.plugins.kotlin.android)
+    alias(libs.plugins.compose.compiler)
+    alias(libs.plugins.ksp)
 }
 
 android {
@@ -24,6 +27,7 @@ android {
     buildTypes {
         release {
             isMinifyEnabled = true
+            isShrinkResources = true
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
@@ -36,29 +40,26 @@ android {
         targetCompatibility = JavaVersion.VERSION_17
     }
     
-    kotlinOptions {
-        jvmTarget = "17"
-        freeCompilerArgs += listOf(
-            "-opt-in=kotlin.RequiresOptIn",
-            "-opt-in=org.koin.core.annotation.KoinExperimentalAPI",
-            "-opt-in=androidx.compose.material3.ExperimentalMaterial3Api"
-        )
-    }
-    
     buildFeatures {
         compose = true
         buildConfig = true  // Enable BuildConfig generation
-    }
-    
-    @Suppress("UnstableApiUsage")
-    composeOptions {
-        kotlinCompilerExtensionVersion = libs.versions.composeCompiler.get()
     }
     
     packaging {
         resources {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
         }
+    }
+}
+
+kotlin {
+    compilerOptions {
+        jvmTarget.set(JvmTarget.JVM_17)
+        freeCompilerArgs.addAll(
+            "-opt-in=kotlin.RequiresOptIn",
+            "-opt-in=org.koin.core.annotation.KoinExperimentalAPI",
+            "-opt-in=androidx.compose.material3.ExperimentalMaterial3Api"
+        )
     }
 }
 
@@ -69,22 +70,21 @@ dependencies {
 
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
+    implementation(libs.androidx.lifecycle.runtime.compose)
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.ui)
-    implementation(libs.androidx.ui.graphics)
     implementation(libs.androidx.ui.tooling.preview)
     // Explicit Material3 version for LinearWavyProgressIndicator (requires 1.4.0-alpha04+)
     // This explicit version should override the BOM version
-    implementation("androidx.compose.material3:material3:1.4.0-alpha04")
-    implementation(libs.androidx.foundation)
-    implementation(libs.androidx.material)
-    implementation(libs.androidx.material.icons.extended)
-    
-    
+    implementation(libs.androidx.material3)
+    implementation(libs.androidx.material.icons.core)
+    implementation(libs.haze)
+    implementation(libs.androidx.glance.appwidget)
+    implementation(libs.androidx.work.runtime.ktx)
+
     // Retrofit & OkHttp
     implementation(libs.retrofit.core)
     implementation(libs.retrofit.converter.scalars)
-    implementation(libs.retrofit.converter.gson)
     implementation(libs.retrofit.converter.moshi)
     implementation(libs.okhttp.core)
     implementation(libs.okhttp.logging.interceptor)
@@ -97,9 +97,6 @@ dependencies {
     // JSoup for HTML parsing
     implementation(libs.jsoup)
     
-    // org.json for JSON parsing
-    implementation(libs.org.json)
-    
     // DataStore
     implementation(libs.androidx.datastore.preferences)
     
@@ -107,15 +104,11 @@ dependencies {
     implementation(libs.koin.android)
     implementation(libs.koin.androidx.compose)
     
-    // Pull-to-refresh
-    // implementation("androidx.compose.material:material-pull-refresh:1.2.0")
-    
     // Time4A for professional astronomical calculations
     implementation(libs.time4j.android)
     
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
-    androidTestImplementation(libs.androidx.espresso.core)
     androidTestImplementation(libs.androidx.ui.test.junit4)
     debugImplementation(libs.androidx.ui.tooling)
     debugImplementation(libs.androidx.ui.test.manifest)

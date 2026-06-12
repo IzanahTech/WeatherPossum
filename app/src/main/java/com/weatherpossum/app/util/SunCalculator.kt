@@ -1,249 +1,202 @@
 package com.weatherpossum.app.util
 
 import android.util.Log
+import net.time4j.Moment
+import net.time4j.PlainDate
+import net.time4j.calendar.astro.SolarTime
+import net.time4j.calendar.astro.SunPosition
+import net.time4j.tz.Timezone
+import java.time.LocalDate
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
-import kotlin.math.*
+import java.util.concurrent.TimeUnit
+import kotlin.math.roundToInt
+
+private const val TAG = "SunCalculator"
 
 /**
- * Simplified Sun calculator using basic astronomical calculations
- * Provides sunrise, sunset, day length, and progress calculations
+ * Sun times and position using Time4A [SolarTime] / [SunPosition] (NOAA-based).
  */
+data class SunState(
+    val sunrise: String,
+    val sunset: String,
+    val solarNoon: String,
+    val dayLength: String,
+    val altitude: String,
+    val azimuth: String,
+    val progressPercent: Int
+)
+
 object SunCalculator {
-    
-    // Dominica coordinates
+
     private const val DOMINICA_LAT = 15.414999
     private const val DOMINICA_LON = -61.370976
-    
-    /**
-     * Calculate sunrise time for today using simplified algorithm
-     * @return Sunrise time as formatted string (e.g., "6:23 AM")
-     */
-    fun calculateSunrise(): String {
+    private const val DOMINICA_TZ = "America/Dominica"
+
+    fun computeSunState(
+        latitude: Double = DOMINICA_LAT,
+        longitude: Double = DOMINICA_LON,
+        date: LocalDate = LocalDate.now(),
+        moment: Moment = Moment.nowInSystemTime()
+    ): SunState {
+        val solar = SolarTime.ofLocation(latitude, longitude)
+        val plainDate = PlainDate.of(date.year, date.monthValue, date.dayOfMonth)
+        val timezone = Timezone.of(DOMINICA_TZ)
+
+        val sunriseMoment = plainDate.get(solar.sunrise())
+        val sunsetMoment = plainDate.get(solar.sunset())
+        val noonMoment = plainDate.get(solar.transitAtNoon())
+
+        val sunrise = formatMoment(sunriseMoment, timezone)
+        val sunset = formatMoment(sunsetMoment, timezone)
+        val solarNoon = formatMoment(noonMoment, timezone)
+        val dayLength = formatDayLength(sunriseMoment, sunsetMoment)
+
+        val position = SunPosition.at(moment, solar)
+        val altitude = "${position.elevation.roundToInt()}°"
+        val azimuth = "${normalizeAzimuth(position.azimuth).roundToInt()}°"
+        val progress = calculateProgress(sunriseMoment, sunsetMoment, moment)
+
+        return SunState(
+            sunrise = sunrise,
+            sunset = sunset,
+            solarNoon = solarNoon,
+            dayLength = dayLength,
+            altitude = altitude,
+            azimuth = azimuth,
+            progressPercent = progress
+        )
+    }
+
+    fun calculateSunrise(
+        latitude: Double = DOMINICA_LAT,
+        longitude: Double = DOMINICA_LON,
+        date: LocalDate = LocalDate.now()
+    ): String = computeSunState(latitude, longitude, date).sunrise
+
+    fun calculateSunset(
+        latitude: Double = DOMINICA_LAT,
+        longitude: Double = DOMINICA_LON,
+        date: LocalDate = LocalDate.now()
+    ): String = computeSunState(latitude, longitude, date).sunset
+
+    fun calculateSolarNoon(
+        latitude: Double = DOMINICA_LAT,
+        longitude: Double = DOMINICA_LON,
+        date: LocalDate = LocalDate.now()
+    ): String = computeSunState(latitude, longitude, date).solarNoon
+
+    fun calculateDayLength(
+        latitude: Double = DOMINICA_LAT,
+        longitude: Double = DOMINICA_LON,
+        date: LocalDate = LocalDate.now()
+    ): String = computeSunState(latitude, longitude, date).dayLength
+
+    fun calculateCurrentSunPosition(
+        latitude: Double = DOMINICA_LAT,
+        longitude: Double = DOMINICA_LON
+    ): Pair<String, String> {
+        val state = computeSunState(latitude, longitude)
+        return state.altitude to state.azimuth
+    }
+
+    fun calculateSunProgress(
+        latitude: Double = DOMINICA_LAT,
+        longitude: Double = DOMINICA_LON,
+        date: LocalDate = LocalDate.now(),
+        moment: Moment = Moment.nowInSystemTime()
+    ): Int = computeSunState(latitude, longitude, date, moment).progressPercent
+
+    fun getSunriseSunsetMoments(
+        latitude: Double = DOMINICA_LAT,
+        longitude: Double = DOMINICA_LON,
+        date: LocalDate = LocalDate.now()
+    ): Pair<Moment?, Moment?> {
         return try {
-            val sunriseTime = calculateSunriseSunset(true)
-            formatTimeTo12Hour(sunriseTime)
+            val solar = SolarTime.ofLocation(latitude, longitude)
+            val plainDate = PlainDate.of(date.year, date.monthValue, date.dayOfMonth)
+            plainDate.get(solar.sunrise()) to plainDate.get(solar.sunset())
         } catch (e: Exception) {
-            Log.e("SunCalculator", "Error calculating sunrise", e)
-            "6:00 AM" // Default fallback
+            Log.w(TAG, "Failed to get sunrise/sunset moments", e)
+            null to null
         }
     }
-    
-    /**
-     * Calculate sunset time for today using simplified algorithm
-     * @return Sunset time as formatted string (e.g., "6:45 PM")
-     */
-    fun calculateSunset(): String {
+
+    fun getSolarNoonMoment(
+        latitude: Double = DOMINICA_LAT,
+        longitude: Double = DOMINICA_LON,
+        date: LocalDate = LocalDate.now()
+    ): Moment? {
         return try {
-            val sunsetTime = calculateSunriseSunset(false)
-            formatTimeTo12Hour(sunsetTime)
+            val solar = SolarTime.ofLocation(latitude, longitude)
+            val plainDate = PlainDate.of(date.year, date.monthValue, date.dayOfMonth)
+            plainDate.get(solar.transitAtNoon())
         } catch (e: Exception) {
-            Log.e("SunCalculator", "Error calculating sunset", e)
-            "6:00 PM" // Default fallback
+            Log.w(TAG, "Failed to get solar noon moment", e)
+            null
         }
     }
-    
-    /**
-     * Calculate solar noon time for today
-     * @return Solar noon time as formatted string
-     */
-    fun calculateSolarNoon(): String {
-        return try {
-            val solarNoonTime = calculateSolarNoonTime()
-            formatTimeTo12Hour(solarNoonTime)
-        } catch (e: Exception) {
-            Log.e("SunCalculator", "Error calculating solar noon", e)
-            "12:00 PM" // Default fallback
-        }
+
+    internal fun formatMoment(moment: Moment?, timezone: Timezone): String {
+        if (moment == null) return "N/A"
+        return formatTimeTo12Hour(moment.toZonalTimestamp(timezone.id).toString())
     }
-    
-    /**
-     * Calculate total day length (sunrise to sunset)
-     * @return Day length as formatted string (e.g., "12h 22m")
-     */
-    fun calculateDayLength(): String {
-        return try {
-        val sunriseTime = calculateSunriseSunset(true)
-        val sunsetTime = calculateSunriseSunset(false)
-        
-        val sunriseMinutes = sunriseTime.hour * 60 + sunriseTime.minute
-        val sunsetMinutes = sunsetTime.hour * 60 + sunsetTime.minute
-        val dayLengthMinutes = sunsetMinutes - sunriseMinutes
-            
-            val hours = dayLengthMinutes / 60
-            val minutes = dayLengthMinutes % 60
-            
-            val formattedLength = if (minutes > 0) {
-                "${hours}h ${minutes}m"
-            } else {
-                "${hours}h"
+
+    internal fun formatDayLength(sunrise: Moment?, sunset: Moment?): String {
+        if (sunrise == null || sunset == null) return "N/A"
+        val minutes = sunrise.until(sunset, TimeUnit.MINUTES).toInt()
+        if (minutes <= 0) return "N/A"
+        val hours = minutes / 60
+        val remainder = minutes % 60
+        return if (remainder > 0) "${hours}h ${remainder}m" else "${hours}h"
+    }
+
+    internal fun calculateProgress(sunrise: Moment?, sunset: Moment?, now: Moment): Int {
+        if (sunrise == null || sunset == null) return 0
+        if (now.isBefore(sunrise)) return 0
+        if (now.isAfter(sunset)) return 100
+        val totalMinutes = sunrise.until(sunset, TimeUnit.MINUTES)
+        if (totalMinutes <= 0) return 0
+        val elapsedMinutes = sunrise.until(now, TimeUnit.MINUTES)
+        return ((elapsedMinutes.toDouble() / totalMinutes) * 100.0)
+            .coerceIn(0.0, 100.0)
+            .roundToInt()
+    }
+
+    internal fun normalizeAzimuth(azimuthDeg: Double): Double {
+        var value = azimuthDeg % 360.0
+        if (value < 0) value += 360.0
+        return value
+    }
+
+    fun formatTimeTo12Hour(timeString: String): String {
+        if (timeString.isBlank() || timeString == "N/A") return "N/A"
+
+        if (timeString.contains("AM", ignoreCase = true) || timeString.contains("PM", ignoreCase = true)) {
+            return timeString
+        }
+
+        if (timeString.contains("T") && timeString.length >= 19) {
+            return try {
+                val timePart = timeString.substringAfter("T").substringBeforeLast(":")
+                val inputFormat = DateTimeFormatter.ofPattern("HH:mm")
+                val outputFormat = DateTimeFormatter.ofPattern("h:mm a")
+                LocalTime.parse(timePart, inputFormat).format(outputFormat)
+            } catch (e: Exception) {
+                "N/A"
             }
-            
-            formattedLength
-        } catch (e: Exception) {
-            Log.e("SunCalculator", "Error calculating day length", e)
-            "12h 0m" // Default fallback
         }
-    }
-    
-    /**
-     * Calculate current sun position (altitude and azimuth)
-     * @return Pair of altitude and azimuth as formatted strings
-     */
-    fun calculateCurrentSunPosition(): Pair<String, String> {
-        return try {
-            val now = java.time.LocalDateTime.now()
-            val altitude = calculateSunAltitude(now)
-            val azimuth = calculateSunAzimuth(now)
-            
-            val altitudeFormatted = "${altitude.roundToInt()}°"
-            val azimuthFormatted = "${azimuth.roundToInt()}°"
-            
-            Pair(altitudeFormatted, azimuthFormatted)
-        } catch (e: Exception) {
-            Log.e("SunCalculator", "Error calculating sun position", e)
-            Pair("45°", "180°") // Default fallback
-        }
-    }
-    
-    /**
-     * Calculate sun progress percentage (0-100) based on current time between sunrise and sunset
-     * @return Progress percentage as integer (0-100)
-     */
-    fun calculateSunProgress(): Int {
-        return try {
-            val now = java.time.LocalTime.now()
-            val sunriseTime = calculateSunriseSunset(true)
-            val sunsetTime = calculateSunriseSunset(false)
-            
-            val sunriseMinutes = sunriseTime.hour * 60 + sunriseTime.minute
-            val sunsetMinutes = sunsetTime.hour * 60 + sunsetTime.minute
-            val currentMinutes = now.hour * 60 + now.minute
-            
-            val totalDayMinutes = sunsetMinutes - sunriseMinutes
-            val elapsedMinutes = currentMinutes - sunriseMinutes
-            
-            val progress = if (totalDayMinutes > 0) {
-                ((elapsedMinutes.toFloat() / totalDayMinutes.toFloat()) * 100).coerceIn(0f, 100f).toInt()
-            } else {
-                0
+
+        if (timeString.matches(Regex("\\d{1,2}:\\d{2}"))) {
+            return try {
+                val inputFormat = DateTimeFormatter.ofPattern("H:mm")
+                val outputFormat = DateTimeFormatter.ofPattern("h:mm a")
+                LocalTime.parse(timeString, inputFormat).format(outputFormat)
+            } catch (e: Exception) {
+                "N/A"
             }
-            
-            progress
-        } catch (e: Exception) {
-            Log.e("SunCalculator", "Error calculating sun progress", e)
-            50 // Default fallback
         }
-    }
-    
-    /**
-     * Get sunrise and sunset moments for progress ring calculations
-     * @return Pair of sunrise and sunset moments (simplified to null for now)
-     */
-    fun getSunriseSunsetMoments(): Pair<Any?, Any?> {
-        return Pair(null, null) // Simplified - not using Time4A moments
-    }
-    
-    /**
-     * Get solar noon moment for progress ring calculations
-     * @return Solar noon moment (simplified to null for now)
-     */
-    fun getSolarNoonMoment(): Any? {
-        return null // Simplified - not using Time4A moments
-    }
-    
-    /**
-     * Calculate sunrise or sunset time using more accurate astronomical algorithm
-     */
-    private fun calculateSunriseSunset(isSunrise: Boolean): LocalTime {
-        val dayOfYear = java.time.LocalDate.now().dayOfYear
-        val latRad = Math.toRadians(DOMINICA_LAT)
-        
-        // More accurate solar declination calculation
-        val declination = 23.45 * sin(Math.toRadians(284.0 + dayOfYear) * 360.0 / 365.25)
-        val declRad = Math.toRadians(declination)
-        
-        // Hour angle calculation (more accurate)
-        val cosHourAngle = -tan(latRad) * tan(declRad)
-        
-        // Check if sun never rises/sets (polar day/night)
-        if (cosHourAngle > 1.0) {
-            // Polar night - sun never rises
-            return if (isSunrise) LocalTime.of(0, 0) else LocalTime.of(23, 59)
-        } else if (cosHourAngle < -1.0) {
-            // Polar day - sun never sets
-            return if (isSunrise) LocalTime.of(0, 0) else LocalTime.of(23, 59)
-        }
-        
-        val hourAngle = acos(cosHourAngle)
-        
-        // Time calculation
-        val timeOffset = if (isSunrise) -hourAngle else hourAngle
-        val solarTime = 12.0 + timeOffset * 12 / PI
-        
-        // Convert to local time with proper timezone adjustment
-        // For local solar time, we don't need longitude adjustment
-        // The solar time calculation already accounts for the sun's position
-        val localTime = solarTime
-        
-        // Normalize to 0-24 range
-        val normalizedTime = ((localTime % 24) + 24) % 24
-        
-        val hour = normalizedTime.toInt()
-        val minute = ((normalizedTime - hour) * 60).toInt()
-        
-        
-        return LocalTime.of(hour.coerceIn(0, 23), minute.coerceIn(0, 59))
-    }
-    
-    /**
-     * Calculate solar noon time
-     */
-    private fun calculateSolarNoonTime(): LocalTime {
-        // Solar noon is always at 12:00 local solar time
-        return LocalTime.of(12, 0)
-    }
-    
-    /**
-     * Calculate sun altitude (simplified)
-     */
-    private fun calculateSunAltitude(dateTime: java.time.LocalDateTime): Double {
-        val dayOfYear = dateTime.dayOfYear
-        val hour = dateTime.hour + dateTime.minute / 60.0
-        
-        val latRad = Math.toRadians(DOMINICA_LAT)
-        val declination = 23.45 * sin(Math.toRadians((284 + dayOfYear) * 360.0 / 365))
-        val declRad = Math.toRadians(declination)
-        
-        val hourAngle = Math.toRadians(15 * (hour - 12))
-        val altitude = asin(sin(latRad) * sin(declRad) + cos(latRad) * cos(declRad) * cos(hourAngle))
-        
-        return Math.toDegrees(altitude)
-    }
-    
-    /**
-     * Calculate sun azimuth (simplified)
-     */
-    private fun calculateSunAzimuth(dateTime: java.time.LocalDateTime): Double {
-        val dayOfYear = dateTime.dayOfYear
-        val hour = dateTime.hour + dateTime.minute / 60.0
-        
-        val latRad = Math.toRadians(DOMINICA_LAT)
-        val declination = 23.45 * sin(Math.toRadians((284 + dayOfYear) * 360.0 / 365))
-        val declRad = Math.toRadians(declination)
-        
-        val hourAngle = Math.toRadians(15 * (hour - 12))
-        
-        val azimuth = atan2(sin(hourAngle), cos(hourAngle) * sin(latRad) - tan(declRad) * cos(latRad))
-        
-        return Math.toDegrees(azimuth) + 180 // Convert to 0-360 range
-    }
-    
-    /**
-     * Format time to 12-hour format
-     */
-    private fun formatTimeTo12Hour(time: LocalTime): String {
-        val formatter = DateTimeFormatter.ofPattern("h:mm a")
-        return time.format(formatter)
+
+        return "N/A"
     }
 }

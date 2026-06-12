@@ -1,9 +1,13 @@
 package com.weatherpossum.app.presentation.components
 
-import androidx.compose.animation.core.*
+import com.weatherpossum.app.ui.theme.WeatherPossumMotion
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.*
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -23,17 +27,22 @@ import kotlin.math.PI
 
 /**
  * Material You Expressive Loading Indicator
- * Uses the standard CircularProgressIndicator with Expressive styling
+ * Uses wavy circular progress for a more expressive loading experience
  */
 @Composable
 fun ExpressiveLoadingIndicator(
     modifier: Modifier = Modifier,
     color: Color = MaterialTheme.colorScheme.primary
 ) {
-    CircularProgressIndicator(
-        modifier = modifier,
+    // Use indeterminate progress with wavy circle for expressive loading
+    WavyCircleProgressIndicator(
+        progress = 0.75f, // Indeterminate-like appearance
+        modifier = modifier.size(48.dp),
         color = color,
-        strokeWidth = 4.dp
+        backgroundColor = color.copy(alpha = 0.2f),
+        strokeWidth = 4.dp,
+        waveAmplitude = 1.5.dp,
+        waveFrequency = 8f
     )
 }
 
@@ -60,7 +69,7 @@ fun WavyLineProgressIndicator(
         initialValue = 0f,
         targetValue = 2f * PI.toFloat(),
         animationSpec = infiniteRepeatable(
-            animation = tween(2000, easing = LinearEasing),
+            animation = tween(2800, easing = WeatherPossumMotion.AmbientDrift),
             repeatMode = RepeatMode.Restart
         ),
         label = "phase"
@@ -153,7 +162,7 @@ fun WavyCircleProgressIndicator(
         initialValue = 0f,
         targetValue = 2f * PI.toFloat(),
         animationSpec = infiniteRepeatable(
-            animation = tween(3000, easing = LinearEasing),
+            animation = tween(3600, easing = WeatherPossumMotion.AmbientDrift),
             repeatMode = RepeatMode.Restart
         ),
         label = "phase"

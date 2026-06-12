@@ -1,34 +1,60 @@
 package com.weatherpossum.app.presentation.components
 
-import androidx.compose.animation.core.Spring
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.spring
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.Immutable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.res.stringResource
+import com.weatherpossum.app.R
 import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
-import com.weatherpossum.app.presentation.components.AnimatedWeatherIcon
-import com.weatherpossum.app.presentation.components.WeatherIconType
-import com.weatherpossum.app.ui.theme.Shapes
+import com.weatherpossum.app.ui.theme.CardGradientStyle
+import com.weatherpossum.app.ui.theme.WeatherPossumDimens
+import com.weatherpossum.app.ui.theme.WeatherPossumGlass
+import com.weatherpossum.app.ui.theme.WeatherPossumMotion
+
+@Immutable
+private data class NavTab(
+    val id: String,
+    val title: String,
+    val subtitle: String,
+    val icon: WeatherIconType,
+    val style: CardGradientStyle
+)
 
 @Composable
 fun PillNavBar(
@@ -36,186 +62,172 @@ fun PillNavBar(
     onTabSelected: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val tabs = listOf("Now", "Extras")
-    val iconTypes = mapOf("Now" to WeatherIconType.PARTLY_CLOUDY, "Extras" to WeatherIconType.EXTRAS)
-
-    // Material You Expressive theming
-    val colorScheme = MaterialTheme.colorScheme
-    val typography = MaterialTheme.typography
-    val shapes = MaterialTheme.shapes
-    
-    // Sizes
-    val tabWidth: Dp = 160.dp
-    val pillWidth = tabWidth * tabs.size
-    val pillHeight = 72.dp
-    val cornerShape = shapes.extraLarge // M3 extraLarge shape (e.g., 28.dp)
-
-    // Expressive colors
-    // Use an elevated surface color for better contrast/depth
-    val baseSurfaceColor = colorScheme.surfaceColorAtElevation(3.dp) 
-    val onSurfaceColor = colorScheme.onSurface
-    val activeTabColor = colorScheme.primary
-    val onActiveTabColor = colorScheme.onPrimary
-
-    // 1. EXPRESSIVE MOTION: Bouncy, highly reactive indicator movement
-    val selectedIndex = tabs.indexOf(selectedTab).coerceAtLeast(0)
-    val highlightOffset by animateDpAsState(
-        targetValue = tabWidth * selectedIndex,
-        animationSpec = spring(
-            // Low damping ratio for exaggerated oscillation (more bounce)
-            dampingRatio = Spring.DampingRatioLowBouncy, 
-            // Low stiffness for a slower, more dramatic movement
-            stiffness = Spring.StiffnessLow 
+    val isDarkMode = isSystemInDarkTheme()
+    val tabs = listOf(
+        NavTab(
+            id = "Now",
+            title = stringResource(R.string.nav_tab_now),
+            subtitle = stringResource(R.string.nav_tab_now_subtitle),
+            icon = WeatherIconType.PARTLY_CLOUDY,
+            style = CardGradientStyle.Outlook
         ),
-        label = "highlightOffset"
+        NavTab(
+            id = "Extras",
+            title = stringResource(R.string.nav_tab_extras),
+            subtitle = stringResource(R.string.nav_tab_extras_subtitle),
+            icon = WeatherIconType.EXTRAS,
+            style = CardGradientStyle.Fact
+        )
     )
+    val selectedIndex = tabs.indexOfFirst { it.id == selectedTab }.coerceAtLeast(0)
+    val dockShape = RoundedCornerShape(WeatherPossumDimens.navBarCornerRadius)
+    val indicatorShape = RoundedCornerShape(26.dp)
+    val motionSpec = WeatherPossumMotion.fluidSpring<Float>()
+    val colorMotionSpec = WeatherPossumMotion.gentleSpring<androidx.compose.ui.graphics.Color>()
 
+    val (dockTintTop, dockTintBottom) = WeatherPossumGlass.colorsForStyle(
+        tabs[selectedIndex].style,
+        isDarkMode
+    )
     Box(
         modifier = modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 16.dp),
+            .padding(
+                horizontal = WeatherPossumDimens.navBarHorizontalPadding,
+                vertical = WeatherPossumDimens.navBarBottomPadding
+            ),
         contentAlignment = Alignment.Center
     ) {
-        // Material You Expressive navigation surface
-        Surface(
+        BoxWithConstraints(
             modifier = Modifier
-                .width(pillWidth)
-                .height(pillHeight)
-                // Use higher manual shadow for expressive lift
+                .fillMaxWidth()
+                .height(WeatherPossumDimens.navBarHeight)
                 .shadow(
-                    elevation = 12.dp, 
-                    shape = cornerShape
-                ),
-            shape = cornerShape,
-            color = baseSurfaceColor, // Use elevated surface color
-            tonalElevation = 6.dp // High tonal elevation for visual depth
+                    elevation = if (isDarkMode) 18.dp else 14.dp,
+                    shape = dockShape,
+                    ambientColor = Color(0xFF0277BD).copy(alpha = if (isDarkMode) 0.35f else 0.18f),
+                    spotColor = Color(0xFF5E35B1).copy(alpha = if (isDarkMode) 0.28f else 0.14f)
+                )
+                .liquidGlassNavSurface(
+                    tintTop = dockTintTop,
+                    tintBottom = dockTintBottom,
+                    isDarkMode = isDarkMode,
+                    cornerRadius = WeatherPossumDimens.navBarCornerRadius
+                )
         ) {
+            val tabWidth = maxWidth / tabs.size
+            val highlightOffset by animateDpAsState(
+                targetValue = tabWidth * selectedIndex,
+                animationSpec = WeatherPossumMotion.fluidSpring(),
+                label = "navHighlight"
+            )
+
+            val (activeTop, activeBottom) = WeatherPossumGlass.colorsForStyle(
+                tabs[selectedIndex].style,
+                isDarkMode
+            )
+            val activeOnColor = WeatherPossumGlass.onColorForTint(activeTop, activeBottom, isDarkMode)
+
             Box(
                 modifier = Modifier
-                    .fillMaxSize()
-                    .clip(cornerShape)
-                    .background(baseSurfaceColor)
-                    .border( // Maintain a light border for definition
-                        width = 1.dp,
-                        color = colorScheme.outline.copy(alpha = 0.12f),
-                        shape = cornerShape
-                    )
+                    .offset(x = highlightOffset)
+                    .width(tabWidth)
+                    .fillMaxHeight()
+                    .padding(5.dp)
+                    .zIndex(0f)
             ) {
-                // Material You Expressive indicator (animated)
                 Box(
                     modifier = Modifier
-                        .offset(x = highlightOffset)
-                        .width(tabWidth)
-                        .height(pillHeight)
-                        .padding(8.dp) // Increased padding for visual lift and shape contrast
-                        .zIndex(1f)
-                ) {
-                    // Indicator Surface (Primary color with expressive shape)
-                    Surface(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .clip(shapes.large), // Contrastive shape to container
-                        color = activeTabColor,
-                        tonalElevation = 10.dp // Very high elevation for a 'popping' feel
-                    ) {
-                        // Gradient overlay for depth and vibrancy (Expressive touch)
-                        Box(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .background(
-                                    Brush.verticalGradient(
-                                        listOf(
-                                            activeTabColor.copy(alpha = 0.9f),
-                                            activeTabColor,
-                                            activeTabColor.copy(alpha = 0.9f)
-                                        )
-                                    )
-                                )
-                        )
-                    }
-                }
-
-                // Tabs with Material You Expressive motion and typography
-                Row(
-                    modifier = Modifier
                         .fillMaxSize()
-                        .zIndex(2f),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceEvenly
-                ) {
-                    tabs.forEach { tab ->
-                        val isSelected = tab == selectedTab
-                        val localInteractionSource = remember { MutableInteractionSource() }
-                        val isTabPressed by localInteractionSource.collectIsPressedAsState()
-                        
-                        // 2. EXPRESSIVE MOTION for Pressed/Selected Tab Element
-                        val targetScale = when {
-                            isSelected -> 1.05f // Subtle lift on selected item
-                            isTabPressed -> 0.95f // Gentle squash on press
+                        .navSelectedSurface(activeTop, activeBottom, isDarkMode, cornerRadius = 26.dp)
+                )
+            }
+
+            Row(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .zIndex(1f),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                tabs.forEachIndexed { index, tab ->
+                    val isSelected = index == selectedIndex
+                    val interactionSource = remember(tab.id) { MutableInteractionSource() }
+                    val isPressed by interactionSource.collectIsPressedAsState()
+
+                    val scale by animateFloatAsState(
+                        targetValue = when {
+                            isPressed -> 0.94f
+                            isSelected -> 1.02f
                             else -> 1f
-                        }
+                        },
+                        animationSpec = motionSpec,
+                        label = "navScale_${tab.id}"
+                    )
 
-                        val elementScale by animateFloatAsState(
-                            targetValue = targetScale,
-                            animationSpec = spring(
-                                dampingRatio = Spring.DampingRatioLowBouncy, // More reactive element movement
-                                stiffness = Spring.StiffnessLow 
-                            ),
-                            label = "elementScale_$tab"
-                        )
-
-                        Column(
-                            modifier = Modifier
-                                .width(tabWidth)
-                                .fillMaxHeight()
-                                .graphicsLayer { // Apply the scale animation here
-                                    scaleX = elementScale
-                                    scaleY = elementScale
-                                }
-                                .clip(cornerShape)
-                                .clickable(
-                                    interactionSource = localInteractionSource,
-                                    indication = null,
-                                    onClick = { onTabSelected(tab) }
-                                )
-                                .padding(horizontal = 12.dp, vertical = 10.dp),
-                            verticalArrangement = Arrangement.Center,
-                            horizontalAlignment = Alignment.CenterHorizontally
-                        ) {
-                            // Icon with expressive color shift
-                            Box(
-                                modifier = Modifier,
-                                contentAlignment = Alignment.Center
-                            ) {
-                                AnimatedWeatherIcon(
-                                    type = iconTypes[tab]!!,
-                                    modifier = Modifier.size(28.dp),
-                                    // Use primary color for unselected tabs to increase vibrancy
-                                    color = if (isSelected) onActiveTabColor else activeTabColor.copy(alpha = 0.7f) 
-                                )
-                            }
-                            Spacer(Modifier.height(4.dp))
-                            
-                            // Label with Material You Expressive typography
-                            Text(
-                                text = tab.uppercase(),
-                                style = if (isSelected) {
-                                    // Use a heavier weight and slightly larger size when selected
-                                    typography.labelLarge.copy(
-                                        fontWeight = FontWeight.Black, 
-                                        letterSpacing = 1.0.sp 
-                                    )
-                                } else {
-                                    typography.labelMedium.copy(fontWeight = FontWeight.SemiBold)
-                                },
-                                color = if (isSelected) {
-                                    onActiveTabColor
-                                } else {
-                                    onSurfaceColor.copy(alpha = 0.7f)
-                                },
-                                maxLines = 1
+                    val labelColor by animateColorAsState(
+                        targetValue = if (isSelected) {
+                            activeOnColor
+                        } else {
+                            MaterialTheme.colorScheme.onSurface.copy(
+                                alpha = if (isDarkMode) 0.94f else 0.92f
                             )
-                        }
+                        },
+                        animationSpec = colorMotionSpec,
+                        label = "navLabel_${tab.id}"
+                    )
+
+                    val subtitleColor by animateColorAsState(
+                        targetValue = if (isSelected) {
+                            activeOnColor.copy(alpha = 0.88f)
+                        } else {
+                            MaterialTheme.colorScheme.onSurface.copy(
+                                alpha = if (isDarkMode) 0.72f else 0.78f
+                            )
+                        },
+                        animationSpec = colorMotionSpec,
+                        label = "navSubtitle_${tab.id}"
+                    )
+
+                    Column(
+                        modifier = Modifier
+                            .weight(1f)
+                            .fillMaxHeight()
+                            .graphicsLayer {
+                                scaleX = scale
+                                scaleY = scale
+                            }
+                            .clip(indicatorShape)
+                            .clickable(
+                                interactionSource = interactionSource,
+                                indication = null,
+                                onClick = { onTabSelected(tab.id) }
+                            )
+                            .padding(vertical = 8.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center
+                    ) {
+                        AnimatedWeatherIcon(
+                            type = tab.icon,
+                            modifier = Modifier.size(26.dp),
+                            color = labelColor
+                        )
+                        Spacer(Modifier.height(2.dp))
+                        Text(
+                            text = tab.title,
+                            color = labelColor,
+                            fontSize = 14.sp,
+                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.SemiBold,
+                            letterSpacing = 0.2.sp,
+                            maxLines = 1
+                        )
+                        Text(
+                            text = tab.subtitle,
+                            color = subtitleColor,
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.Medium,
+                            letterSpacing = 0.6.sp,
+                            maxLines = 1
+                        )
                     }
                 }
             }

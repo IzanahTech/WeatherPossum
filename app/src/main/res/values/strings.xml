@@ -1,41 +1,149 @@
 <resources>
     <string name="app_name">WeatherPossum</string>
     <!-- General -->
-    <string name="app_name_full">Weather Possum</string>
     <string name="unknown_error">Unknown error</string>
     <string name="button_retry">Retry</string>
 
     <!-- WeatherRepository specific -->
     <string name="repository_title_synopsis">Synopsis</string>
-    <string name="repository_title_wind_conditions">Wind Conditions</string>
-    <string name="repository_title_sea_conditions">Sea Conditions</string>
-    <string name="repository_title_sun_times">Sun Times</string>
-    <string name="repository_title_weather_outlook">Weather Outlook for Dominica and the Lesser Antilles</string>
-    <string name="repository_title_forecast_today">Forecast for Today</string>
-    <string name="repository_title_forecast_tonight">Forecast for Tonight</string>
-    <string name="repository_title_forecast_today_tonight">Forecast for Today and Tonight</string>
-    <string name="repository_title_warning_advisory">Warning/Advisory</string>
-    <string name="repository_error_no_info_in_response">No weather information found in the response</string>
-    <string name="repository_error_parsing_data">Error parsing weather data: %1$s</string>
-    <string name="repository_error_fetch_failed_showing_cache">Failed to fetch new data: %1$s. Showing cached data.</string>
     <string name="repository_error_socket_timeout">Connection timed out. Please check your internet connection.</string>
-    <string name="repository_error_io">Network error: %1$s</string>
-    <string name="repository_error_all_retries_failed">Failed to retrieve weather data after multiple attempts.</string>
-
-    <!-- WeatherViewModel specific -->
-    <string name="viewmodel_forecast_morning">Forecast for this Morning</string>
-    <string name="viewmodel_forecast_afternoon">Forecast for this Afternoon</string>
-    <string name="viewmodel_forecast_tonight">Forecast for Tonight</string>
 
     <!-- WeatherScreen specific -->
     <string name="screen_greeting_loading_synopsis">Loading weather information…</string>
-    <string name="screen_splash_title_weather">WEATHER</string>
-    <string name="screen_splash_title_possum">POSSUM</string>
-    <string name="screen_splash_subtitle">Consulting the possum\'s weather balloon…</string>
 
     <!-- GreetingCard component specific -->
-    <string name="greeting_good_morning">GOOD MORNING</string>
-    <string name="greeting_good_afternoon">GOOD AFTERNOON</string>
-    <string name="greeting_good_night">GOOD NIGHT</string>
-    <string name="greeting_card_synopsis_prefix">SYNOPSIS: </string>
+    <string name="greeting_good_morning">Good morning</string>
+    <string name="greeting_good_afternoon">Good afternoon</string>
+    <string name="greeting_good_night">Good evening</string>
+
+    <!-- Home screen widget -->
+    <string name="widget_description">Time-based greeting and daily weather synopsis</string>
+    <string name="widget_configure_title">Add Weather Possum widget</string>
+    <string name="widget_configure_subtitle">A greeting card with your daily synopsis. Resize taller to see wind, sea, and tide.</string>
+    <string name="widget_configure_preview_label">Preview</string>
+    <string name="widget_configure_resize_hint">Coastal wind, sea, and tide details appear when the widget is resized taller.</string>
+    <string name="widget_preview_greeting">Morning, Possum! 😊</string>
+    <string name="widget_preview_synopsis">Partly cloudy with a few showers. Moderate seas and light winds along the coast.</string>
+    <string name="widget_configure_save">Add widget</string>
+    <string name="widget_configure_cancel">Cancel</string>
+    <string name="widget_daylight_label">%1$d%% DAYLIGHT</string>
+    <string name="widget_coastal_available">🌊 Coastal Info Available</string>
+    <string name="widget_greeting_morning">Morning</string>
+    <string name="widget_greeting_afternoon">Afternoon</string>
+    <string name="widget_greeting_night">Good evening</string>
+    <string name="widget_metric_wind">WIND</string>
+    <string name="widget_metric_sea">SEA</string>
+    <string name="widget_metric_tide">TIDE</string>
+    <string name="widget_metric_unavailable">Not available yet</string>
+    <string name="weather_stale_cache_notice">Showing saved weather — pull to refresh.</string>
+    <string name="viewmodel_error_no_weather_data">No weather data available right now.</string>
+
+    <!-- Navigation -->
+    <string name="nav_tab_now">Now</string>
+    <string name="nav_tab_now_subtitle">Today</string>
+    <string name="nav_tab_extras">Extras</string>
+    <string name="nav_tab_extras_subtitle">More</string>
+
+    <!-- Extended forecast -->
+    <string name="extended_forecast_error_load">Unable to load extended forecast</string>
+    <string name="extended_forecast_stale_notice">Showing saved 7-day outlook — pull down to refresh.</string>
+    <string name="card_extended_forecast_title">7-DAY OUTLOOK</string>
+    <string name="card_extended_forecast_starting">Starting: %1$s</string>
+    <string name="card_extended_forecast_weather">Weather</string>
+    <string name="card_extended_forecast_wind">Wind</string>
+    <string name="card_extended_forecast_seas">Seas</string>
+    <string name="card_extended_forecast_waves">Waves</string>
+    <string name="card_extended_forecast_expand">Expand forecast</string>
+    <string name="card_extended_forecast_collapse">Collapse forecast</string>
+
+    <!-- Hurricane cards -->
+    <string name="card_hurricane_outlook_title">HURRICANE OUTLOOK</string>
+    <string name="card_hurricane_updates_title">HURRICANE UPDATES</string>
+    <string name="card_hurricane_no_active_storms">No active storms in the Atlantic</string>
+    <string name="card_hurricane_issued">Issued</string>
+    <string name="card_hurricane_forecaster">Forecaster</string>
+    <string name="card_hurricane_active_systems">Active Systems</string>
+    <string name="card_hurricane_eastern_tropical">Eastern Tropical Atlantic</string>
+    <string name="hurricane_formation_chance_label">Formation chance through %1$s %2$s</string>
+    <string name="hurricane_formation_chance_value">%1$s (%2$s%%)</string>
+    <string name="hurricane_stale_notice">Showing saved hurricane outlook — pull down to refresh.</string>
+    <string name="hurricane_forecaster_prefix">Forecaster </string>
+    <string name="hurricane_location_unavailable">Location not available</string>
+    <string name="hurricane_unnamed_storm">Unnamed Storm</string>
+    <string name="hurricane_status_unknown">Unknown</string>
+    <string name="hurricane_status_hurricane">Hurricane (Cat %1$d)</string>
+    <string name="hurricane_status_tropical_storm">Tropical Storm</string>
+    <string name="hurricane_status_tropical_depression">Tropical Depression</string>
+    <string name="hurricane_status_post_tropical">Post-Tropical Cyclone</string>
+    <string name="hurricane_category_1">Category 1 (74–95 mph)</string>
+    <string name="hurricane_category_2">Category 2 (96–110 mph)</string>
+    <string name="hurricane_category_3">Category 3 (111–129 mph)</string>
+    <string name="hurricane_category_4">Category 4 (130–156 mph)</string>
+    <string name="hurricane_category_5">Category 5 (157+ mph)</string>
+    <string name="hurricane_storm_summary">%1$s — %2$s at %3$s</string>
+
+    <!-- Active Atlantic storms -->
+    <string name="card_active_storms_title">ACTIVE STORMS</string>
+    <string name="card_active_storms_subtitle">%1$d in the Atlantic</string>
+    <string name="card_active_storms_status">Status</string>
+    <string name="card_active_storms_wind">Max wind</string>
+    <string name="card_active_storms_wind_value">%1$d kt</string>
+    <string name="card_active_storms_location">Location</string>
+    <!-- Card headers & labels -->
+    <string name="card_fun_fact_title">WEATHER POSSUM FACT</string>
+    <string name="card_fun_fact_subtitle">Tap to discover another</string>
+    <string name="card_moon_phase_title">MOON PHASE</string>
+    <string name="card_moon_illumination">Illumination</string>
+    <string name="card_moon_phase_label">Phase</string>
+    <string name="card_moon_moonrise">Moonrise</string>
+    <string name="card_moon_moonset">Moonset</string>
+    <string name="moon_phase_new">New Moon</string>
+    <string name="moon_phase_waxing_crescent">Waxing Crescent</string>
+    <string name="moon_phase_first_quarter">First Quarter</string>
+    <string name="moon_phase_waxing_gibbous">Waxing Gibbous</string>
+    <string name="moon_phase_full">Full Moon</string>
+    <string name="moon_phase_waning_gibbous">Waning Gibbous</string>
+    <string name="moon_phase_last_quarter">Last Quarter</string>
+    <string name="moon_phase_waning_crescent">Waning Crescent</string>
+    <string name="moon_error_fetch_failed">Failed to fetch moon data</string>
+    <string name="moon_stale_notice">Showing saved moon data — pull down to refresh.</string>
+    <string name="card_sun_title">SUN</string>
+    <string name="card_sun_subtitle">Daylight progress &amp; times</string>
+    <string name="card_sun_sunrise">Sunrise</string>
+    <string name="card_sun_sunset">Sunset</string>
+    <string name="card_sun_day_length">Day length</string>
+    <string name="card_sun_solar_noon">Solar noon</string>
+    <string name="card_sun_altitude">Altitude</string>
+    <string name="card_sun_azimuth">Azimuth</string>
+
+    <string name="extras_card_moon_phase">Moon Phase</string>
+    <string name="extras_card_seven_day">7-Day Outlook</string>
+    <string name="extras_card_hurricane">Hurricane Updates</string>
+    <string name="extras_error_hurricane">Unable to load hurricane data</string>
+
+    <!-- Welcome dialog -->
+    <string name="welcome_title">WELCOME ABOARD!</string>
+    <string name="welcome_prompt">What shall I call you?</string>
+    <string name="welcome_name_placeholder">Enter your name</string>
+    <string name="welcome_confirm">OK</string>
+
+    <!-- Error screen -->
+    <string name="error_weather_unavailable">Weather Unavailable</string>
+
+    <!-- In-app updates -->
+    <string name="update_title">Update Available</string>
+    <string name="update_now">Update Now</string>
+    <string name="update_installing">Installing…</string>
+    <string name="update_later">Later</string>
+    <string name="update_version_available">WeatherPossum %1$s is now available!</string>
+    <string name="update_whats_new">What\'s new:</string>
+    <string name="update_failed">Update failed: %1$s</string>
+    <string name="update_downloading">Downloading APK…</string>
+    <string name="update_verifying_checksum">Verifying checksum…</string>
+    <string name="update_verifying_signature">Verifying signature…</string>
+
+    <!-- Hurricane errors -->
+    <string name="hurricane_error_no_connection">Unable to connect to hurricane data service. Please check your internet connection.</string>
+    <string name="hurricane_error_timeout">Connection timeout. Please try again.</string>
+    <string name="hurricane_error_generic">Failed to fetch hurricane data. Please try again.</string>
 </resources>

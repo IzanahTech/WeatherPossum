@@ -1,5 +1,6 @@
 package com.weatherpossum.app.util
 
+import android.app.Activity
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
@@ -7,14 +8,14 @@ import android.net.Uri
 import android.os.Build
 import android.provider.Settings
 import androidx.core.content.FileProvider
-import com.squareup.moshi.Moshi
-import com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import com.weatherpossum.app.data.api.GhRelease
 import com.weatherpossum.app.data.api.GitHubApi
+import com.squareup.moshi.Moshi
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import okio.Buffer
 import okio.buffer
 import okio.sink
 import retrofit2.Retrofit
@@ -126,20 +127,41 @@ object InAppUpdater {
 
     /**
      * Download a file from URL to the app's cache directory
+     * @param onProgress Optional callback for download progress (0.0 to 1.0)
      */
-    suspend fun downloadToCache(context: Context, url: String, fileName: String): File {
+    suspend fun downloadToCache(
+        context: Context, 
+        url: String, 
+        fileName: String,
+        onProgress: ((Float) -> Unit)? = null
+    ): File {
         return withContext(Dispatchers.IO) {
             val client = OkHttpClient()
             val req = Request.Builder().url(url).build()
             val resp = client.newCall(req).execute()
             require(resp.isSuccessful) { "HTTP ${resp.code}" }
             
+            val contentLength = resp.body!!.contentLength()
             val dir = File(context.cacheDir, "updates").apply { mkdirs() }
             val out = File(dir, fileName)
             
             resp.body!!.source().use { src ->
-                out.outputStream().sink().buffer().use { dst -> 
-                    dst.writeAll(src)
+                out.outputStream().sink().buffer().use { dst ->
+                    val buffer = Buffer()
+                    var totalBytesRead = 0L
+                    
+                    while (true) {
+                        val bytesRead = src.read(buffer, 8192)
+                        if (bytesRead == -1L) break
+                        
+                        dst.write(buffer, bytesRead)
+                        totalBytesRead += bytesRead
+                        
+                        if (contentLength > 0 && onProgress != null) {
+                            val progress = (totalBytesRead.toFloat() / contentLength).coerceIn(0f, 1f)
+                            onProgress(progress)
+                        }
+                    }
                 }
             }
             out
@@ -199,32 +221,6 @@ object InAppUpdater {
     }
 
     /**
-     * Install an APK file using the system installer
-     */
-    fun installApk(context: Context, apk: File) {
-        val uri = FileProvider.getUriForFile(
-            context, "${context.packageName}.fileprovider", apk
-        )
-        val intent = Intent(Intent.ACTION_VIEW).apply {
-            data = uri
-            flags = Intent.FLAG_GRANT_READ_URI_PERMISSION
-            putExtra(Intent.EXTRA_RETURN_RESULT, true)
-        }
-        
-        // Ensure user has allowed "Install unknown apps" for your app
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O &&
-            !context.packageManager.canRequestPackageInstalls()
-        ) {
-            context.startActivity(Intent(
-                Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES,
-                Uri.parse("package:${context.packageName}")
-            ))
-            return
-        }
-        context.startActivity(intent)
-    }
-
-    /**
      * Install an APK file and relaunch the app after successful installation
      * This method handles the installation process and automatically restarts the app
      */
@@ -244,13 +240,8 @@ object InAppUpdater {
             return
         }
         
-        // Create intent for installation
-        val installIntent = Intent(Intent.ACTION_VIEW).apply {
-            data = uri
-            flags = Intent.FLAG_GRANT_READ_URI_PERMISSION
-            putExtra(Intent.EXTRA_RETURN_RESULT, true)
-        }
-        
+        val installIntent = installIntent(context, uri)
+
         // Start installation and set up relaunch mechanism
         try {
             // For Android 11+ (API 30+), we can use a more direct approach
@@ -322,14 +313,20 @@ object InAppUpdater {
     /**
      * Create GitHub API instance with Moshi converter
      */
+    private fun installIntent(context: Context, uri: Uri): Intent {
+        return Intent(Intent.ACTION_VIEW).apply {
+            setDataAndType(uri, "application/vnd.android.package-archive")
+            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            if (context !is Activity) {
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            }
+        }
+    }
+
     private fun provideGitHubApi(): GitHubApi {
-        val moshi = Moshi.Builder()
-            .add(KotlinJsonAdapterFactory())
-            .build()
-            
         val retrofit = Retrofit.Builder()
             .baseUrl("https://api.github.com/")
-            .addConverterFactory(MoshiConverterFactory.create(moshi))
+            .addConverterFactory(MoshiConverterFactory.create(Moshi.Builder().build()))
             .build()
         return retrofit.create(GitHubApi::class.java)
     }

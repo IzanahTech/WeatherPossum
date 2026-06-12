@@ -1,77 +1,28 @@
 package com.weatherpossum.app.presentation.components
 
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.animation.animateColorAsState
-import androidx.compose.animation.core.spring
-import androidx.compose.foundation.background
+import androidx.compose.animation.core.animateFloatAsState
+import com.weatherpossum.app.ui.theme.WeatherPossumMotion
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.LinearWavyProgressIndicator
-import androidx.compose.material3.*
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.drawWithContent
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.weatherpossum.app.presentation.components.AnimatedWeatherIcon
-import com.weatherpossum.app.presentation.components.WeatherIconType
 import com.weatherpossum.app.R
+import com.weatherpossum.app.ui.theme.WeatherPossumDimens
+import com.weatherpossum.app.ui.theme.WeatherPossumFonts
+import com.weatherpossum.app.ui.theme.WeatherPossumGradients
 import com.weatherpossum.app.util.SunCalculator
-import kotlin.math.pow
-
-// --- Existing Utility Functions (srgbToLinear, relativeLuminance, contrastRatio, etc.) remain unchanged ---
-private fun srgbToLinear(c: Float): Double =
-    if (c <= 0.04045f) (c / 12.92f).toDouble()
-    else (((c + 0.055f) / 1.055f).toDouble()).pow(2.4)
-
-private fun Color.relativeLuminance(): Double {
-    val r = srgbToLinear(red)
-    val g = srgbToLinear(green)
-    val b = srgbToLinear(blue)
-    return 0.2126 * r + 0.7152 * g + 0.0722 * b
-}
-
-private fun contrastRatio(a: Color, b: Color): Double {
-    val la = a.relativeLuminance()
-    val lb = b.relativeLuminance()
-    val (l1, l2) = if (la >= lb) la to lb else lb to la
-    return (l1 + 0.05) / (l2 + 0.05)
-}
-
-private fun pickOnColorFor(background: Color): Color {
-    val dark = Color(0xFF1F2937) // slate-ish "ink"
-    val light = Color.White
-    return if (contrastRatio(light, background) >= contrastRatio(dark, background)) light else dark
-}
-
-private fun pickOnColorForGradient(top: Color, bottom: Color): Color {
-    val avg = Color(
-        red = (top.red + bottom.red) / 2f,
-        green = (top.green + bottom.green) / 2f,
-        blue = (top.blue + bottom.blue) / 2f,
-        alpha = 1f
-    )
-    return pickOnColorFor(avg)
-}
-
-private fun ensureAA(on: Color, bg: Color): Color {
-    val ratio = contrastRatio(on, bg)
-    return if (ratio >= 4.5) on else {
-        val other = if (on == Color.White) Color(0xFF1F2937) else Color.White
-        if (contrastRatio(other, bg) > ratio) other else on
-    }
-}
-// --- End of Utility Functions ---
-
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
@@ -89,182 +40,89 @@ fun GreetingCard(
 
     val displayName = userName?.replaceFirstChar { it.uppercase() } ?: ""
     val personalizedGreeting = if (displayName.isNotBlank()) "$greeting, $displayName" else greeting
-
-    // Daylight progress (0..100)
     val sunProgressPercent = SunCalculator.calculateSunProgress().coerceIn(0, 100)
     val sunFrac = sunProgressPercent / 100f
+    val animatedSunFrac by animateFloatAsState(
+        targetValue = sunFrac,
+        animationSpec = WeatherPossumMotion.gentleSpring(),
+        label = "daylightProgress"
+    )
 
-    // Select greeting icon based on time of day
     val greetingIconType = when (hour) {
         in 5..11 -> WeatherIconType.MORNING
         in 12..17 -> WeatherIconType.AFTERNOON
         else -> WeatherIconType.NIGHT
     }
 
-    // Dynamic gradient driven by daylight fraction (Lerp logic unchanged)
-    val dawnTop = Color(0xFF0B1D3A); val dawnBottom = Color(0xFF27446E)
-    val morningTop = Color(0xFF67B8F7); val morningBottom = Color(0xFF9CD3FF)
-    val noonTop = Color(0xFFFFE082); val noonBottom = Color(0xFFFFB74D)
-    val sunsetTop = Color(0xFF7F7FD5); val sunsetBottom = Color(0xFF86A8E7)
-    val nightTop = Color(0xFF0F172A); val nightBottom = Color(0xFF1E293B)
-
-    fun lerpColor(a: Color, b: Color, t: Float): Color =
-        Color(
-            red = a.red + (b.red - a.red) * t.coerceIn(0f, 1f),
-            green = a.green + (b.green - a.green) * t.coerceIn(0f, 1f),
-            blue = a.blue + (b.blue - a.blue) * t.coerceIn(0f, 1f),
-            alpha = a.alpha + (b.alpha - a.alpha) * t.coerceIn(0f, 1f)
-        )
-
-    val (targetTop, targetBottom) = remember(sunFrac) {
-        if (sunFrac <= 0.5f) {
-            if (sunFrac <= 0.25f) {
-                val t = sunFrac / 0.25f
-                lerpColor(dawnTop, morningTop, t) to lerpColor(dawnBottom, morningBottom, t)
-            } else {
-                val t = (sunFrac - 0.25f) / 0.25f
-                lerpColor(morningTop, noonTop, t) to lerpColor(morningBottom, noonBottom, t)
-            }
-        } else {
-            if (sunFrac <= 0.75f) {
-                val t = (sunFrac - 0.5f) / 0.25f
-                lerpColor(noonTop, sunsetTop, t) to lerpColor(noonBottom, sunsetBottom, t)
-            } else {
-                val t = (sunFrac - 0.75f) / 0.25f
-                lerpColor(sunsetTop, nightTop, t) to lerpColor(sunsetBottom, nightBottom, t)
-            }
-        }
+    val isDarkMode = isSystemInDarkTheme()
+    val (targetTop, targetBottom) = remember(animatedSunFrac, isDarkMode) {
+        WeatherPossumGradients.greetingGradient(animatedSunFrac, isDarkMode)
     }
 
-    // Use a spring animation for a more expressive color transition (subtle bounce)
     val top by animateColorAsState(
-        targetTop, 
-        animationSpec = spring(stiffness = androidx.compose.animation.core.Spring.StiffnessLow),
+        targetTop,
+        animationSpec = WeatherPossumMotion.gentleSpring(),
         label = "gradTop"
     )
     val bottom by animateColorAsState(
-        targetBottom, 
-        animationSpec = spring(stiffness = androidx.compose.animation.core.Spring.StiffnessLow),
+        targetBottom,
+        animationSpec = WeatherPossumMotion.gentleSpring(),
         label = "gradBottom"
     )
-    val gradient = remember(top, bottom) { Brush.verticalGradient(listOf(top, bottom)) }
 
-    // Contrast-aware foreground color
-    val onColor = remember(top, bottom) {
-        val avg = pickOnColorForGradient(top, bottom)
-        val avgBg = Color(
-            red = (top.red + bottom.red) / 2f,
-            green = (top.green + bottom.green) / 2f,
-            blue = (top.blue + bottom.blue) / 2f,
-            alpha = 1f
-        )
-        ensureAA(avg, avgBg)
-    }
-
-    // --- Expressive Texture Overlay Enhancement ---
-    fun Modifier.addExpressiveTexture(): Modifier = this.drawWithContent {
-        drawContent()
-        // Stronger noise pattern with higher alpha
-        val noiseColor = onColor.copy(alpha = 0.08f) // Increased alpha for visibility
-        val size = size
-        for (i in 0..80) { // Increased count for denser noise
-            val x = (i * 7.3f) % size.width
-            val y = (i * 11.7f) % size.height
-            drawCircle(color = noiseColor, radius = 2f, center = Offset(x, y)) // Slightly larger radius
-        }
-        // Radial gradient for a strong, localized light source effect
-        val overlayBrush = Brush.radialGradient(
-            colors = listOf(Color.Transparent, onColor.copy(alpha = 0.1f)), // Increased alpha
-            radius = size.width * 1.0f, // Wider radius
-            center = Offset(size.width * 0.7f, size.height * 0.1f) // Shift light source position
-        )
-        drawRect(overlayBrush)
-    }
-
-    // Define the Expressive, asymmetrical shape
-    val expressiveShape = remember {
-        RoundedCornerShape(
-            topStart = 40.dp, // Exaggerated roundness
-            topEnd = 8.dp,   // Reduced roundness
-            bottomStart = 8.dp, // Reduced roundness
-            bottomEnd = 40.dp
-        )
-    }
-
-    Card(
-        modifier = modifier
-            .fillMaxWidth()
-            .addExpressiveTexture()
-            .clip(expressiveShape),
-        shape = expressiveShape,
-        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.Transparent)
-    ) {
-        Box(
-            modifier = Modifier
-                .clip(expressiveShape)
-                .background(gradient)
-                .fillMaxWidth()
-                .padding(16.dp)
+    ExpressiveCard(
+        modifier = modifier,
+        gradientTop = top,
+        gradientBottom = bottom
+    ) { onColor ->
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            Column {
-                // Greeting and animation
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Text(
-                        text = personalizedGreeting,
-                        style = MaterialTheme.typography.headlineMedium,
-                        color = onColor,
-                        modifier = Modifier.weight(1f)
-                    )
-
-                    // Time-based animated icon
-                    Box(
-                        modifier = Modifier.size(80.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        AnimatedWeatherIcon(
-                            type = greetingIconType,
-                            modifier = Modifier.fillMaxSize(),
-                            color = onColor
-                        )
-                    }
-                }
-
-                // Synopsis section (if available)
-                if (!synopsis.isNullOrBlank()) {
-                    Spacer(modifier = Modifier.height(16.dp))
-                    Text(
-                        text = synopsis,
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = onColor.copy(alpha = 0.9f),
-                        textAlign = TextAlign.Start
-                    )
-                }
-
-                // Daylight progress bar
-                Spacer(modifier = Modifier.height(16.dp))
-                Column(
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    Text(
-                        text = "${sunProgressPercent}% DAYLIGHT",
-                        color = onColor,
-                        fontSize = 14.sp,
-                        fontWeight = FontWeight.Bold,
-                        letterSpacing = 0.5.sp
-                    )
-                    LinearWavyProgressIndicator(
-                        progress = { sunFrac },
-                        modifier = Modifier.fillMaxWidth(),
-                        color = onColor,
-                        trackColor = onColor.copy(alpha = 0.3f),
-                    )
-                }
+            Text(
+                text = personalizedGreeting,
+                style = WeatherPossumFonts.greetingTextStyle,
+                color = onColor,
+                modifier = Modifier.weight(1f)
+            )
+            Box(
+                modifier = Modifier.size(WeatherPossumDimens.iconHero),
+                contentAlignment = Alignment.Center
+            ) {
+                AnimatedWeatherIcon(
+                    type = greetingIconType,
+                    modifier = Modifier.fillMaxSize(),
+                    color = onColor
+                )
             }
+        }
+
+        if (!synopsis.isNullOrBlank()) {
+            Spacer(modifier = Modifier.height(16.dp))
+            Text(
+                text = synopsis,
+                style = MaterialTheme.typography.bodyLarge,
+                color = onColor.copy(alpha = 0.9f),
+                textAlign = TextAlign.Start
+            )
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text(
+                text = stringResource(R.string.widget_daylight_label, sunProgressPercent),
+                color = onColor,
+                fontSize = 14.sp,
+                fontWeight = FontWeight.Bold,
+                letterSpacing = 0.5.sp
+            )
+            LinearWavyProgressIndicator(
+                progress = { animatedSunFrac },
+                modifier = Modifier.fillMaxWidth(),
+                color = onColor,
+                trackColor = onColor.copy(alpha = 0.3f),
+            )
         }
     }
 }

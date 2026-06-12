@@ -11,6 +11,8 @@
 # Gradle
 .gradle/
 /build/
+build/reports/
+.kotlin/
 *.lock # Gradle lock files, etc.
 local.properties # Matches only at the root. Kept /local.properties from original, this is more specific.
 

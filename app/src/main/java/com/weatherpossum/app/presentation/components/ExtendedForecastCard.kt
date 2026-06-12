@@ -1,16 +1,16 @@
 package com.weatherpossum.app.presentation.components
 
 import androidx.compose.animation.animateContentSize
-import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.spring
+import com.weatherpossum.app.ui.theme.WeatherPossumMotion
 import androidx.compose.foundation.background
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ExpandMore
+import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -19,155 +19,88 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.res.stringResource
+import com.weatherpossum.app.R
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.weatherpossum.app.presentation.components.AnimatedWeatherIcon
-import com.weatherpossum.app.presentation.components.WeatherIconType
-import com.weatherpossum.app.presentation.components.getWeatherIconType
-import com.weatherpossum.app.presentation.ForecastDay
-
-/* ──────────────────────────────────────────────────────────────────────────────
-   EXTENDED FORECAST CARD – EXPRESSIVE MAKEOVER
-   - Exaggerated asymmetrical shape
-   - Saturated, vibrant color scheme
-   - Assertive typography for headers and details
-   - Subtle pop-up animation on individual forecast blocks
-   ────────────────────────────────────────────────────────────────────────────── */
+import com.weatherpossum.app.data.model.ForecastDay
+import com.weatherpossum.app.ui.theme.CardGradientStyle
+import com.weatherpossum.app.ui.theme.WeatherPossumDimens
 
 @Composable
 fun ExtendedForecastCard(forecast: List<ForecastDay>) {
     var expanded by remember { mutableStateOf(false) }
-
-    // Use primary/tertiary container for a more vibrant Expressive color scheme
-    val colorScheme = MaterialTheme.colorScheme
-    val gradientTop = colorScheme.primaryContainer
-    val gradientBottom = colorScheme.tertiaryContainer 
-    val onGradient = colorScheme.onPrimaryContainer // Text color optimized for primaryContainer
-
-    // Expressive, asymmetrical shape for a bold look
-    val expressiveShape = remember {
-        RoundedCornerShape(
-            topStart = 32.dp,   // Very large roundness
-            topEnd = 8.dp,      // Small roundness
-            bottomStart = 8.dp, // Small roundness
-            bottomEnd = 32.dp   // Very large roundness
-        )
+    val expandRotation by animateFloatAsState(
+        targetValue = if (expanded) 180f else 0f,
+        animationSpec = WeatherPossumMotion.fluidSpring(),
+        label = "forecastExpandRotation"
+    )
+    val dateLabel = forecast.firstOrNull()?.date.orEmpty()
+    val subtitle = if (dateLabel.isNotBlank()) {
+        stringResource(R.string.card_extended_forecast_starting, dateLabel)
+    } else {
+        null
     }
 
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = expressiveShape,
-        // Increased elevation for expressive lift
-        elevation = CardDefaults.cardElevation(defaultElevation = 16.dp), 
-        colors = CardDefaults.cardColors(containerColor = Color.Transparent)
-    ) {
-        Box(
-            Modifier
-                // Use a subtle diagonal gradient for visual interest
-                .background(Brush.linearGradient(listOf(gradientTop, gradientBottom)))
-                .fillMaxWidth()
-                .clip(expressiveShape)
-                .padding(horizontal = 20.dp, vertical = 18.dp) // Increased padding
+    ExpressiveCard(
+        style = CardGradientStyle.Forecast
+    ) { onColor ->
+        Column(
+            modifier = Modifier
+                .animateContentSize(animationSpec = WeatherPossumMotion.fluidSpring())
+                .heightIn(min = 200.dp)
         ) {
-            Column(
-                modifier = Modifier
-                    .animateContentSize()
-                    .heightIn(min = 200.dp)
-            ) {
-                // ── Header ───────────────────────────────────────────────────────
-                Row(
-                    Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Column {
-                        Text(
-                            text = "7-DAY OUTLOOK", // Bolder, more assertive title
-                            fontSize = 20.sp,
-                            fontWeight = FontWeight.ExtraBold,
-                            color = onGradient,
-                            letterSpacing = 1.0.sp // More open spacing
-                        )
-                        val dateLabel = forecast.firstOrNull()?.date.orEmpty()
-                        if (dateLabel.isNotBlank()) {
-                            Text(
-                                text = "Starting: $dateLabel", // More descriptive subtitle
-                                fontSize = 14.sp,
-                                fontWeight = FontWeight.Medium,
-                                color = onGradient.copy(alpha = 0.8f)
-                            )
-                        }
-                    }
-
-                    // Header icon from the first day (larger for presence)
-                    if (forecast.isNotEmpty()) {
+            CardHeader(
+                title = stringResource(R.string.card_extended_forecast_title),
+                subtitle = subtitle,
+                endContent = if (forecast.isNotEmpty()) {
+                    {
                         val head = forecast.first()
                         val iconType = getWeatherIconType(head.weather)
-                        Box(Modifier.size(72.dp), contentAlignment = Alignment.Center) {
+                        Box(
+                            Modifier.size(WeatherPossumDimens.iconLarge),
+                            contentAlignment = Alignment.Center
+                        ) {
                             AnimatedWeatherIcon(
                                 type = iconType,
                                 modifier = Modifier.fillMaxSize(),
-                                color = onGradient // Match icon color to text for unified look
+                                color = onColor
                             )
                         }
                     }
-                }
+                } else {
+                    null
+                },
+                onColor = onColor
+            )
 
-                Spacer(Modifier.height(14.dp))
-                // Thicker, more expressive divider
-                HorizontalDivider(color = onGradient.copy(alpha = 0.25f), thickness = 2.dp) 
-                Spacer(Modifier.height(10.dp))
-
-                // ── Collapsed vs Expanded content ───────────────────────────────
-                if (forecast.isNotEmpty()) {
-                    if (!expanded) {
-                        // Collapsed: show the first day only
-                        DayForecastBlock(
-                            day = forecast.first(),
-                            onTextColor = onGradient
+            if (forecast.isNotEmpty()) {
+                if (!expanded) {
+                    DayForecastBlock(day = forecast.first(), onTextColor = onColor)
+                    Spacer(Modifier.height(14.dp))
+                    Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+                        CenterChip(
+                            iconRotation = expandRotation,
+                            onClick = { expanded = true },
+                            onColor = onColor,
+                            contentDescription = stringResource(R.string.card_extended_forecast_expand)
                         )
-
-                        Spacer(Modifier.height(14.dp)) // Increased spacing
-                        // CENTERED expand chip
-                        Box(
-                            modifier = Modifier.fillMaxWidth(),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            CenterChip(
-                                iconRotation = 0f,
-                                onClick = { expanded = true },
-                                // Use a vibrant secondary color for the chip background
-                                background = colorScheme.secondary, 
-                                tint = colorScheme.onSecondary // Text color for secondary container
-                            )
+                    }
+                } else {
+                    Column {
+                        forecast.forEach { day ->
+                            DayForecastBlock(day = day, onTextColor = onColor, isExpanded = true)
                         }
-                    } else {
-                        Column {
-                            // Expanded: show every day
-                            forecast.forEach { day ->
-                                // Each day block has a slight scale effect for an expressive pop
-                                DayForecastBlock(
-                                    day = day,
-                                    onTextColor = onGradient,
-                                    isExpanded = true // Flag for expanded state styling
-                                )
-                            }
-
-                            Spacer(Modifier.height(16.dp)) // Increased spacing
-                            // CENTERED collapse chip
-                            Box(
-                                modifier = Modifier.fillMaxWidth(),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                CenterChip(
-                                    iconRotation = 180f,
-                                    onClick = { expanded = false },
-                                    background = colorScheme.secondary,
-                                    tint = colorScheme.onSecondary
-                                )
-                            }
+                        Spacer(Modifier.height(16.dp))
+                        Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+                            CenterChip(
+                                iconRotation = expandRotation,
+                                onClick = { expanded = false },
+                                onColor = onColor,
+                                contentDescription = stringResource(R.string.card_extended_forecast_collapse)
+                            )
                         }
                     }
                 }
@@ -188,27 +121,24 @@ private fun DayForecastBlock(
 ) {
     // Subtle scale animation when the expanded state changes
     val scaleFactor by animateFloatAsState(
-        targetValue = if (isExpanded) 1.0f else 0.99f,
-        animationSpec = spring(
-            dampingRatio = Spring.DampingRatioLowBouncy, 
-            stiffness = Spring.StiffnessLow // Expressive, brief pop
-        ),
+        targetValue = if (isExpanded) 1.0f else 0.995f,
+        animationSpec = WeatherPossumMotion.gentleSpring(),
         label = "dayBlockScale"
     )
     
-    Surface(
+    val isDarkMode = isSystemInDarkTheme()
+    Box(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 4.dp) // Reduced padding for compactness in expanded view
+            .padding(vertical = 4.dp)
             .graphicsLayer {
                 scaleX = scaleFactor
                 scaleY = scaleFactor
-            },
-        shape = RoundedCornerShape(20.dp), // More rounded corners for sub-card
-        color = Color.White.copy(alpha = 0.15f), // Slightly brighter overlay
-        tonalElevation = 4.dp // Higher elevation for perceived lift
+            }
+            .glassInset(onTextColor, isDarkMode, cornerRadius = 20.dp)
+            .padding(14.dp)
     ) {
-        Column(Modifier.padding(14.dp)) { // Slightly reduced internal padding
+        Column {
 
             // Large, Expressive day header
             Text(
@@ -250,7 +180,7 @@ fun ForecastSummaryRow(
         // Weather icon (Slightly smaller for detail density)
         val iconType = getWeatherIconType(day.weather)
         Box(
-            modifier = Modifier.size(64.dp), 
+            modifier = Modifier.size(WeatherPossumDimens.iconLarge),
             contentAlignment = Alignment.Center
         ) {
             AnimatedWeatherIcon(
@@ -266,10 +196,26 @@ fun ForecastSummaryRow(
             verticalArrangement = Arrangement.spacedBy(4.dp), // Tighter spacing for density
             modifier = Modifier.weight(1f)
         ) {
-            AlignedDetailRow(label = "Weather", value = day.weather, color = onTextColor)
-            AlignedDetailRow(label = "Wind", value = day.wind, color = onTextColor)
-            AlignedDetailRow(label = "Seas", value = day.seas, color = onTextColor)
-            AlignedDetailRow(label = "Waves", value = day.waves, color = onTextColor)
+            AlignedDetailRow(
+                label = stringResource(R.string.card_extended_forecast_weather),
+                value = day.weather,
+                color = onTextColor
+            )
+            AlignedDetailRow(
+                label = stringResource(R.string.card_extended_forecast_wind),
+                value = day.wind,
+                color = onTextColor
+            )
+            AlignedDetailRow(
+                label = stringResource(R.string.card_extended_forecast_seas),
+                value = day.seas,
+                color = onTextColor
+            )
+            AlignedDetailRow(
+                label = stringResource(R.string.card_extended_forecast_waves),
+                value = day.waves,
+                color = onTextColor
+            )
         }
     }
 }
@@ -306,25 +252,24 @@ private fun AlignedDetailRow(
 private fun CenterChip(
     iconRotation: Float,
     onClick: () -> Unit,
-    background: Color,
-    tint: Color
+    onColor: Color,
+    contentDescription: String
 ) {
-    // Exaggerate size and elevation for expressive focus
-    Surface(
+    val isDarkMode = isSystemInDarkTheme()
+    Box(
         modifier = Modifier
-            .size(56.dp) // Larger size
-            .clip(CircleShape)
-            .clickable { onClick() },
-        color = background,
-        shadowElevation = 12.dp // Double the original elevation for strong lift
+            .size(56.dp)
+            .clickable { onClick() }
+            .glassInset(onColor, isDarkMode, cornerRadius = 28.dp),
+        contentAlignment = Alignment.Center
     ) {
         Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             Icon(
-                imageVector = Icons.Filled.ExpandMore,
-                contentDescription = null,
-                tint = tint,
+                imageVector = Icons.Filled.KeyboardArrowDown,
+                contentDescription = contentDescription,
+                tint = onColor,
                 modifier = Modifier
-                    .size(32.dp) // Larger icon
+                    .size(32.dp)
                     .graphicsLayer { rotationZ = iconRotation }
             )
         }

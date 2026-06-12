@@ -1,6 +1,6 @@
 package com.weatherpossum.app.data.parser
 
-import org.junit.Assert.assertEquals
+import com.weatherpossum.app.data.model.ForecastSection
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.nio.charset.StandardCharsets

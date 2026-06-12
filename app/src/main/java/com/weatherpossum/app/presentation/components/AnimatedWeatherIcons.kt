@@ -6,8 +6,11 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.DrawScope
@@ -31,7 +34,6 @@ enum class WeatherIconType {
     THUNDER,
     WIND,
     PARTLY_CLOUDY,
-    FORECAST,
     NEUTRAL,
     SEA_DAY,
     SEA_NIGHT,
@@ -45,14 +47,39 @@ enum class WeatherIconType {
     ADVISORY
 }
 
+private fun WeatherIconType.defaultContentDescription(): String = when (this) {
+    WeatherIconType.SUNNY -> "Sunny"
+    WeatherIconType.CLOUDY -> "Cloudy"
+    WeatherIconType.RAIN -> "Rain"
+    WeatherIconType.THUNDER -> "Thunderstorm"
+    WeatherIconType.WIND -> "Windy"
+    WeatherIconType.PARTLY_CLOUDY -> "Partly cloudy"
+    WeatherIconType.NEUTRAL -> "Weather"
+    WeatherIconType.SEA_DAY -> "Sea conditions"
+    WeatherIconType.SEA_NIGHT -> "Sea conditions"
+    WeatherIconType.OUTLOOK -> "Weather outlook"
+    WeatherIconType.HURRICANE -> "Hurricane"
+    WeatherIconType.FACT -> "Fun fact"
+    WeatherIconType.EXTRAS -> "Extras"
+    WeatherIconType.AFTERNOON -> "Afternoon"
+    WeatherIconType.MORNING -> "Morning"
+    WeatherIconType.NIGHT -> "Night"
+    WeatherIconType.ADVISORY -> "Weather advisory"
+}
+
 @Composable
 fun AnimatedWeatherIcon(
     type: WeatherIconType,
     modifier: Modifier = Modifier,
     color: Color = Color.Unspecified,
-    contentDescription: String? = null // Reserved for accessibility
+    contentDescription: String? = null
 ) {
-    Box(modifier = modifier) {
+    val resolvedDescription = contentDescription ?: type.defaultContentDescription()
+    Box(
+        modifier = modifier.semantics {
+            this.contentDescription = resolvedDescription
+        }
+    ) {
         when (type) {
             WeatherIconType.SUNNY -> AnimatedSunIcon(color = color)
             WeatherIconType.CLOUDY -> AnimatedCloudIcon(color = color)
@@ -60,7 +87,6 @@ fun AnimatedWeatherIcon(
             WeatherIconType.THUNDER -> AnimatedThunderIcon(color = color)
             WeatherIconType.WIND -> AnimatedWindIcon(color = color)
             WeatherIconType.PARTLY_CLOUDY -> AnimatedPartlyCloudyIcon(color = color)
-            WeatherIconType.FORECAST -> AnimatedForecastIcon(color = color)
             WeatherIconType.NEUTRAL -> AnimatedNeutralIcon(color = color)
             WeatherIconType.SEA_DAY -> AnimatedSeaDayIcon(color = color)
             WeatherIconType.SEA_NIGHT -> AnimatedSeaNightIcon(color = color)
@@ -102,9 +128,6 @@ fun getWeatherIconType(weatherText: String): WeatherIconType {
     }
 }
 
-// Helper function removed - all drawable resources have been deleted
-// Use getWeatherIconType(weatherText: String) instead
-
 // Animated Sun Icon
 @Composable
 fun AnimatedSunIcon(
@@ -122,38 +145,20 @@ fun AnimatedSunIcon(
         label = "rotation"
     )
     
-    val iconColor = if (color == Color.Unspecified) Color(0xFFFFB300) else color
+    val onDark = tintSuggestsDarkSurface(color)
+    val palette = sunPaletteFromTint(
+        iconAccentColor(color, Color(0xFFFFB300), Color(0xFFFFCC80), onDark)
+    )
     
     Canvas(modifier = modifier.fillMaxSize()) {
         val center = Offset(size.width / 2f, size.height / 2f)
-        val radius = size.minDimension * 0.3f
-        val rayLength = size.minDimension * 0.15f
-        val rayCount = 8
-        
-        // Draw sun circle
-        drawCircle(
-            color = iconColor,
+        val radius = size.minDimension * 0.28f
+        drawRealisticSun(
+            center = center,
             radius = radius,
-            center = center
+            rotationDegrees = rotation,
+            palette = palette
         )
-        
-        // Draw rotating rays
-        rotate(rotation, center) {
-            for (i in 0 until rayCount) {
-                val angle = (i * 360f / rayCount) * PI.toFloat() / 180f
-                val startX = center.x + (radius + 5f) * cos(angle)
-                val startY = center.y + (radius + 5f) * sin(angle)
-                val endX = center.x + (radius + rayLength) * cos(angle)
-                val endY = center.y + (radius + rayLength) * sin(angle)
-                
-                drawLine(
-                    color = iconColor,
-                    start = Offset(startX, startY),
-                    end = Offset(endX, endY),
-                    strokeWidth = 3.dp.toPx()
-                )
-            }
-        }
     }
 }
 
@@ -174,39 +179,18 @@ fun AnimatedCloudIcon(
         label = "offset"
     )
     
-    val iconColor = if (color == Color.Unspecified) Color(0xFF9E9E9E) else color
+    val onDark = tintSuggestsDarkSurface(color)
+    val shades = cloudShadesFromTint(color, onDark)
     
     Canvas(modifier = modifier.fillMaxSize()) {
         val center = Offset(size.width / 2f, size.height / 2f)
-        val cloudWidth = size.width * 0.7f
-        val cloudHeight = size.height * 0.5f
-        
-        val path = Path().apply {
-            moveTo(center.x - cloudWidth * 0.3f + offsetX, center.y)
-            cubicTo(
-                center.x - cloudWidth * 0.3f + offsetX, center.y - cloudHeight * 0.3f,
-                center.x - cloudWidth * 0.1f + offsetX, center.y - cloudHeight * 0.4f,
-                center.x + cloudWidth * 0.1f + offsetX, center.y - cloudHeight * 0.4f
-            )
-            cubicTo(
-                center.x + cloudWidth * 0.1f + offsetX, center.y - cloudHeight * 0.6f,
-                center.x + cloudWidth * 0.3f + offsetX, center.y - cloudHeight * 0.5f,
-                center.x + cloudWidth * 0.4f + offsetX, center.y - cloudHeight * 0.3f
-            )
-            cubicTo(
-                center.x + cloudWidth * 0.5f + offsetX, center.y - cloudHeight * 0.2f,
-                center.x + cloudWidth * 0.4f + offsetX, center.y,
-                center.x + cloudWidth * 0.2f + offsetX, center.y
-            )
-            cubicTo(
-                center.x + cloudWidth * 0.1f + offsetX, center.y + cloudHeight * 0.2f,
-                center.x - cloudWidth * 0.1f + offsetX, center.y + cloudHeight * 0.2f,
-                center.x - cloudWidth * 0.3f + offsetX, center.y
-            )
-            close()
-        }
-        
-        drawPath(path, color = iconColor)
+        drawLayeredCloud(
+            center = center,
+            width = size.width * 0.78f,
+            height = size.height * 0.48f,
+            offsetX = offsetX,
+            shades = shades
+        )
     }
 }
 
@@ -227,54 +211,30 @@ fun AnimatedRainIcon(
         label = "rain"
     )
     
-    val iconColor = if (color == Color.Unspecified) Color(0xFF64B5F6) else color
+    val onDark = tintSuggestsDarkSurface(color)
+    val cloudShades = cloudShadesFromTint(color, onDark)
+    val dropColor = iconAccentColor(
+        color,
+        Color(0xFF42A5F5),
+        Color(0xFF81D4FA),
+        onDark
+    )
     
     Canvas(modifier = modifier.fillMaxSize()) {
-        val center = Offset(size.width / 2f, size.height / 2f)
-        val cloudWidth = size.width * 0.6f
-        val cloudHeight = size.height * 0.4f
-        
-        // Draw cloud
-        val cloudPath = Path().apply {
-            moveTo(center.x - cloudWidth * 0.3f, center.y - cloudHeight * 0.2f)
-            cubicTo(
-                center.x - cloudWidth * 0.3f, center.y - cloudHeight * 0.5f,
-                center.x - cloudWidth * 0.1f, center.y - cloudHeight * 0.6f,
-                center.x + cloudWidth * 0.1f, center.y - cloudHeight * 0.6f
-            )
-            cubicTo(
-                center.x + cloudWidth * 0.1f, center.y - cloudHeight * 0.8f,
-                center.x + cloudWidth * 0.3f, center.y - cloudHeight * 0.7f,
-                center.x + cloudWidth * 0.4f, center.y - cloudHeight * 0.5f
-            )
-            cubicTo(
-                center.x + cloudWidth * 0.5f, center.y - cloudHeight * 0.4f,
-                center.x + cloudWidth * 0.4f, center.y - cloudHeight * 0.2f,
-                center.x + cloudWidth * 0.2f, center.y - cloudHeight * 0.2f
-            )
-            cubicTo(
-                center.x + cloudWidth * 0.1f, center.y,
-                center.x - cloudWidth * 0.1f, center.y,
-                center.x - cloudWidth * 0.3f, center.y - cloudHeight * 0.2f
-            )
-            close()
-        }
-        drawPath(cloudPath, color = iconColor)
-        
-        // Draw animated rain drops
-        val rainStartY = center.y + cloudHeight * 0.3f
-        val rainEndY = center.y + cloudHeight * 1.2f
-        val rainY = rainStartY + (rainEndY - rainStartY) * rainOffset
-        
-        for (i in -1..1) {
-            val x = center.x + i * cloudWidth * 0.2f
-            drawLine(
-                color = Color(0xFF2196F3),
-                start = Offset(x, rainY),
-                end = Offset(x, rainY + size.height * 0.15f),
-                strokeWidth = 2.dp.toPx()
-            )
-        }
+        val center = Offset(size.width / 2f, size.height * 0.42f)
+        val cloudWidth = size.width * 0.72f
+        drawLayeredCloud(
+            center = center,
+            width = cloudWidth,
+            height = size.height * 0.34f,
+            shades = cloudShades
+        )
+        drawRainStreaks(
+            center = center,
+            cloudWidth = cloudWidth,
+            progress = rainOffset,
+            dropColor = dropColor
+        )
     }
 }
 
@@ -295,50 +255,27 @@ fun AnimatedThunderIcon(
         label = "flash"
     )
     
-    val iconColor = if (color == Color.Unspecified) Color(0xFFFFEB3B) else color
+    val onDark = tintSuggestsDarkSurface(color)
+    val boltColor = iconAccentColor(color, Color(0xFFFFEB3B), Color(0xFFFFF176), onDark)
+    val stormCloud = cloudShadesFromTint(Color.Unspecified, onDark)
     
     Canvas(modifier = modifier.fillMaxSize()) {
-        val center = Offset(size.width / 2f, size.height / 2f)
-        val cloudWidth = size.width * 0.5f
-        
-        // Draw cloud
-        val cloudPath = Path().apply {
-            moveTo(center.x - cloudWidth * 0.3f, center.y - size.height * 0.1f)
-            cubicTo(
-                center.x - cloudWidth * 0.3f, center.y - size.height * 0.3f,
-                center.x - cloudWidth * 0.1f, center.y - size.height * 0.4f,
-                center.x + cloudWidth * 0.1f, center.y - size.height * 0.4f
+        val center = Offset(size.width / 2f, size.height * 0.46f)
+        drawLayeredCloud(
+            center = center,
+            width = size.width * 0.68f,
+            height = size.height * 0.34f,
+            shades = stormCloud.copy(
+                body = stormCloud.shadow,
+                highlight = stormCloud.body
             )
-            cubicTo(
-                center.x + cloudWidth * 0.1f, center.y - size.height * 0.5f,
-                center.x + cloudWidth * 0.3f, center.y - size.height * 0.45f,
-                center.x + cloudWidth * 0.4f, center.y - size.height * 0.3f
-            )
-            cubicTo(
-                center.x + cloudWidth * 0.5f, center.y - size.height * 0.2f,
-                center.x + cloudWidth * 0.4f, center.y - size.height * 0.1f,
-                center.x + cloudWidth * 0.2f, center.y - size.height * 0.1f
-            )
-            cubicTo(
-                center.x + cloudWidth * 0.1f, center.y,
-                center.x - cloudWidth * 0.1f, center.y,
-                center.x - cloudWidth * 0.3f, center.y - size.height * 0.1f
-            )
-            close()
-        }
-        drawPath(cloudPath, color = Color(0xFF9E9E9E))
-        
-        // Draw lightning bolt with flash effect
-        val boltPath = Path().apply {
-            moveTo(center.x, center.y - size.height * 0.2f)
-            lineTo(center.x - size.width * 0.08f, center.y)
-            lineTo(center.x, center.y)
-            lineTo(center.x + size.width * 0.08f, center.y + size.height * 0.2f)
-            lineTo(center.x, center.y + size.height * 0.15f)
-            lineTo(center.x, center.y + size.height * 0.25f)
-            close()
-        }
-        drawPath(boltPath, color = iconColor.copy(alpha = flashAlpha))
+        )
+        drawLightningBolt(
+            center = Offset(center.x, center.y + size.height * 0.08f),
+            height = size.height * 0.42f,
+            boltColor = boltColor,
+            alpha = flashAlpha
+        )
     }
 }
 
@@ -359,146 +296,46 @@ fun AnimatedWindIcon(
         label = "windOffset"
     )
     
-    val iconColor = if (color == Color.Unspecified) Color(0xFF90CAF9) else color
-    val leafColor = Color(0xFF66BB6A) // Green for leaves
-    val leafOutlineColor = Color(0xFF388E3C) // Darker green for outline
-    
+    val onDark = tintSuggestsDarkSurface(color)
+    val streamColor = iconAccentColor(color, Color(0xFF64B5F6), Color(0xFF90CAF9), onDark)
+    val leafPalette = LeafPalette(
+        fill = if (onDark) Color(0xFF81C784) else Color(0xFF66BB6A),
+        outline = if (onDark) Color(0xFF2E7D32) else Color(0xFF388E3C),
+        vein = if (onDark) Color(0xFF1B5E20) else Color(0xFF2E7D32)
+    )
+
     Canvas(modifier = modifier.fillMaxSize()) {
         val center = Offset(size.width / 2f, size.height / 2f)
         val waveLength = size.width * 0.6f
         val waveHeight = size.height * 0.08f
-        val offset = waveLength * windOffset
-        
-        // Draw flowing wind stream lines (horizontal wavy lines)
-        for (i in 0 until 3) {
-            val baseY = center.y - size.height * 0.2f + i * (size.height * 0.4f / 2f)
-            val path = Path().apply {
-                moveTo(0f, baseY)
-                var x = 0f
-                val step = 5f
-                while (x <= size.width) {
-                    val waveY = baseY + waveHeight * sin((x + offset) * 2 * PI.toFloat() / waveLength).toFloat()
-                    if (x == 0f) {
-                        moveTo(x, waveY)
-                    } else {
-                        lineTo(x, waveY)
-                    }
-                    x += step
-                }
-            }
-            drawPath(
-                path = path,
-                color = iconColor.copy(alpha = 0.75f),
-                style = Stroke(width = 4.dp.toPx(), cap = StrokeCap.Round)
-            )
-        }
-        
-        // Draw one swirling wind pattern (spiral) - simplified
-        val swirlCenterX = size.width * 0.7f
-        val swirlCenterY = center.y + size.height * 0.1f
-        val maxRadius = size.minDimension * 0.2f
-        val swirlAngle = windOffset * 2f * PI.toFloat()
-        
-        val swirlPath = Path().apply {
-            var angle = 0f
-            val angleStep = 8f
-            var firstPoint = true
-            
-            while (angle <= 270f) { // 3/4 of a circle
-                val angleRad = (swirlAngle + angle * PI.toFloat() / 180f).toDouble()
-                // Spiral: radius decreases as angle increases
-                val radius = maxRadius * (1f - angle / 360f).coerceAtLeast(0.2f)
-                val x = swirlCenterX + radius * cos(angleRad).toFloat()
-                val y = swirlCenterY + radius * sin(angleRad).toFloat()
-                
-                if (firstPoint) {
-                    moveTo(x, y)
-                    firstPoint = false
-                } else {
-                    lineTo(x, y)
-                }
-                angle += angleStep
-            }
-        }
-        drawPath(
-            path = swirlPath,
-            color = iconColor.copy(alpha = 0.65f),
-            style = Stroke(width = 3.dp.toPx(), cap = StrokeCap.Round)
+
+        drawWindStreamLines(progress = windOffset, streamColor = streamColor)
+        drawWindSwirl(
+            center = Offset(size.width * 0.72f, center.y + size.height * 0.08f),
+            maxRadius = size.minDimension * 0.18f,
+            rotation = windOffset * 360f,
+            swirlColor = streamColor
         )
-        
-        // Draw animated leaves being carried by the wind
+
         val leaves = listOf(
-            // Leaf 1: Upper left, small
-            Pair(0.15f, -0.2f),
-            // Leaf 2: Upper right, medium
-            Pair(0.7f, -0.1f),
-            // Leaf 3: Mid right, large
-            Pair(0.6f, 0.15f),
-            // Leaf 4: Lower right, small
-            Pair(0.75f, 0.25f)
+            Triple(0.12f, -0.18f, 0.1f),
+            Triple(0.62f, -0.08f, 0.14f),
+            Triple(0.52f, 0.16f, 0.17f),
+            Triple(0.78f, 0.22f, 0.11f)
         )
-        
-        leaves.forEachIndexed { index, (xPos, yPos) ->
-            // Calculate leaf position following wind flow
+        leaves.forEachIndexed { index, (xPos, yPos, sizeScale) ->
             val baseX = size.width * xPos
             val baseY = center.y + size.height * yPos
-            
-            // Leaf moves horizontally with wind at a slower, smoother pace
-            val leafX = (baseX + windOffset * size.width * 0.5f) % (size.width * 1.1f)
-            val windWave = sin((leafX) * 2 * PI.toFloat() / waveLength).toFloat()
-            val leafY = baseY + windWave * waveHeight * 0.6f
-            
-            // Leaf rotation - gentle tumbling
-            val leafRot = (windOffset * 360f * 0.3f + index * 60f) % 360f
-            
-            // Draw leaf
-            rotate(leafRot, pivot = Offset(leafX, leafY)) {
-                val leafSize = when (index) {
-                    0, 3 -> size.minDimension * 0.1f // Small leaves
-                    1 -> size.minDimension * 0.14f // Medium leaf
-                    else -> size.minDimension * 0.18f // Large leaf
-                }
-                
-                val leafPath = Path().apply {
-                    // Leaf shape: teardrop/oval
-                    moveTo(leafX, leafY - leafSize * 0.5f)
-                    // Right curve
-                    cubicTo(
-                        leafX + leafSize * 0.3f, leafY - leafSize * 0.2f,
-                        leafX + leafSize * 0.4f, leafY + leafSize * 0.1f,
-                        leafX, leafY + leafSize * 0.5f
-                    )
-                    // Left curve
-                    cubicTo(
-                        leafX - leafSize * 0.4f, leafY + leafSize * 0.1f,
-                        leafX - leafSize * 0.3f, leafY - leafSize * 0.2f,
-                        leafX, leafY - leafSize * 0.5f
-                    )
-                    close()
-                }
-                
-                // Fill leaf first
-                drawPath(
-                    path = leafPath,
-                    color = leafColor.copy(alpha = 0.95f)
-                )
-                
-                // Draw leaf outline
-                drawPath(
-                    path = leafPath,
-                    color = leafOutlineColor,
-                    style = Stroke(width = 2.dp.toPx(), cap = StrokeCap.Round)
-                )
-                
-                // Draw central vein
-                drawLine(
-                    color = leafOutlineColor.copy(alpha = 0.8f),
-                    start = Offset(leafX, leafY - leafSize * 0.4f),
-                    end = Offset(leafX, leafY + leafSize * 0.4f),
-                    strokeWidth = 1.5.dp.toPx(),
-                    cap = StrokeCap.Round
-                )
-            }
+            val leafX = (baseX + windOffset * size.width * 0.48f) % (size.width * 1.08f)
+            val windWave = sin(leafX * 2f * PI.toFloat() / waveLength)
+            val leafY = baseY + windWave * waveHeight * 0.55f
+            val leafRot = (windOffset * 360f * 0.35f + index * 72f) % 360f
+            drawTumblingLeaf(
+                center = Offset(leafX, leafY),
+                sizeScale = sizeScale,
+                rotationDegrees = leafRot,
+                palette = leafPalette
+            )
         }
     }
 }
@@ -530,74 +367,30 @@ fun AnimatedPartlyCloudyIcon(
         label = "cloudOffset"
     )
     
-    val iconColor = if (color == Color.Unspecified) Color(0xFFFFB300) else color
+    val onDark = tintSuggestsDarkSurface(color)
+    val sunPalette = sunPaletteFromTint(
+        iconAccentColor(color, Color(0xFFFFB300), Color(0xFFFFCC80), onDark)
+    )
+    val cloudShades = cloudShadesFromTint(Color.Unspecified, onDark)
     
     Canvas(modifier = modifier.fillMaxSize()) {
-        // Draw sun (partially visible)
-        val sunRadius = size.minDimension * 0.25f
-        val sunCenter = Offset(size.width * 0.3f, size.height * 0.3f)
-        
-        rotate(sunRotation, sunCenter) {
-            drawCircle(
-                color = iconColor,
-                radius = sunRadius,
-                center = sunCenter
-            )
-            
-            // Sun rays
-            for (i in 0 until 6) {
-                val angle = (i * 60f) * PI.toFloat() / 180f
-                val startX = sunCenter.x + sunRadius * cos(angle)
-                val startY = sunCenter.y + sunRadius * sin(angle)
-                val endX = sunCenter.x + (sunRadius + size.minDimension * 0.1f) * cos(angle)
-                val endY = sunCenter.y + (sunRadius + size.minDimension * 0.1f) * sin(angle)
-                
-                drawLine(
-                    color = iconColor,
-                    start = Offset(startX, startY),
-                    end = Offset(endX, endY),
-                    strokeWidth = 2.dp.toPx()
-                )
-            }
-        }
-        
-        // Draw cloud
-        val cloudWidth = size.width * 0.5f
-        val cloudHeight = size.height * 0.3f
-        val cloudCenter = Offset(size.width * 0.65f + cloudOffset, size.height * 0.5f)
-        
-        val cloudPath = Path().apply {
-            moveTo(cloudCenter.x - cloudWidth * 0.3f, cloudCenter.y)
-            cubicTo(
-                cloudCenter.x - cloudWidth * 0.3f, cloudCenter.y - cloudHeight * 0.3f,
-                cloudCenter.x - cloudWidth * 0.1f, cloudCenter.y - cloudHeight * 0.4f,
-                cloudCenter.x + cloudWidth * 0.1f, cloudCenter.y - cloudHeight * 0.4f
-            )
-            cubicTo(
-                cloudCenter.x + cloudWidth * 0.1f, cloudCenter.y - cloudHeight * 0.6f,
-                cloudCenter.x + cloudWidth * 0.3f, cloudCenter.y - cloudHeight * 0.5f,
-                cloudCenter.x + cloudWidth * 0.4f, cloudCenter.y - cloudHeight * 0.3f
-            )
-            cubicTo(
-                cloudCenter.x + cloudWidth * 0.5f, cloudCenter.y - cloudHeight * 0.2f,
-                cloudCenter.x + cloudWidth * 0.4f, cloudCenter.y,
-                cloudCenter.x + cloudWidth * 0.2f, cloudCenter.y
-            )
-            cubicTo(
-                cloudCenter.x + cloudWidth * 0.1f, cloudCenter.y + cloudHeight * 0.2f,
-                cloudCenter.x - cloudWidth * 0.1f, cloudCenter.y + cloudHeight * 0.2f,
-                cloudCenter.x - cloudWidth * 0.3f, cloudCenter.y
-            )
-            close()
-        }
-        drawPath(cloudPath, color = Color(0xFF9E9E9E))
-    }
-}
+        val sunCenter = Offset(size.width * 0.32f, size.height * 0.34f)
+        drawRealisticSun(
+            center = sunCenter,
+            radius = size.minDimension * 0.22f,
+            rotationDegrees = sunRotation,
+            palette = sunPalette,
+            rayCount = 10
+        )
 
-// Simple icons for other types (can be enhanced later)
-@Composable
-fun AnimatedForecastIcon(modifier: Modifier = Modifier, color: Color = Color.Unspecified) {
-    AnimatedSunIcon(modifier = modifier, color = color)
+        drawLayeredCloud(
+            center = Offset(size.width * 0.62f, size.height * 0.52f),
+            width = size.width * 0.56f,
+            height = size.height * 0.32f,
+            offsetX = cloudOffset,
+            shades = cloudShades
+        )
+    }
 }
 
 @Composable
@@ -627,69 +420,37 @@ fun AnimatedSeaDayIcon(modifier: Modifier = Modifier, color: Color = Color.Unspe
         label = "sunRotation"
     )
 
-    val iconColor = if (color == Color.Unspecified) Color(0xFF42A5F5) else color
-    val sunColor = if (color == Color.Unspecified) Color(0xFFFFC107) else color
+    val waterSurface = if (color == Color.Unspecified) Color(0xFF4FC3F7) else blendColor(color, Color.White, 0.15f)
+    val waterDepth = if (color == Color.Unspecified) Color(0xFF0277BD) else darkenColor(color, 0.65f)
 
     Canvas(modifier = modifier.fillMaxSize()) {
-        val waveHeight = size.minDimension * 0.15f
-        val waveWidth = size.width
-        val baseY = size.height * 0.6f
+        val baseY = size.height * 0.58f
+        val waveHeight = size.minDimension * 0.08f
+        val waveWidth = size.width * 0.45f
 
-        // Draw sun in the sky
-        val sunRadius = size.minDimension * 0.15f
-        val sunCenter = Offset(size.width * 0.3f, size.height * 0.25f)
-        rotate(sunRotation, pivot = sunCenter) {
-            drawCircle(
-                color = sunColor,
-                radius = sunRadius,
-                center = sunCenter
-            )
-            // Sun rays
-            for (i in 0 until 6) {
-                val angle = i * 60f
-                rotate(angle, pivot = sunCenter) {
-                    drawLine(
-                        color = sunColor,
-                        start = Offset(sunCenter.x, sunCenter.y - sunRadius * 1.3f),
-                        end = Offset(sunCenter.x, sunCenter.y - sunRadius * 0.7f),
-                        strokeWidth = 2.dp.toPx()
-                    )
-                }
-            }
-        }
-
-        // Draw animated waves
-        val wavePath = Path()
-        val waveFrequency = 3f
-        val numWaves = 3
-        
-        for (wave in 0 until numWaves) {
-            val waveY = baseY + wave * (waveHeight / numWaves)
-            val wavePhase = waveOffset + (wave * PI.toFloat() / numWaves)
-            
-            wavePath.moveTo(0f, waveY)
-            var x = 0f
-            val step = 4f
-            while (x <= waveWidth) {
-                val y = waveY + waveHeight * 0.3f * sin((x / waveWidth * waveFrequency * 2f * PI.toFloat() + wavePhase).toDouble()).toFloat()
-                wavePath.lineTo(x, y)
-                x += step
-            }
-        }
-        
-        drawPath(
-            path = wavePath,
-            color = iconColor,
-            style = Stroke(width = 3.dp.toPx(), cap = StrokeCap.Round)
+        drawRealisticSun(
+            center = Offset(size.width * 0.28f, size.height * 0.26f),
+            radius = size.minDimension * 0.14f,
+            rotationDegrees = sunRotation,
+            palette = sunPaletteFromTint(Color.Unspecified),
+            rayCount = 8
         )
-        
-        // Fill waves with water color
-        wavePath.lineTo(waveWidth, size.height)
-        wavePath.lineTo(0f, size.height)
-        wavePath.close()
-        drawPath(
-            path = wavePath,
-            color = iconColor.copy(alpha = 0.6f)
+
+        drawOceanWaveLayer(
+            baseY = baseY,
+            waveWidth = waveWidth,
+            waveHeight = waveHeight,
+            phase = waveOffset,
+            surfaceColor = waterSurface.copy(alpha = 0.85f),
+            depthColor = waterDepth.copy(alpha = 0.92f)
+        )
+        drawOceanWaveLayer(
+            baseY = baseY + waveHeight * 0.6f,
+            waveWidth = waveWidth * 1.15f,
+            waveHeight = waveHeight * 0.55f,
+            phase = waveOffset + PI.toFloat() * 0.35f,
+            surfaceColor = waterSurface.copy(alpha = 0.45f),
+            depthColor = waterDepth.copy(alpha = 0.55f)
         )
     }
 }
@@ -716,76 +477,45 @@ fun AnimatedSeaNightIcon(modifier: Modifier = Modifier, color: Color = Color.Uns
         label = "moonGlow"
     )
 
-    val iconColor = if (color == Color.Unspecified) Color(0xFF1976D2) else color
-    val moonColor = if (color == Color.Unspecified) Color(0xFFE1BEE7) else color
+    val waterSurface = if (color == Color.Unspecified) Color(0xFF1565C0) else blendColor(color, Color.White, 0.12f)
+    val waterDepth = if (color == Color.Unspecified) Color(0xFF0D47A1) else darkenColor(color, 0.55f)
+    val moonTint = if (color == Color.Unspecified) Color(0xFFE8EAF6) else color
 
     Canvas(modifier = modifier.fillMaxSize()) {
-        val waveHeight = size.minDimension * 0.15f
-        val waveWidth = size.width
-        val baseY = size.height * 0.6f
+        val baseY = size.height * 0.58f
+        val waveHeight = size.minDimension * 0.08f
+        val waveWidth = size.width * 0.45f
+        val moonCenter = Offset(size.width * 0.28f, size.height * 0.24f)
+        val moonRadius = size.minDimension * 0.11f
 
-        // Draw moon in the sky
-        val moonRadius = size.minDimension * 0.12f
-        val moonCenter = Offset(size.width * 0.3f, size.height * 0.25f)
-        
-        // Moon glow
-        drawCircle(
-            color = moonColor.copy(alpha = moonGlow * 0.3f),
-            radius = moonRadius * 2f,
-            center = moonCenter
-        )
-        
-        // Moon
-        drawCircle(
-            color = moonColor.copy(alpha = moonGlow),
+        drawRealisticMoon(
+            center = moonCenter,
             radius = moonRadius,
-            center = moonCenter
+            tint = moonTint,
+            glowAlpha = 0.18f + moonGlow * 0.22f
         )
-        
-        // Stars
-        for (i in 0..2) {
-            val angle = (i * 120f) * PI.toFloat() / 180f
-            val starX = moonCenter.x + (moonRadius + size.minDimension * 0.15f) * cos(angle)
-            val starY = moonCenter.y + (moonRadius + size.minDimension * 0.15f) * sin(angle)
-            drawCircle(
-                color = moonColor.copy(alpha = moonGlow * 0.8f),
-                radius = 1.5.dp.toPx(),
-                center = Offset(starX, starY)
-            )
-        }
+        drawStarField(
+            center = moonCenter,
+            radius = moonRadius * 2.4f,
+            tint = moonTint,
+            twinkle = moonGlow
+        )
 
-        // Draw animated waves
-        val wavePath = Path()
-        val waveFrequency = 3f
-        val numWaves = 3
-        
-        for (wave in 0 until numWaves) {
-            val waveY = baseY + wave * (waveHeight / numWaves)
-            val wavePhase = waveOffset + (wave * PI.toFloat() / numWaves)
-            
-            wavePath.moveTo(0f, waveY)
-            var x = 0f
-            val step = 4f
-            while (x <= waveWidth) {
-                val y = waveY + waveHeight * 0.3f * sin((x / waveWidth * waveFrequency * 2f * PI.toFloat() + wavePhase).toDouble()).toFloat()
-                wavePath.lineTo(x, y)
-                x += step
-            }
-        }
-        
-        drawPath(
-            path = wavePath,
-            color = iconColor,
-            style = Stroke(width = 3.dp.toPx(), cap = StrokeCap.Round)
+        drawOceanWaveLayer(
+            baseY = baseY,
+            waveWidth = waveWidth,
+            waveHeight = waveHeight,
+            phase = waveOffset,
+            surfaceColor = waterSurface.copy(alpha = 0.8f),
+            depthColor = waterDepth.copy(alpha = 0.95f)
         )
-        
-        // Fill waves with water color
-        wavePath.lineTo(waveWidth, size.height)
-        wavePath.lineTo(0f, size.height)
-        wavePath.close()
-        drawPath(
-            path = wavePath,
-            color = iconColor.copy(alpha = 0.6f)
+        drawOceanWaveLayer(
+            baseY = baseY + waveHeight * 0.55f,
+            waveWidth = waveWidth * 1.2f,
+            waveHeight = waveHeight * 0.5f,
+            phase = waveOffset + PI.toFloat() * 0.4f,
+            surfaceColor = waterSurface.copy(alpha = 0.35f),
+            depthColor = waterDepth.copy(alpha = 0.5f)
         )
     }
 }
@@ -826,64 +556,19 @@ fun AnimatedAdvisoryIcon(modifier: Modifier = Modifier, color: Color = Color.Uns
         label = "rotation"
     )
 
-    val iconColor = if (color == Color.Unspecified) Color(0xFFFF6B6B) else color
+    val onDark = tintSuggestsDarkSurface(color)
+    val accent = iconAccentColor(color, Color(0xFFFFB300), Color(0xFFFFCA28), onDark)
 
     Canvas(modifier = modifier.fillMaxSize()) {
         val center = Offset(size.width / 2f, size.height / 2f)
-        val triangleSize = size.minDimension * 0.4f * pulseScale
-        
-        // Draw warning triangle
-        rotate(rotation, pivot = center) {
-            val trianglePath = Path().apply {
-                // Top point
-                moveTo(center.x, center.y - triangleSize)
-                // Bottom right
-                lineTo(center.x + triangleSize * 0.866f, center.y + triangleSize * 0.5f)
-                // Bottom left
-                lineTo(center.x - triangleSize * 0.866f, center.y + triangleSize * 0.5f)
-                close()
-            }
-            
-            // Draw triangle outline
-            drawPath(
-                path = trianglePath,
-                color = iconColor,
-                style = Stroke(width = 4.dp.toPx(), cap = StrokeCap.Round)
-            )
-            
-            // Fill triangle with semi-transparent color
-            drawPath(
-                path = trianglePath,
-                color = iconColor.copy(alpha = 0.2f)
-            )
-        }
-        
-        // Draw exclamation mark
-        val exclamationHeight = triangleSize * 0.4f
-        val exclamationWidth = triangleSize * 0.15f
-        val exclamationY = center.y - triangleSize * 0.1f
-        
-        // Exclamation dot (top)
-        drawCircle(
-            color = iconColor.copy(alpha = exclamationAlpha),
-            radius = exclamationWidth / 2f,
-            center = Offset(center.x, exclamationY - exclamationHeight * 0.3f)
-        )
-        
-        // Exclamation line (bottom)
-        drawLine(
-            color = iconColor.copy(alpha = exclamationAlpha),
-            start = Offset(center.x, exclamationY + exclamationHeight * 0.1f),
-            end = Offset(center.x, exclamationY + exclamationHeight * 0.4f),
-            strokeWidth = exclamationWidth,
-            cap = StrokeCap.Round
-        )
-        
-        // Outer glow effect
-        drawCircle(
-            color = iconColor.copy(alpha = (pulseScale - 1f) * 0.3f),
-            radius = triangleSize * 1.3f,
-            center = center
+        val triangleSize = size.minDimension * 0.38f * pulseScale
+        drawWarningTriangle(
+            center = center,
+            size = triangleSize,
+            rotationDegrees = rotation,
+            accent = accent,
+            pulse = pulseScale,
+            markAlpha = exclamationAlpha
         )
     }
 }
@@ -910,85 +595,81 @@ fun AnimatedHurricaneIcon(modifier: Modifier = Modifier, color: Color = Color.Un
         label = "spiralIntensity"
     )
 
-    val iconColor = if (color == Color.Unspecified) Color(0xFFFF6B6B) else color
+    val stormCore = if (color == Color.Unspecified) Color(0xFFEF5350) else color
+    val stormOuter = darkenColor(stormCore, 0.72f)
+    val stormCloud = cloudShadesFromTint(Color.Unspecified).copy(
+        body = Color(0xFF78909C),
+        shadow = Color(0xFF546E7A),
+        highlight = Color(0xFFB0BEC5)
+    )
 
     Canvas(modifier = modifier.fillMaxSize()) {
         val center = Offset(size.width / 2f, size.height / 2f)
-        val maxRadius = size.minDimension * 0.4f
-        val centerRadius = size.minDimension * 0.08f
+        val maxRadius = size.minDimension * 0.38f
+        val centerRadius = size.minDimension * 0.07f
 
-        // Draw the eye of the hurricane (center)
+        drawLayeredCloud(
+            center = Offset(center.x, center.y - maxRadius * 0.08f),
+            width = size.width * 0.82f,
+            height = size.height * 0.28f,
+            shades = stormCloud
+        )
+
         drawCircle(
-            color = iconColor.copy(alpha = 0.9f),
+            brush = Brush.radialGradient(
+                colors = listOf(Color.White.copy(alpha = 0.85f), stormCore.copy(alpha = 0.15f)),
+                center = center,
+                radius = centerRadius * 1.8f
+            ),
+            radius = centerRadius * 1.8f,
+            center = center
+        )
+        drawCircle(
+            color = stormCore.copy(alpha = 0.95f),
             radius = centerRadius,
             center = center
         )
 
-        // Draw spiral arms (hurricane structure)
         rotate(rotation, pivot = center) {
-            for (arm in 0 until 3) {
-                val armAngle = arm * 120f // 3 arms, 120 degrees apart
+            for (arm in 0 until 4) {
+                val armAngle = arm * 90f
                 val spiralPath = Path()
-                
-                // Create spiral from center outward
-                var currentRadius = centerRadius
+                var currentRadius = centerRadius * 1.2f
                 var angle = armAngle
-                val angleStep = 5f // degrees per step
-                val radiusStep = maxRadius / 60f // gradual increase
-                
+                val angleStep = 6f
+                val radiusStep = maxRadius / 48f
+
                 while (currentRadius < maxRadius * spiralIntensity) {
-                    val angleRad = Math.toRadians(angle.toDouble())
-                    val x = center.x + currentRadius * cos(angleRad).toFloat()
-                    val y = center.y + currentRadius * sin(angleRad).toFloat()
-                    
-                    if (currentRadius == centerRadius) {
+                    val angleRad = angle * PI.toFloat() / 180f
+                    val x = center.x + currentRadius * cos(angleRad)
+                    val y = center.y + currentRadius * sin(angleRad)
+
+                    if (currentRadius <= centerRadius * 1.25f) {
                         spiralPath.moveTo(x, y)
                     } else {
                         spiralPath.lineTo(x, y)
                     }
-                    
-                    // Spiral outward: increase radius and angle
+
                     currentRadius += radiusStep
                     angle += angleStep
                 }
-                
-                // Draw the spiral arm with varying thickness
-                val strokeWidth = 3.dp.toPx()
+
                 drawPath(
                     path = spiralPath,
-                    color = iconColor.copy(alpha = 0.7f - arm * 0.1f),
+                    brush = Brush.linearGradient(
+                        colors = listOf(
+                            stormCore.copy(alpha = 0.85f - arm * 0.12f),
+                            stormOuter.copy(alpha = 0.35f)
+                        ),
+                        start = center,
+                        end = Offset(center.x + maxRadius, center.y)
+                    ),
                     style = Stroke(
-                        width = strokeWidth,
+                        width = (3.5f - arm * 0.35f).dp.toPx(),
                         cap = StrokeCap.Round
                     )
                 )
             }
-        }
-
-        // Draw outer cloud bands (optional, to make it look more like a hurricane)
-        for (band in 0 until 2) {
-            val bandRadius = maxRadius * (0.85f + band * 0.15f)
-            val bandPath = Path()
-            
-            for (i in 0..360 step 10) {
-                val angleRad = Math.toRadians(i.toDouble())
-                val waveOffset = 3.dp.toPx() * sin((i * 3 + rotation).toDouble()).toFloat()
-                val currentRadius = bandRadius + waveOffset
-                val x = center.x + currentRadius * cos(angleRad).toFloat()
-                val y = center.y + currentRadius * sin(angleRad).toFloat()
-                
-                if (i == 0) {
-                    bandPath.moveTo(x, y)
-                } else {
-                    bandPath.lineTo(x, y)
-                }
-            }
-            bandPath.close()
-            
-            drawPath(
-                path = bandPath,
-                color = iconColor.copy(alpha = 0.15f - band * 0.05f)
-            )
         }
     }
 }
@@ -1015,74 +696,18 @@ fun AnimatedFactIcon(modifier: Modifier = Modifier, color: Color = Color.Unspeci
         label = "rotation"
     )
 
-    val iconColor = if (color == Color.Unspecified) Color(0xFFFFD700) else color
+    val onDark = tintSuggestsDarkSurface(color)
+    val accent = iconAccentColor(color, Color(0xFFFFD700), Color(0xFFFFCA28), onDark)
 
     Canvas(modifier = modifier.fillMaxSize()) {
         val center = Offset(size.width / 2f, size.height / 2f)
-        val bulbRadius = size.minDimension * 0.25f
-        val baseY = size.height * 0.4f
-
-        // Draw glow effect
-        drawCircle(
-            color = iconColor.copy(alpha = glowIntensity * 0.3f),
-            radius = bulbRadius * 2f,
-            center = center
+        drawLightBulb(
+            center = center,
+            bulbRadius = size.minDimension * 0.24f,
+            rotationDegrees = rotation,
+            glow = glowIntensity,
+            accent = accent
         )
-
-        // Draw lightbulb base (screw base)
-        val baseWidth = size.minDimension * 0.15f
-        val baseHeight = size.minDimension * 0.1f
-        val baseTop = baseY + bulbRadius + 2.dp.toPx()
-        
-        rotate(rotation, pivot = center) {
-            // Draw bulb (circle)
-            drawCircle(
-                color = iconColor.copy(alpha = 0.9f + glowIntensity * 0.1f),
-                radius = bulbRadius,
-                center = Offset(center.x, baseY)
-            )
-
-            // Draw filament (zigzag inside bulb)
-            val filamentPath = Path().apply {
-                val startX = center.x - bulbRadius * 0.3f
-                val endX = center.x + bulbRadius * 0.3f
-                val midY = baseY
-                moveTo(startX, midY - bulbRadius * 0.2f)
-                lineTo(endX, midY)
-                lineTo(startX, midY + bulbRadius * 0.2f)
-            }
-            drawPath(
-                path = filamentPath,
-                color = iconColor.copy(alpha = 0.8f),
-                style = Stroke(width = 2.dp.toPx())
-            )
-
-            // Draw screw base (trapezoid)
-            val basePath = Path().apply {
-                val topWidth = baseWidth * 0.7f
-                val bottomWidth = baseWidth
-                moveTo(center.x - topWidth / 2f, baseTop)
-                lineTo(center.x + topWidth / 2f, baseTop)
-                lineTo(center.x + bottomWidth / 2f, baseTop + baseHeight)
-                lineTo(center.x - bottomWidth / 2f, baseTop + baseHeight)
-                close()
-            }
-            drawPath(
-                path = basePath,
-                color = iconColor.copy(alpha = 0.7f)
-            )
-
-            // Draw base lines (screw threads)
-            for (i in 0..2) {
-                val y = baseTop + (baseHeight / 3f) * (i + 1)
-                drawLine(
-                    color = iconColor.copy(alpha = 0.5f),
-                    start = Offset(center.x - baseWidth / 2f, y),
-                    end = Offset(center.x + baseWidth / 2f, y),
-                    strokeWidth = 1.dp.toPx()
-                )
-            }
-        }
     }
 }
 
@@ -1190,34 +815,13 @@ fun AnimatedMorningIcon(
     
     Canvas(modifier = modifier.fillMaxSize()) {
         val center = Offset(size.width / 2f, size.height / 2f)
-        val radius = size.minDimension * 0.3f
-        val rayLength = size.minDimension * 0.15f
-        val rayCount = 8
-        
-        // Draw sun circle with morning colors (warmer, more orange)
-        drawCircle(
-            color = Color(0xFFFF9500), // Orange morning sun
-            radius = radius,
-            center = center
+        drawRealisticSun(
+            center = center,
+            radius = size.minDimension * 0.28f,
+            rotationDegrees = sunRotation,
+            palette = sunPaletteFromTint(Color.Unspecified, warm = true),
+            rayCount = 10
         )
-        
-        // Draw rotating rays
-        rotate(sunRotation, center) {
-            for (i in 0 until rayCount) {
-                val angle = (i * 360f / rayCount) * PI.toFloat() / 180f
-                val startX = center.x + (radius + 5f) * cos(angle)
-                val startY = center.y + (radius + 5f) * sin(angle)
-                val endX = center.x + (radius + rayLength) * cos(angle)
-                val endY = center.y + (radius + rayLength) * sin(angle)
-                
-                drawLine(
-                    color = Color(0xFFFFB300),
-                    start = Offset(startX, startY),
-                    end = Offset(endX, endY),
-                    strokeWidth = 3.dp.toPx()
-                )
-            }
-        }
     }
 }
 
@@ -1239,34 +843,13 @@ fun AnimatedAfternoonIcon(
     
     Canvas(modifier = modifier.fillMaxSize()) {
         val center = Offset(size.width / 2f, size.height / 2f)
-        val radius = size.minDimension * 0.35f // Slightly larger for afternoon
-        val rayLength = size.minDimension * 0.18f
-        val rayCount = 12 // More rays for brighter afternoon sun
-        
-        // Draw bright afternoon sun
-        drawCircle(
-            color = Color(0xFFFFD700), // Bright golden yellow
-            radius = radius,
-            center = center
+        drawRealisticSun(
+            center = center,
+            radius = size.minDimension * 0.3f,
+            rotationDegrees = sunRotation,
+            palette = sunPaletteFromTint(Color(0xFFFFD700)),
+            rayCount = 14
         )
-        
-        // Draw rotating rays
-        rotate(sunRotation, center) {
-            for (i in 0 until rayCount) {
-                val angle = (i * 360f / rayCount) * PI.toFloat() / 180f
-                val startX = center.x + (radius + 5f) * cos(angle)
-                val startY = center.y + (radius + 5f) * sin(angle)
-                val endX = center.x + (radius + rayLength) * cos(angle)
-                val endY = center.y + (radius + rayLength) * sin(angle)
-                
-                drawLine(
-                    color = Color(0xFFFFEB3B),
-                    start = Offset(startX, startY),
-                    end = Offset(endX, endY),
-                    strokeWidth = 3.dp.toPx()
-                )
-            }
-        }
     }
 }
 
@@ -1283,36 +866,20 @@ fun AnimatedNightIcon(modifier: Modifier = Modifier, color: Color = Color.Unspec
         label = "moonPhase"
     )
     
-    val iconColor = if (color == Color.Unspecified) Color(0xFFE1BEE7) else color
+    val onDark = tintSuggestsDarkSurface(color)
+    val iconColor = iconAccentColor(color, Color(0xFFE1BEE7), Color(0xFFE8EAF6), onDark)
     
     Canvas(modifier = modifier.fillMaxSize()) {
         val center = Offset(size.width / 2f, size.height / 2f)
-        val radius = size.minDimension * 0.3f
-        
-        // Draw moon
-        drawCircle(
-            color = iconColor,
-            radius = radius,
-            center = center
-        )
-        
-        // Draw stars
-        for (i in 0..3) {
-            val angle = (i * 90f) * PI.toFloat() / 180f
-            val starX = center.x + (radius + size.minDimension * 0.2f) * cos(angle)
-            val starY = center.y + (radius + size.minDimension * 0.2f) * sin(angle)
-            drawCircle(
-                color = iconColor.copy(alpha = 0.7f + moonPhase * 0.3f),
-                radius = 2.dp.toPx(),
-                center = Offset(starX, starY)
-            )
-        }
+        val radius = size.minDimension * 0.28f
+        drawRealisticMoon(center = center, radius = radius, tint = iconColor, glowAlpha = 0.2f + moonPhase * 0.15f)
+        drawStarField(center = center, radius = radius, tint = iconColor, twinkle = moonPhase)
     }
 }
 
 /**
  * Animated Moon Phase Icon
- * Draws the moon phase correctly based on the actual phase and illumination
+ * Draws the moon phase from illumination and waxing/waning using a realistic terminator.
  */
 @Composable
 fun AnimatedMoonPhaseIcon(
@@ -1323,187 +890,39 @@ fun AnimatedMoonPhaseIcon(
 ) {
     val infiniteTransition = rememberInfiniteTransition(label = "moonPhase")
     val glowIntensity by infiniteTransition.animateFloat(
-        initialValue = 0.8f,
+        initialValue = 0.85f,
         targetValue = 1f,
         animationSpec = infiniteRepeatable(
-            animation = tween(2000, easing = FastOutSlowInEasing),
+            animation = tween(2800, easing = FastOutSlowInEasing),
             repeatMode = RepeatMode.Reverse
         ),
         label = "glowIntensity"
     )
+    val earthshinePulse by infiniteTransition.animateFloat(
+        initialValue = 0.92f,
+        targetValue = 1.08f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(4200, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "earthshinePulse"
+    )
 
-    val iconColor = if (color == Color.Unspecified) Color(0xFFFFD700) else color
-    val phaseUpper = phase.uppercase()
-    
+    val onDark = tintSuggestsDarkSurface(color)
+    val iconColor = iconAccentColor(color, Color(0xFFE8EAF6), Color(0xFFFFF9C4), onDark)
+    val waxing = isWaxingMoonPhase(phase)
+
     Canvas(modifier = modifier.fillMaxSize()) {
         val center = Offset(size.width / 2f, size.height / 2f)
-        val radius = size.minDimension * 0.35f
-        
-        // Draw glow effect for full moon
-        if (illumination > 0.9f) {
-            drawCircle(
-                color = iconColor.copy(alpha = glowIntensity * 0.2f),
-                radius = radius * 1.5f,
-                center = center
-            )
-        }
-        
-        when {
-            // New Moon - completely dark
-            phaseUpper == "NEW_MOON" || illumination < 0.01 -> {
-                // Draw a very faint outline or nothing
-                drawCircle(
-                    color = iconColor.copy(alpha = 0.1f),
-                    radius = radius,
-                    center = center,
-                    style = Stroke(width = 1.dp.toPx())
-                )
-            }
-            
-            // Full Moon - completely lit
-            phaseUpper == "FULL_MOON" || illumination > 0.99 -> {
-                drawCircle(
-                    color = iconColor.copy(alpha = 0.95f * glowIntensity),
-                    radius = radius,
-                    center = center
-                )
-            }
-            
-            // First Quarter - right half lit
-            phaseUpper == "FIRST_QUARTER" -> {
-                drawMoonPhase(center, radius, iconColor, illumination = 0.5, litFromRight = true)
-            }
-            
-            // Last Quarter - left half lit
-            phaseUpper == "LAST_QUARTER" -> {
-                drawMoonPhase(center, radius, iconColor, illumination = 0.5, litFromRight = false)
-            }
-            
-            // Waxing Crescent - right side crescent
-            phaseUpper == "WAXING_CRESCENT" -> {
-                drawMoonPhase(center, radius, iconColor, illumination, litFromRight = true)
-            }
-            
-            // Waning Crescent - left side crescent
-            phaseUpper == "WANING_CRESCENT" -> {
-                drawMoonPhase(center, radius, iconColor, illumination, litFromRight = false)
-            }
-            
-            // Waxing Gibbous - mostly right side lit
-            phaseUpper == "WAXING_GIBBOUS" -> {
-                drawMoonPhase(center, radius, iconColor, illumination, litFromRight = true)
-            }
-            
-            // Waning Gibbous - mostly left side lit
-            phaseUpper == "WANING_GIBBOUS" -> {
-                drawMoonPhase(center, radius, iconColor, illumination, litFromRight = false)
-            }
-            
-            // Fallback: use illumination to determine phase
-            else -> {
-                val litFromRight = illumination < 0.5f || (illumination >= 0.5f && illumination < 1.0f && phaseUpper.contains("WAXING"))
-                drawMoonPhase(center, radius, iconColor, illumination, litFromRight = litFromRight)
-            }
-        }
-    }
-}
+        val radius = size.minDimension * 0.32f
 
-/**
- * Helper function to draw moon phase with correct illumination
- */
-private fun DrawScope.drawMoonPhase(
-    center: Offset,
-    radius: Float,
-    color: Color,
-    illumination: Double,
-    litFromRight: Boolean
-) {
-    val illum = illumination.coerceIn(0.0, 1.0).toFloat()
-    
-    // Draw the full moon circle outline
-    drawCircle(
-        color = color.copy(alpha = 0.3f),
-        radius = radius,
-        center = center,
-        style = Stroke(width = 1.dp.toPx())
-    )
-    
-    if (illum < 0.01f) {
-        // New moon - just outline
-        return
-    }
-    
-    if (illum > 0.99f) {
-        // Full moon
-        drawCircle(
-            color = color.copy(alpha = 0.95f),
+        drawRealisticMoonPhase(
+            center = center,
             radius = radius,
-            center = center
-        )
-        return
-    }
-    
-    if (illum <= 0.5f) {
-        // Crescent: draw the lit crescent portion using path
-        val crescentPath = Path()
-        val sweepAngle = 180f * (illum * 2f)
-        val startAngleDeg = if (litFromRight) 90f else -90f
-        
-        // Create crescent path: arc from center
-        crescentPath.moveTo(center.x, center.y)
-        
-        // Draw arc points manually
-        val steps = (sweepAngle / 2f).toInt().coerceAtLeast(10)
-        for (i in 0..steps) {
-            val angle = startAngleDeg + (sweepAngle / steps) * i
-            val angleRad = Math.toRadians(angle.toDouble())
-            val x = center.x + radius * cos(angleRad).toFloat()
-            val y = center.y + radius * sin(angleRad).toFloat()
-            if (i == 0) {
-                crescentPath.lineTo(x, y)
-            } else {
-                crescentPath.lineTo(x, y)
-            }
-        }
-        crescentPath.close()
-        
-        drawPath(
-            path = crescentPath,
-            color = color.copy(alpha = 0.9f)
-        )
-    } else {
-        // Gibbous: draw full circle, then overlay shadow
-        // Draw full lit circle
-        drawCircle(
-            color = color.copy(alpha = 0.9f),
-            radius = radius,
-            center = center
-        )
-        
-        // Draw shadow using path to cover the dark portion
-        val shadowAngle = 180f * (1f - (illum - 0.5f) * 2f)
-        val shadowStartAngle = if (litFromRight) {
-            -90f - shadowAngle / 2f // Shadow on left side
-        } else {
-            90f - shadowAngle / 2f // Shadow on right side
-        }
-        
-        val shadowPath = Path()
-        shadowPath.moveTo(center.x, center.y)
-        
-        val steps = (shadowAngle / 2f).toInt().coerceAtLeast(10)
-        for (i in 0..steps) {
-            val angle = shadowStartAngle + (shadowAngle / steps) * i
-            val angleRad = Math.toRadians(angle.toDouble())
-            val x = center.x + radius * cos(angleRad).toFloat()
-            val y = center.y + radius * sin(angleRad).toFloat()
-            shadowPath.lineTo(x, y)
-        }
-        shadowPath.close()
-        
-        drawPath(
-            path = shadowPath,
-            color = Color(0xFF0E1E3A).copy(alpha = 0.9f) // Dark shadow
+            tint = iconColor,
+            illumination = illumination,
+            waxing = waxing,
+            glowAlpha = 0.18f + glowIntensity * 0.2f * earthshinePulse.coerceIn(0.9f, 1.1f)
         )
     }
 }

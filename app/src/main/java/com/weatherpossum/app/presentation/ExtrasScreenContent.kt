@@ -1,64 +1,50 @@
 package com.weatherpossum.app.presentation
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.ScrollState
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.*
-import androidx.compose.foundation.BorderStroke
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
 import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
-import com.weatherpossum.app.presentation.components.AnimatedWeatherIcon
-import com.weatherpossum.app.presentation.components.WeatherIconType
-import com.weatherpossum.app.presentation.components.AnimatedMoonPhaseIcon
-import androidx.compose.ui.text.AnnotatedString
-import androidx.compose.ui.text.SpanStyle
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.text.buildAnnotatedString
-import androidx.compose.ui.text.withStyle
+import androidx.compose.ui.res.stringResource
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-import androidx.lifecycle.viewmodel.compose.viewModel
-import org.koin.androidx.compose.koinViewModel
-import androidx.compose.foundation.Image
 import com.weatherpossum.app.R
-import com.weatherpossum.app.presentation.components.ExpressiveLoadingIndicator
+import org.koin.androidx.compose.koinViewModel
+import com.weatherpossum.app.presentation.components.ExtrasErrorCard
+import com.weatherpossum.app.presentation.components.ExtrasLoadingCard
 import com.weatherpossum.app.presentation.components.FunFactCardExpressive
 import com.weatherpossum.app.presentation.components.GreetingCard
 import com.weatherpossum.app.presentation.components.ExtendedForecastCard
-import com.weatherpossum.app.ui.viewmodel.MoonViewModel
-import com.weatherpossum.app.ui.viewmodel.MoonUiState
-import com.weatherpossum.app.ui.viewmodel.HurricaneViewModel
-import com.weatherpossum.app.ui.viewmodel.HurricaneUiState
-import com.weatherpossum.app.data.MoonData
-import com.weatherpossum.app.presentation.components.enhancedCardBackground
-import com.weatherpossum.app.presentation.components.GradientNoiseOverlay
-import com.weatherpossum.app.presentation.components.CardHeader
+import com.weatherpossum.app.presentation.components.ActiveStormsCard
+import com.weatherpossum.app.presentation.components.HurricaneNeutralCard
+import com.weatherpossum.app.presentation.components.HurricaneOutlookCard
+import com.weatherpossum.app.presentation.components.MoonPhaseCard
+import com.weatherpossum.app.presentation.components.StaggeredReveal
+import com.weatherpossum.app.ui.theme.CardGradientStyle
+import com.weatherpossum.app.ui.theme.WeatherPossumDimens
 
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun ExtrasScreenContent(
     scrollState: ScrollState = rememberScrollState(),
     weatherViewModel: WeatherViewModel = koinViewModel(),
-    extendedForecastViewModel: ExtendedForecastViewModel = viewModel(),
+    extendedForecastViewModel: ExtendedForecastViewModel = koinViewModel(),
     moonViewModel: MoonViewModel = koinViewModel(),
-    hurricaneViewModel: HurricaneViewModel = koinViewModel()
+    hurricaneViewModel: HurricaneViewModel = koinViewModel(),
+    modifier: Modifier = Modifier
 ) {
-    val userName by weatherViewModel.userName.collectAsState()
-    val synopsis by weatherViewModel.synopsis.collectAsState()
-    val extendedForecast by extendedForecastViewModel.forecast.collectAsState()
-    val isLoading by extendedForecastViewModel.isLoading.collectAsState()
-    val error by extendedForecastViewModel.error.collectAsState()
-    val moonState by moonViewModel.uiState.collectAsState()
-    val hurricaneState by hurricaneViewModel.uiState.collectAsState()
+    val userName by weatherViewModel.userName.collectAsStateWithLifecycle()
+    val synopsis by weatherViewModel.synopsis.collectAsStateWithLifecycle()
+    val extendedForecast by extendedForecastViewModel.forecast.collectAsStateWithLifecycle()
+    val isLoading by extendedForecastViewModel.isLoading.collectAsStateWithLifecycle()
+    val error by extendedForecastViewModel.error.collectAsStateWithLifecycle()
+    val extendedForecastStale by extendedForecastViewModel.isStale.collectAsStateWithLifecycle()
+    val moonState by moonViewModel.uiState.collectAsStateWithLifecycle()
+    val hurricaneState by hurricaneViewModel.uiState.collectAsStateWithLifecycle()
 
     LaunchedEffect(Unit) {
         if (extendedForecastViewModel.shouldRefreshForecast() || extendedForecast.isEmpty()) {
@@ -67,918 +53,110 @@ fun ExtrasScreenContent(
     }
 
     Column(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxSize()
             .verticalScroll(scrollState)
             .padding(vertical = 24.dp)
             .padding(horizontal = 16.dp)
             .padding(bottom = 112.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
+        verticalArrangement = Arrangement.spacedBy(WeatherPossumDimens.sectionSpacing)
     ) {
-        GreetingCard(userName = userName, synopsis = synopsis)
+        StaggeredReveal(key = "extras_greeting", index = 0) {
+            GreetingCard(userName = userName, synopsis = synopsis)
+        }
 
-        FunFactCardExpressive(facts = caribbeanWeatherFacts)
+        StaggeredReveal(key = "extras_fun_fact", index = 1) {
+            FunFactCardExpressive()
+        }
 
-        // ───────────────────────────────────────────────────────────────────
-        // MOON PHASE – styled card
-        // ───────────────────────────────────────────────────────────────────
-        when (val state = moonState) {
-            is MoonUiState.Success -> {
-                MoonPhaseCard(state.moonData)
-            }
-            is MoonUiState.Loading -> {
-                LoadingGradientCard(
-                    title = "Moon Phase",
-                    gradient = Brush.verticalGradient(listOf(Color(0xFF0E1E3A), Color(0xFF1F3A6B)))
+        StaggeredReveal(key = "extras_moon", index = 2) {
+            when (val state = moonState) {
+                is MoonUiState.Success -> {
+                    Column(verticalArrangement = Arrangement.spacedBy(WeatherPossumDimens.sectionSpacing)) {
+                        if (state.isStale) {
+                            Text(
+                                text = stringResource(R.string.moon_stale_notice),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.padding(bottom = 4.dp)
+                            )
+                        }
+                        MoonPhaseCard(state.moonData)
+                    }
+                }
+                is MoonUiState.Loading -> ExtrasLoadingCard(
+                    title = stringResource(R.string.extras_card_moon_phase),
+                    style = CardGradientStyle.Moon
                 )
-            }
-            is MoonUiState.Error -> {
-                ErrorGradientCard(
-                    title = "Moon Phase",
+                is MoonUiState.Error -> ExtrasErrorCard(
+                    title = stringResource(R.string.extras_card_moon_phase),
                     message = state.message
                 )
             }
         }
 
-        // ───────────────────────────────────────────────────────────────────
-        // EXTENDED FORECAST
-        // ───────────────────────────────────────────────────────────────────
-        when {
-            isLoading -> {
-                Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-                    ExpressiveLoadingIndicator()
-                }
-            }
-            error != null -> {
-                Text("Error loading extended forecast", color = Color.Red)
-            }
-            extendedForecast.isNotEmpty() -> {
-                ExtendedForecastCard(forecast = extendedForecast)
-            }
-        }
-
-        // ───────────────────────────────────────────────────────────────────
-        // HURRICANE UPDATES – styled card
-        // ───────────────────────────────────────────────────────────────────
-        when (val state = hurricaneState) {
-            is HurricaneUiState.Success -> {
-                val tropicalOutlook = state.hurricaneData.tropicalOutlook
-
-                when {
-                    !tropicalOutlook.isNullOrBlank() -> {
-                        // Show only the outlook card (which includes active systems)
-                        HurricaneOutlookCard(
-                            outlook = parseMarkdownText(tropicalOutlook),
-                            forecaster = state.hurricaneData.forecaster,
-                            issued = state.hurricaneData.issued
-                        )
-                    }
-                    else -> {
-                        HurricaneNeutralCard()
-                    }
-                }
-            }
-            is HurricaneUiState.Loading -> {
-                LoadingGradientCard(
-                    title = "Hurricane Updates",
-                    gradient = Brush.verticalGradient(listOf(Color(0xFFFFE08A), Color(0xFFFFC168)))
+        StaggeredReveal(key = "extras_forecast", index = 3) {
+            when {
+                isLoading -> ExtrasLoadingCard(
+                    title = stringResource(R.string.extras_card_seven_day),
+                    style = CardGradientStyle.Forecast
                 )
-            }
-            is HurricaneUiState.Error -> {
-                ErrorGradientCard(
-                    title = "Hurricane Updates",
-                    message = "Unable to load hurricane data"
+                error != null -> ExtrasErrorCard(
+                    title = stringResource(R.string.extras_card_seven_day),
+                    message = error ?: stringResource(R.string.extended_forecast_error_load)
                 )
-            }
-        }
-    }
-}
-
-/* ========================================================================== */
-/*  MOON PHASE CARD                                                           */
-/* ========================================================================== */
-
-@Composable
-private fun MoonPhaseCard(data: MoonData) {
-    val gradient = Brush.verticalGradient(listOf(Color(0xFF0E1E3A), Color(0xFF1F3A6B))) // deep night blue
-    val on = Color.White
-
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(22.dp),
-        elevation = CardDefaults.cardElevation(10.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.Transparent)
-    ) {
-        Box(
-            Modifier
-                .enhancedCardBackground(gradient)
-                .fillMaxWidth()
-                .padding(16.dp)
-        ) {
-            GradientNoiseOverlay()
-            
-            Column {
-                // Header
-                CardHeader(
-                    title = "MOON PHASE",
-                    endContent = {
-                        Box(
-                            modifier = Modifier.size(64.dp),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            AnimatedMoonPhaseIcon(
-                                phase = data.phase,
-                                illumination = data.illumination,
-                                modifier = Modifier.fillMaxSize(),
-                                color = Color(0xFFFFD700)
-                            )
-                        }
-                    },
-                    onColor = on
-                )
-
-                // Two-column details
-                Row(Modifier.fillMaxWidth()) {
-                    Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        MoonDetail(label = "Illumination", value = "${(data.illumination * 100).toInt()}%", on)
-                        MoonDetail(label = "Phase", value = MoonData.formatMoonPhase(data.phase), on)
-                    }
-                    Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        // Pretty chips for times
-                        Pill(label = "Moonrise", value = data.moonrise, onColor = on)
-                        Pill(label = "Moonset", value = data.moonset, onColor = on)
-                    }
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun MoonDetail(label: String, value: String, onColor: Color) {
-    Column(
-        horizontalAlignment = Alignment.CenterHorizontally,
-        modifier = Modifier
-            .clip(RoundedCornerShape(20.dp))
-            .background(Color.White.copy(alpha = 0.12f))
-            .padding(horizontal = 12.dp, vertical = 8.dp)
-            .fillMaxWidth()
-    ) {
-        Text(
-            label,
-            color = onColor,
-            fontWeight = FontWeight.SemiBold,
-            fontSize = 13.sp,
-            textAlign = TextAlign.Center
-        )
-        Spacer(Modifier.height(4.dp))
-        Text(
-            value,
-            color = onColor.copy(alpha = 0.95f),
-            fontSize = 13.sp,
-            textAlign = TextAlign.Center
-        )
-    }
-}
-
-@Composable
-private fun Pill(label: String, value: String, onColor: Color) {
-    Column(
-        horizontalAlignment = Alignment.CenterHorizontally,
-        modifier = Modifier
-            .clip(RoundedCornerShape(20.dp))
-            .background(Color.White.copy(alpha = 0.12f))
-            .padding(horizontal = 12.dp, vertical = 8.dp)
-            .fillMaxWidth()
-    ) {
-        Text(
-            label,
-            color = onColor,
-            fontWeight = FontWeight.SemiBold,
-            fontSize = 13.sp,
-            textAlign = TextAlign.Center
-        )
-        Spacer(Modifier.height(4.dp))
-        Text(
-            value,
-            color = onColor.copy(alpha = 0.95f),
-            fontSize = 13.sp,
-            textAlign = TextAlign.Center
-        )
-    }
-}
-
-/* ========================================================================== */
-/*  HURRICANE CARDS                                                           */
-/* ========================================================================== */
-
-@Composable
-private fun HurricaneActiveCard(
-    count: Int,
-    storms: List<Pair<String, String>> // name to category
-) {
-    // Warning gradient (amber -> red)
-    val gradient = Brush.verticalGradient(listOf(Color(0xFFFFE08A), Color(0xFFFF7A59)))
-    val on = Color(0xFF2B2B2B)
-    
-    // Hurricane AVD animation
-
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(22.dp),
-        elevation = CardDefaults.cardElevation(10.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.Transparent)
-    ) {
-        Box(
-            Modifier
-                .enhancedCardBackground(gradient)
-                .fillMaxWidth()
-                .padding(16.dp)
-        ) {
-            GradientNoiseOverlay()
-            
-            Column {
-                CardHeader(
-                    title = "HURRICANE UPDATES",
-                    subtitle = "$count active storm${if (count > 1) "s" else ""} in the Atlantic",
-                    endContent = {
-                        Box(
-                            modifier = Modifier.size(48.dp),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            AnimatedWeatherIcon(
-                                type = WeatherIconType.HURRICANE,
-                                modifier = Modifier.fillMaxSize()
-                            )
-                        }
-                    },
-                    onColor = on
-                )
-
-                storms.forEachIndexed { i, (name, cat) ->
-                    Row(
-                        Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 6.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        // Badge
-                        Box(
-                            modifier = Modifier
-                                .size(28.dp)
-                                .clip(CircleShape)
-                                .background(Color(0xFF7A1B1B).copy(alpha = 0.18f)),
-                            contentAlignment = Alignment.Center
-                        ) {
+                extendedForecast.isNotEmpty() -> {
+                    Column(verticalArrangement = Arrangement.spacedBy(WeatherPossumDimens.sectionSpacing)) {
+                        if (extendedForecastStale) {
                             Text(
-                                text = (i + 1).toString(),
-                                color = on,
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 12.sp
+                                text = stringResource(R.string.extended_forecast_stale_notice),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.padding(bottom = 4.dp)
                             )
                         }
-                        Spacer(Modifier.width(10.dp))
-                        Column(Modifier.weight(1f)) {
-                            Text(name, color = on, fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
-                            Text(cat, color = on.copy(alpha = 0.9f), fontSize = 13.sp)
-                        }
+                        ExtendedForecastCard(forecast = extendedForecast)
                     }
                 }
             }
         }
-    }
-}
 
-@Composable
-private fun HurricaneOutlookCard(
-    outlook: AnnotatedString,
-    forecaster: String? = null,
-    issued: String? = null
-) {
-    val gradient = Brush.verticalGradient(listOf(Color(0xFF4A90E2), Color(0xFF1E3A8A))) // darker info blue
-    val on = Color.White
-    
-    // Hurricane AVD animation
-    
-    // Parse the outlook text into sections
-    val outlookText = outlook.toString()
-    val activeSystems = parseActiveSystems(outlookText)
-    val easternTropical = parseEasternTropical(outlookText)
-    val formationChances = parseFormationChances(outlookText)
-    
-    // Parse individual systems from the outlook text
-    val individualSystems = parseIndividualSystems(outlookText)
-    
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(22.dp),
-        elevation = CardDefaults.cardElevation(10.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.Transparent)
-    ) {
-        Box(
-            Modifier
-                .enhancedCardBackground(gradient)
-                .fillMaxWidth()
-                .padding(16.dp)
-        ) {
-            GradientNoiseOverlay()
-            
-            Column {
-                CardHeader(
-                    title = "HURRICANE OUTLOOK",
-                    endContent = {
-                        Box(
-                            modifier = Modifier.size(40.dp),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            AnimatedWeatherIcon(
-                                type = WeatherIconType.HURRICANE,
-                                modifier = Modifier.fillMaxSize()
+        StaggeredReveal(key = "extras_hurricane", index = 4) {
+            when (val state = hurricaneState) {
+                is HurricaneUiState.Success -> {
+                    Column(verticalArrangement = Arrangement.spacedBy(WeatherPossumDimens.sectionSpacing)) {
+                        if (state.hurricaneData.isFromCache) {
+                            Text(
+                                text = stringResource(R.string.hurricane_stale_notice),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.padding(bottom = 4.dp)
                             )
                         }
-                    },
-                    onColor = on
-                )
+                        if (state.hurricaneData.activeStorms.isNotEmpty()) {
+                            ActiveStormsCard(storms = state.hurricaneData.activeStorms)
+                        }
 
-                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    // Individual Systems - each in its own container
-                    individualSystems.forEach { system ->
-                        HurricaneSystemContainer(
-                            system = system,
-                            onColor = on
-                        )
-                    }
-                    
-                    // Fallback: Show original sections if no individual systems found
-                    if (individualSystems.isEmpty()) {
-                        if (activeSystems.isNotBlank()) {
-                            HurricaneSectionBlock(
-                                title = "Active Systems",
-                                content = activeSystems,
-                                onColor = on
+                        val tropicalOutlook = state.hurricaneData.tropicalOutlook
+                        if (!tropicalOutlook.isNullOrBlank()) {
+                            HurricaneOutlookCard(
+                                outlookText = tropicalOutlook,
+                                forecaster = state.hurricaneData.forecaster,
+                                issued = state.hurricaneData.issued
                             )
-                        }
-                        
-                        if (easternTropical.isNotBlank()) {
-                            HurricaneSectionBlock(
-                                title = "Eastern Tropical Atlantic",
-                                content = easternTropical,
-                                onColor = on,
-                                formationChances = formationChances
-                            )
+                        } else {
+                            HurricaneNeutralCard()
                         }
                     }
                 }
-                
-                // Cute containers for forecaster and issued time at the bottom
-                if (forecaster != null || issued != null) {
-                    Spacer(modifier = Modifier.height(16.dp))
-                    
-                    Column(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        // Issued time container
-                        if (issued != null) {
-                            Surface(
-                                modifier = Modifier.fillMaxWidth(),
-                                shape = RoundedCornerShape(12.dp),
-                                color = on.copy(alpha = 0.15f),
-                                border = BorderStroke(1.dp, on.copy(alpha = 0.3f))
-                            ) {
-                                Column(
-                                    modifier = Modifier.padding(12.dp),
-                                    horizontalAlignment = Alignment.CenterHorizontally
-                                ) {
-                                    Row(
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        horizontalArrangement = Arrangement.spacedBy(4.dp)
-                                    ) {
-                                        Text(
-                                            text = "Issued",
-                                            fontSize = 10.sp,
-                                            color = on.copy(alpha = 0.7f),
-                                            fontWeight = FontWeight.Medium
-                                        )
-                                        Text(
-                                            text = "📅",
-                                            fontSize = 16.sp,
-                                            color = on.copy(alpha = 0.8f)
-                                        )
-                                    }
-                                    Spacer(modifier = Modifier.height(4.dp))
-                                    Text(
-                                        text = issued,
-                                        fontSize = 11.sp,
-                                        color = on,
-                                        fontWeight = FontWeight.SemiBold,
-                                        textAlign = TextAlign.Center,
-                                        lineHeight = 13.sp
-                                    )
-                                }
-                            }
-                        }
-                        
-                        // Forecaster container
-                        if (forecaster != null) {
-                            Surface(
-                                modifier = Modifier.fillMaxWidth(),
-                                shape = RoundedCornerShape(12.dp),
-                                color = on.copy(alpha = 0.15f),
-                                border = BorderStroke(1.dp, on.copy(alpha = 0.3f))
-                            ) {
-                                Column(
-                                    modifier = Modifier.padding(12.dp),
-                                    horizontalAlignment = Alignment.CenterHorizontally
-                                ) {
-                                    Row(
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        horizontalArrangement = Arrangement.spacedBy(4.dp)
-                                    ) {
-                                        Text(
-                                            text = "Forecaster",
-                                            fontSize = 10.sp,
-                                            color = on.copy(alpha = 0.7f),
-                                            fontWeight = FontWeight.Medium
-                                        )
-                                        Text(
-                                            text = "👨‍💼",
-                                            fontSize = 16.sp,
-                                            color = on.copy(alpha = 0.8f)
-                                        )
-                                    }
-                                    Spacer(modifier = Modifier.height(4.dp))
-                                    Text(
-                                        text = forecaster.replace("Forecaster ", ""),
-                                        fontSize = 11.sp,
-                                        color = on,
-                                        fontWeight = FontWeight.SemiBold,
-                                        textAlign = TextAlign.Center,
-                                        lineHeight = 13.sp
-                                    )
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
-}
-
-/* ========================================================================== */
-/*  HURRICANE SECTION BLOCK - Square container for each section              */
-/* ========================================================================== */
-
-@Composable
-private fun HurricaneSectionBlock(
-    title: String,
-    content: String,
-    onColor: Color,
-    formationChances: List<Pair<String, String>> = emptyList()
-) {
-    Surface(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 6.dp),
-        shape = RoundedCornerShape(16.dp),
-        color = Color.White.copy(alpha = 0.10f),
-        tonalElevation = 2.dp
-    ) {
-        Column(Modifier.padding(16.dp)) {
-            // Section title
-            Text(
-                text = title,
-                fontSize = 18.sp,
-                fontWeight = FontWeight.Bold,
-                color = onColor,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
-
-            Spacer(Modifier.height(8.dp))
-            HorizontalDivider(color = onColor.copy(alpha = 0.12f))
-            Spacer(Modifier.height(8.dp))
-
-                    // Section content (remove formation chances since they're shown in pills)
-                    val cleanContent = if (formationChances.isNotEmpty()) {
-                        removeFormationChancesFromText(content)
-                    } else {
-                        content
-                    }
-            Text(
-                text = cleanContent,
-                color = onColor.copy(alpha = 0.98f),
-                fontSize = 14.sp,
-                lineHeight = 20.sp
-            )
-            
-            // Formation chances in pill containers (only for Eastern Tropical Atlantic)
-            if (formationChances.isNotEmpty()) {
-                Spacer(Modifier.height(12.dp))
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    formationChances.forEach { (label, value) ->
-                        Pill(label = label, value = value, onColor = onColor)
-                    }
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun HurricaneNeutralCard() {
-    val gradient = Brush.verticalGradient(listOf(Color(0xFFE1F6FF), Color(0xFFCBE8FF)))
-    val on = Color(0xFF1E3A5F)
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(22.dp),
-        elevation = CardDefaults.cardElevation(10.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.Transparent)
-    ) {
-        Box(
-            Modifier
-                .background(gradient)
-                .fillMaxWidth()
-                .clip(RoundedCornerShape(22.dp))
-                .padding(16.dp)
-        ) {
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Text(
-                    "HURRICANE UPDATES",
-                    color = on,
-                    fontSize = 18.sp,
-                    fontWeight = FontWeight.SemiBold
+                is HurricaneUiState.Loading -> ExtrasLoadingCard(
+                    title = stringResource(R.string.extras_card_hurricane),
+                    style = CardGradientStyle.HurricaneWarm
                 )
-                Spacer(Modifier.height(8.dp))
-                Text(
-                    "No active storms in the Atlantic",
-                    color = on.copy(alpha = 0.9f),
-                    fontSize = 14.sp
+                is HurricaneUiState.Error -> ExtrasErrorCard(
+                    title = stringResource(R.string.extras_card_hurricane),
+                    message = stringResource(R.string.extras_error_hurricane)
                 )
-            }
-        }
-    }
-}
-
-/* ========================================================================== */
-/*  HURRICANE SYSTEM CONTAINER - Individual system with formation chances    */
-/* ========================================================================== */
-
-data class HurricaneSystem(
-    val title: String,
-    val content: String,
-    val formationChances: List<Pair<String, String>>
-)
-
-@Composable
-private fun HurricaneSystemContainer(
-    system: HurricaneSystem,
-    onColor: Color
-) {
-    Surface(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 6.dp),
-        shape = RoundedCornerShape(16.dp),
-        color = Color.White.copy(alpha = 0.10f),
-        tonalElevation = 2.dp
-    ) {
-        Column(Modifier.padding(16.dp)) {
-            // System title
-            Text(
-                text = system.title,
-                fontSize = 18.sp,
-                fontWeight = FontWeight.Bold,
-                color = onColor,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
-
-            Spacer(Modifier.height(8.dp))
-            HorizontalDivider(color = onColor.copy(alpha = 0.12f))
-            Spacer(Modifier.height(8.dp))
-
-            // System content (remove formation chances since they're shown in pills)
-            val cleanContent = if (system.formationChances.isNotEmpty()) {
-                removeFormationChancesFromText(system.content)
-            } else {
-                system.content
-            }
-            Text(
-                text = cleanContent,
-                color = onColor.copy(alpha = 0.98f),
-                fontSize = 14.sp,
-                lineHeight = 20.sp
-            )
-            
-            // Formation chances in pill containers
-            if (system.formationChances.isNotEmpty()) {
-                Spacer(Modifier.height(12.dp))
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    system.formationChances.forEach { (label, value) ->
-                        Pill(label = label, value = value, onColor = onColor)
-                    }
-                }
-            }
-        }
-    }
-}
-
-/* ========================================================================== */
-/*  HELPER FUNCTIONS                                                          */
-/* ========================================================================== */
-
-private fun parseIndividualSystems(text: String): List<HurricaneSystem> {
-    val systems = mutableListOf<HurricaneSystem>()
-    
-    // Parse Active Systems section
-    val activeSystemsRegex = Regex("Active Systems:(.*?)(?=Central and Western Tropical Atlantic|Eastern Caribbean Sea|Eastern Tropical Atlantic|\\$\\$|$)", RegexOption.DOT_MATCHES_ALL)
-    val activeMatch = activeSystemsRegex.find(text)
-    if (activeMatch != null) {
-        val activeContent = activeMatch.groupValues[1].trim()
-        if (activeContent.isNotBlank()) {
-            systems.add(HurricaneSystem(
-                title = "Active Systems",
-                content = activeContent,
-                formationChances = emptyList()
-            ))
-        }
-    }
-    
-    // Parse Central and Western Tropical Atlantic (AL93)
-    val centralWesternRegex = Regex("Central and Western Tropical Atlantic \\(AL93\\):(.*?)(?=Eastern Caribbean Sea|Eastern Tropical Atlantic|\\$\\$|$)", RegexOption.DOT_MATCHES_ALL)
-    val centralMatch = centralWesternRegex.find(text)
-    if (centralMatch != null) {
-        val centralContent = centralMatch.groupValues[1].trim()
-        if (centralContent.isNotBlank()) {
-            val formationChances = parseFormationChancesForSystem(centralContent)
-            systems.add(HurricaneSystem(
-                title = "Central and Western Tropical Atlantic (AL93)",
-                content = centralContent,
-                formationChances = formationChances
-            ))
-        }
-    }
-    
-    // Parse Eastern Caribbean Sea (AL94)
-    val easternCaribbeanRegex = Regex("Eastern Caribbean Sea \\(AL94\\):(.*?)(?=Eastern Tropical Atlantic|\\$\\$|$)", RegexOption.DOT_MATCHES_ALL)
-    val easternCaribbeanMatch = easternCaribbeanRegex.find(text)
-    if (easternCaribbeanMatch != null) {
-        val easternCaribbeanContent = easternCaribbeanMatch.groupValues[1].trim()
-        if (easternCaribbeanContent.isNotBlank()) {
-            val formationChances = parseFormationChancesForSystem(easternCaribbeanContent)
-            systems.add(HurricaneSystem(
-                title = "Eastern Caribbean Sea (AL94)",
-                content = easternCaribbeanContent,
-                formationChances = formationChances
-            ))
-        }
-    }
-    
-    // Parse Eastern Tropical Atlantic (fallback for other systems)
-    val easternTropicalRegex = Regex("Eastern Tropical Atlantic:(.*?)(?=\\$\\$|$)", RegexOption.DOT_MATCHES_ALL)
-    val easternMatch = easternTropicalRegex.find(text)
-    if (easternMatch != null) {
-        val easternContent = easternMatch.groupValues[1].trim()
-        if (easternContent.isNotBlank() && systems.none { it.title.contains("Eastern Tropical Atlantic") }) {
-            val formationChances = parseFormationChancesForSystem(easternContent)
-            systems.add(HurricaneSystem(
-                title = "Eastern Tropical Atlantic",
-                content = easternContent,
-                formationChances = formationChances
-            ))
-        }
-    }
-    
-    return systems
-}
-
-private fun parseFormationChancesForSystem(systemText: String): List<Pair<String, String>> {
-    val formationChances = mutableListOf<Pair<String, String>>()
-    val seenLabels = mutableSetOf<String>()
-    
-    // Look for formation chance patterns - handle various formats
-    val patterns = listOf(
-        // Pattern with asterisk: "* Formation chance through 48 hours...low...10 percent."
-        Regex("\\*\\s*Formation chance through (\\d+) (hours?)\\.\\.\\.(\\w+)\\.\\.\\.(\\d+) percent", RegexOption.IGNORE_CASE),
-        Regex("\\*\\s*Formation chance through (\\d+) (days?)\\.\\.\\.(\\w+)\\.\\.\\.(\\d+) percent", RegexOption.IGNORE_CASE),
-        // Pattern without asterisk (fallback)
-        Regex("Formation chance through (\\d+) (hours?)\\.\\.\\.(\\w+)\\.\\.\\.(\\d+) percent", RegexOption.IGNORE_CASE),
-        Regex("Formation chance through (\\d+) (days?)\\.\\.\\.(\\w+)\\.\\.\\.(\\d+) percent", RegexOption.IGNORE_CASE),
-        // Pattern with % instead of "percent"
-        Regex("\\*\\s*Formation chance through (\\d+) (hours?)\\.\\.\\.(\\w+)\\.\\.\\.(\\d+)%", RegexOption.IGNORE_CASE),
-        Regex("\\*\\s*Formation chance through (\\d+) (days?)\\.\\.\\.(\\w+)\\.\\.\\.(\\d+)%", RegexOption.IGNORE_CASE),
-        Regex("Formation chance through (\\d+) (hours?)\\.\\.\\.(\\w+)\\.\\.\\.(\\d+)%", RegexOption.IGNORE_CASE),
-        Regex("Formation chance through (\\d+) (days?)\\.\\.\\.(\\w+)\\.\\.\\.(\\d+)%", RegexOption.IGNORE_CASE)
-    )
-    
-    patterns.forEach { pattern ->
-        val matches = pattern.findAll(systemText)
-        matches.forEach { matchResult ->
-            val timeframe = matchResult.groupValues[1]
-            val unit = matchResult.groupValues[2] // hours or days
-            val level = matchResult.groupValues[3]
-            val percentage = matchResult.groupValues[4]
-            
-            // Use the actual unit from the source text
-            val label = "Formation chance through $timeframe $unit"
-            
-            // Only add if we haven't seen this label before
-            if (!seenLabels.contains(label)) {
-                seenLabels.add(label)
-                
-                // Capitalize the first letter of the level
-                val capitalizedLevel = level.replaceFirstChar { it.uppercase() }
-                val value = "$capitalizedLevel ($percentage%)"
-                formationChances.add(Pair(label, value))
-            }
-        }
-    }
-    
-    return formationChances
-}
-
-private fun parseActiveSystems(text: String): String {
-    val activeSystemsRegex = Regex("Active Systems:(.*?)(?=Eastern Tropical Atlantic|$)", RegexOption.DOT_MATCHES_ALL)
-    val match = activeSystemsRegex.find(text)
-    return match?.groupValues?.get(1)?.trim() ?: ""
-}
-
-private fun parseEasternTropical(text: String): String {
-    val easternRegex = Regex("Eastern Tropical Atlantic:(.*?)(?=\\$\\$|$)", RegexOption.DOT_MATCHES_ALL)
-    val match = easternRegex.find(text)
-    return match?.groupValues?.get(1)?.trim() ?: ""
-}
-
-private fun parseFormationChances(text: String): List<Pair<String, String>> {
-    val formationChances = mutableListOf<Pair<String, String>>()
-    val seenLabels = mutableSetOf<String>() // Track seen labels to avoid duplicates
-    
-    // Look for formation chance patterns - handle various formats
-    val patterns = listOf(
-        // Pattern with asterisk: "* Formation chance through 48 hours...low...10 percent."
-        Regex("\\*\\s*Formation chance through (\\d+) (hours?)\\.\\.\\.(\\w+)\\.\\.\\.(\\d+) percent", RegexOption.IGNORE_CASE),
-        Regex("\\*\\s*Formation chance through (\\d+) (days?)\\.\\.\\.(\\w+)\\.\\.\\.(\\d+) percent", RegexOption.IGNORE_CASE),
-        // Pattern without asterisk (fallback)
-        Regex("Formation chance through (\\d+) (hours?)\\.\\.\\.(\\w+)\\.\\.\\.(\\d+) percent", RegexOption.IGNORE_CASE),
-        Regex("Formation chance through (\\d+) (days?)\\.\\.\\.(\\w+)\\.\\.\\.(\\d+) percent", RegexOption.IGNORE_CASE),
-        // Pattern with % instead of "percent"
-        Regex("\\*\\s*Formation chance through (\\d+) (hours?)\\.\\.\\.(\\w+)\\.\\.\\.(\\d+)%", RegexOption.IGNORE_CASE),
-        Regex("\\*\\s*Formation chance through (\\d+) (days?)\\.\\.\\.(\\w+)\\.\\.\\.(\\d+)%", RegexOption.IGNORE_CASE),
-        Regex("Formation chance through (\\d+) (hours?)\\.\\.\\.(\\w+)\\.\\.\\.(\\d+)%", RegexOption.IGNORE_CASE),
-        Regex("Formation chance through (\\d+) (days?)\\.\\.\\.(\\w+)\\.\\.\\.(\\d+)%", RegexOption.IGNORE_CASE)
-    )
-    
-    patterns.forEach { pattern ->
-        val matches = pattern.findAll(text)
-        matches.forEach { matchResult ->
-            val timeframe = matchResult.groupValues[1]
-            val unit = matchResult.groupValues[2] // hours or days
-            val level = matchResult.groupValues[3]
-            val percentage = matchResult.groupValues[4]
-            
-            // Use the actual unit from the source text
-            val label = "Formation chance through $timeframe $unit"
-            
-            // Only add if we haven't seen this label before
-            if (!seenLabels.contains(label)) {
-                seenLabels.add(label)
-                
-                // Capitalize the first letter of the level
-                val capitalizedLevel = level.replaceFirstChar { it.uppercase() }
-                val value = "$capitalizedLevel ($percentage%)"
-                formationChances.add(Pair(label, value))
-            }
-        }
-    }
-    
-    return formationChances
-}
-
-private fun removeFormationChancesFromText(text: String): String {
-    var cleanText = text
-    
-    // Remove formation chance patterns - handle both asterisk and non-asterisk formats
-    val patterns = listOf(
-        // Pattern with asterisk and ellipsis: "* Formation chance through 48 hours...low...10 percent."
-        Regex("\\*\\s*Formation chance through \\d+ (hours?|days?)\\.\\.\\.\\w+\\.\\.\\.\\d+ percent\\.?", RegexOption.IGNORE_CASE),
-        Regex("\\*\\s*Formation chance through \\d+ (hours?|days?)\\.\\.\\.\\w+\\.\\.\\.\\d+%\\.?", RegexOption.IGNORE_CASE),
-        // Pattern without asterisk (fallback)
-        Regex("Formation chance through \\d+ (hours?|days?)\\.\\.\\.\\w+\\.\\.\\.\\d+ percent\\.?", RegexOption.IGNORE_CASE),
-        Regex("Formation chance through \\d+ (hours?|days?)\\.\\.\\.\\w+\\.\\.\\.\\d+%\\.?", RegexOption.IGNORE_CASE)
-    )
-    
-    patterns.forEach { pattern ->
-        cleanText = cleanText.replace(pattern, "")
-    }
-    
-    // Clean up extra whitespace and line breaks
-    cleanText = cleanText.replace(Regex("\\n\\s*\\n"), "\n\n")
-    cleanText = cleanText.replace(Regex("\\s+"), " ")
-    
-    // Remove duplicate periods and trailing periods
-    cleanText = cleanText.replace(Regex("\\.\\s*\\.+"), ".")
-    cleanText = cleanText.replace(Regex("\\.\\s*$"), "") // Remove trailing period
-    
-    cleanText = cleanText.trim()
-    
-    return cleanText
-}
-
-private fun parseTimestampAndText(text: String): Pair<String?, String> {
-    // Look for timestamp patterns like "800 PM EDT Sun Sep 14 2025"
-    val timestampPattern = Regex("(\\d+\\s+(AM|PM)\\s+EDT\\s+\\w+\\s+\\w+\\s+\\d+\\s+\\d+)", RegexOption.IGNORE_CASE)
-    val timestampMatch = timestampPattern.find(text)
-    
-    val timestamp = timestampMatch?.groupValues?.get(1)
-    val mainText = if (timestamp != null) {
-        text.replace(timestampPattern, "").trim()
-    } else {
-        text
-    }
-    
-    // Clean up duplicate periods in the main text
-    val cleanedMainText = mainText.replace(Regex("\\.\\s*\\.+"), ".")
-    
-    return Pair(timestamp, cleanedMainText)
-}
-
-/* ========================================================================== */
-/*  GENERIC LOADING / ERROR CARDS (gradient for consistency)                  */
-/* ========================================================================== */
-
-@Composable
-private fun LoadingGradientCard(title: String, gradient: Brush) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(22.dp),
-        elevation = CardDefaults.cardElevation(10.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.Transparent)
-    ) {
-        Box(
-            Modifier
-                .background(gradient)
-                .fillMaxWidth()
-                .clip(RoundedCornerShape(22.dp))
-                .padding(16.dp)
-        ) {
-            Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
-                Text(
-                    title,
-                    color = Color.White,
-                    fontSize = 18.sp,
-                    fontWeight = FontWeight.SemiBold
-                )
-                Spacer(Modifier.height(12.dp))
-                ExpressiveLoadingIndicator(color = Color.White)
-            }
-        }
-    }
-}
-
-@Composable
-private fun ErrorGradientCard(title: String, message: String) {
-    val gradient = Brush.verticalGradient(listOf(Color(0xFFFFC1C1), Color(0xFFFF8C8C)))
-    val on = Color(0xFF2B2B2B)
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(22.dp),
-        elevation = CardDefaults.cardElevation(10.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.Transparent)
-    ) {
-        Box(
-            Modifier
-                .background(gradient)
-                .fillMaxWidth()
-                .clip(RoundedCornerShape(22.dp))
-                .padding(16.dp)
-        ) {
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Text(title, color = on, fontSize = 18.sp, fontWeight = FontWeight.SemiBold)
-                Spacer(Modifier.height(8.dp))
-                Text(message, color = on.copy(alpha = 0.9f), fontSize = 14.sp, textAlign = TextAlign.Center)
-            }
-        }
-    }
-}
-
-
-/* ========================================================================== */
-/*  MARKDOWN-ish helper (unchanged)                                           */
-/* ========================================================================== */
-
-@Composable
-private fun parseMarkdownText(text: String): AnnotatedString {
-    return buildAnnotatedString {
-        val parts = text.split(Regex("BOLD_START:(.*?)BOLD_END"))
-        for (i in parts.indices) {
-            if (i % 2 == 0) {
-                append(parts[i])
-            } else {
-                withStyle(style = SpanStyle(fontWeight = FontWeight.Bold)) {
-                    append(parts[i])
-                }
             }
         }
     }

@@ -1,39 +1,44 @@
 package com.weatherpossum.app.data.repository
 
-import com.weatherpossum.app.data.MoonData
-import com.weatherpossum.app.util.MoonPhaseCalculator
 import android.util.Log
+import com.weatherpossum.app.data.UserPreferences
+import com.weatherpossum.app.data.model.MoonData
+import com.weatherpossum.app.util.MoonPhaseCalculator
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.withContext
 import java.time.LocalDate
+import java.time.LocalDateTime
+import java.time.LocalTime
+import java.time.ZoneId
 
 private const val TAG = "MoonRepository"
 
-class MoonRepository() {
+class MoonRepository(
+    private val userPreferences: UserPreferences
+) {
     private val _moonData = MutableStateFlow<MoonData?>(null)
     val moonData: StateFlow<MoonData?> = _moonData.asStateFlow()
 
+    private var diskCacheHydrated = false
+
     suspend fun getMoonPhase(lat: Double, long: Double): Result<MoonData> = withContext(Dispatchers.IO) {
+        hydrateFromDiskIfNeeded()
         try {
-            Log.d(TAG, "Calculating moon phase data locally for lat: $lat, long: $long")
-            
             val currentDate = LocalDate.now()
-            val phase = MoonPhaseCalculator.calculateMoonPhase()
-            val illumination = MoonPhaseCalculator.calculateIllumination()
+            val moonState = MoonPhaseCalculator.computeMoonState(lat, long)
             val (moonrise, moonset) = MoonPhaseCalculator.calculateMoonTimes(currentDate, lat, long)
-            
+
             val moonData = MoonData(
-                phase = phase,
+                phase = moonState.phase,
                 moonrise = MoonPhaseCalculator.formatTimeTo12Hour(moonrise),
                 moonset = MoonPhaseCalculator.formatTimeTo12Hour(moonset),
-                illumination = illumination
+                illumination = moonState.illumination
             )
-            
-            Log.d(TAG, "Local moon phase calculation completed: phase=$phase, illumination=${illumination * 100}%")
-            _moonData.value = moonData
+
+            persistMoonData(moonData)
             Result.success(moonData)
         } catch (e: Exception) {
             Log.e(TAG, "Error calculating moon phase data locally", e)
@@ -42,8 +47,45 @@ class MoonRepository() {
     }
 
     suspend fun refreshMoonData(): Result<MoonData> {
-        Log.d(TAG, "refreshMoonData: called - using local calculation")
-        // Using Dominica's coordinates as default
+        hydrateFromDiskIfNeeded()
         return getMoonPhase(15.414999, -61.370976)
     }
-} 
+
+    suspend fun warmDiskCache() {
+        hydrateFromDiskIfNeeded()
+    }
+
+    private suspend fun hydrateFromDiskIfNeeded() {
+        if (diskCacheHydrated) return
+        diskCacheHydrated = true
+        if (_moonData.value != null) return
+
+        userPreferences.loadCachedMoonData()?.let { cached ->
+            _moonData.value = cached
+            Log.d(TAG, "Hydrated moon data from disk cache")
+        }
+    }
+
+    private suspend fun persistMoonData(data: MoonData) {
+        _moonData.value = data
+        userPreferences.saveCachedMoonData(data)
+    }
+}
+
+/** Daily refresh schedule for moon data (4 AM local). */
+object MoonFetchSchedule {
+    private const val FETCH_HOUR = 4
+
+    fun shouldFetchMoonData(lastFetchTime: Long?): Boolean {
+        if (lastFetchTime == null) return true
+
+        val lastFetch = LocalDateTime.ofInstant(
+            java.time.Instant.ofEpochMilli(lastFetchTime),
+            ZoneId.systemDefault()
+        )
+        val now = LocalDateTime.now()
+
+        return lastFetch.toLocalDate().isBefore(now.toLocalDate()) &&
+            now.toLocalTime().isAfter(LocalTime.of(FETCH_HOUR, 0))
+    }
+}
