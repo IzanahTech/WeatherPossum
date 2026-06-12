@@ -2,6 +2,7 @@ package com.weatherpossum.app.util
 
 import android.app.Activity
 import android.content.Context
+import android.content.ContextWrapper
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Uri
@@ -69,7 +70,7 @@ object InAppUpdater {
             (it.name.endsWith(".sha256", true) && it.name.startsWith(apk.name, true))
         } ?: rel.assets.firstOrNull { it.name.endsWith(".sha256", true) } // fallback: any sha256
 
-        val versionName = rel.name ?: rel.tag_name
+        val versionName = AppVersion.normalize(rel.name ?: rel.tag_name)
         return UpdateCandidate(
             versionName = versionName,
             tag = rel.tag_name,
@@ -187,37 +188,45 @@ object InAppUpdater {
 
     /**
      * Launch the system package installer for [apk].
-     * Pass an [Activity] context when possible so the install UI appears above the app.
      */
     fun installApk(context: Context, apk: File) {
+        val activity = context.findActivity()
+        val launchContext = activity ?: context.applicationContext
+
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O &&
-            !context.packageManager.canRequestPackageInstalls()
+            !launchContext.packageManager.canRequestPackageInstalls()
         ) {
-            val settingsIntent = Intent(
-                Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES,
-                Uri.parse("package:${context.packageName}")
+            launchContext.startActivity(
+                Intent(
+                    Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES,
+                    Uri.parse("package:${launchContext.packageName}")
+                ).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             )
-            if (context !is Activity) {
-                settingsIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-            }
-            context.startActivity(settingsIntent)
             return
         }
 
         val uri = FileProvider.getUriForFile(
-            context, "${context.packageName}.fileprovider", apk
+            launchContext, "${launchContext.packageName}.fileprovider", apk
         )
-        context.startActivity(installIntent(context, uri))
+        val installIntent = Intent(Intent.ACTION_VIEW).apply {
+            setDataAndType(uri, "application/vnd.android.package-archive")
+            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_ACTIVITY_NEW_TASK)
+        }
+
+        if (activity != null) {
+            activity.startActivity(installIntent)
+        } else {
+            launchContext.startActivity(installIntent)
+        }
     }
 
-    private fun installIntent(context: Context, uri: Uri): Intent {
-        return Intent(Intent.ACTION_VIEW).apply {
-            setDataAndType(uri, "application/vnd.android.package-archive")
-            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-            if (context !is Activity) {
-                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-            }
+    private fun Context.findActivity(): Activity? {
+        var current: Context = this
+        while (current is ContextWrapper) {
+            if (current is Activity) return current
+            current = current.baseContext
         }
+        return current as? Activity
     }
 
     private fun githubHttpClient(): OkHttpClient = OkHttpClient.Builder()

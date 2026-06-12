@@ -6,8 +6,10 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.LinearWavyProgressIndicator
+import androidx.activity.compose.LocalActivity
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -19,17 +21,18 @@ import com.weatherpossum.app.presentation.UpdateViewModel
 @Composable
 fun UpdateSheetWithContext(
     vm: UpdateViewModel,
-    context: android.content.Context,
     onDismiss: () -> Unit
 ) {
     val cand = vm.candidate ?: return
+    val activity = LocalActivity.current
+    val context = LocalContext.current
 
     AlertDialog(
         onDismissRequest = onDismiss,
         confirmButton = {
             Button(
                 enabled = !vm.downloading,
-                onClick = { vm.downloadAndInstall(context) },
+                onClick = { vm.downloadAndInstall(activity ?: context) },
                 shape = MaterialTheme.shapes.medium,
                 colors = ButtonDefaults.buttonColors(
                     containerColor = MaterialTheme.colorScheme.primary

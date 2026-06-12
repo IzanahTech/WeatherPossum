@@ -3,7 +3,7 @@ package com.weatherpossum.app.util
 /**
  * Semantic version parsing and comparison for in-app update checks.
  */
-internal object AppVersion {
+object AppVersion {
 
     private val VERSION_NUMBER = Regex("""(\d+(?:\.\d+)*)""")
 

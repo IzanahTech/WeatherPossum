@@ -179,7 +179,6 @@ fun WeatherScreen(
 
             UpdateSheetWithContext(
                 vm = updateViewModel,
-                context = context,
                 onDismiss = { updateViewModel.dismissUpdate() }
             )
         }
