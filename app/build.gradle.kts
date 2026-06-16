@@ -14,8 +14,8 @@ android {
         applicationId = "com.weatherpossum.app"
         minSdk = 31
         targetSdk = 37
-        versionCode = 11
-        versionName = "1.7.2"
+        versionCode = 12
+        versionName = "1.7.3"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {

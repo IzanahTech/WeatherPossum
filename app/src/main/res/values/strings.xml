@@ -115,6 +115,13 @@
     <string name="extras_card_hurricane">Hurricane Updates</string>
     <string name="extras_error_hurricane">Unable to load hurricane data</string>
 
+    <string name="card_credits_title">CREDITS</string>
+    <string name="card_credits_expand">Expand credits</string>
+    <string name="card_credits_collapse">Collapse credits</string>
+    <string name="credits_local_weather">Local weather information provided by the Dominica Meteorological Service.</string>
+    <string name="credits_hurricane_data">Hurricane data provided by the National Oceanic and Atmospheric Administration (NOAA).</string>
+    <string name="credits_app_development">App development and maintenance by Everton Frederick.</string>
+
     <!-- Welcome dialog -->
     <string name="welcome_title">WELCOME ABOARD!</string>
     <string name="welcome_prompt">What shall I call you?</string>

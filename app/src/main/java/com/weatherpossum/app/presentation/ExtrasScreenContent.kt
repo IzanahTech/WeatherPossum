@@ -20,6 +20,7 @@ import com.weatherpossum.app.presentation.components.FunFactCardExpressive
 import com.weatherpossum.app.presentation.components.GreetingCard
 import com.weatherpossum.app.presentation.components.ExtendedForecastCard
 import com.weatherpossum.app.presentation.components.ActiveStormsCard
+import com.weatherpossum.app.presentation.components.CreditsCard
 import com.weatherpossum.app.presentation.components.HurricaneNeutralCard
 import com.weatherpossum.app.presentation.components.HurricaneOutlookCard
 import com.weatherpossum.app.presentation.components.MoonPhaseCard
@@ -158,6 +159,10 @@ fun ExtrasScreenContent(
                     message = stringResource(R.string.extras_error_hurricane)
                 )
             }
+        }
+
+        StaggeredReveal(key = "extras_credits", index = 5) {
+            CreditsCard()
         }
     }
 }
