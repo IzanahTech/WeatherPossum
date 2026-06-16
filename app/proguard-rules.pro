@@ -30,6 +30,11 @@
 -dontwarn okhttp3.internal.platform.**
 -dontwarn org.codehaus.mojo.animal_sniffer.**
 
+# --- Time4J Android ---
+# Time4J uses ServiceLoader to locate AndroidResourceLoader. If this gets removed by shrinking,
+# Time4J can fail fast at startup with "Wrong configuration of external resource loader".
+-keep class net.time4j.android.spi.AndroidResourceLoader { *; }
+
 # --- JSoup ---
 -keep class org.jsoup.** { *; }
 -dontwarn org.jsoup.**
