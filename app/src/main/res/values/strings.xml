@@ -18,14 +18,8 @@
 
     <!-- Home screen widget -->
     <string name="widget_description">Time-based greeting and daily weather synopsis</string>
-    <string name="widget_configure_title">Add Weather Possum widget</string>
-    <string name="widget_configure_subtitle">A greeting card with your daily synopsis. Resize taller to see wind, sea, and tide.</string>
-    <string name="widget_configure_preview_label">Preview</string>
-    <string name="widget_configure_resize_hint">Coastal wind, sea, and tide details appear when the widget is resized taller.</string>
     <string name="widget_preview_greeting">Morning, Possum! 😊</string>
     <string name="widget_preview_synopsis">Partly cloudy with a few showers. Moderate seas and light winds along the coast.</string>
-    <string name="widget_configure_save">Add widget</string>
-    <string name="widget_configure_cancel">Cancel</string>
     <string name="widget_daylight_label">%1$d%% DAYLIGHT</string>
     <string name="widget_coastal_available">🌊 Coastal Info Available</string>
     <string name="widget_greeting_morning">Morning</string>

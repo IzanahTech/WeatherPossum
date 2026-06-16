@@ -6,7 +6,6 @@ import android.content.res.Configuration
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.glance.GlanceId
 import androidx.glance.GlanceModifier
 import androidx.glance.GlanceTheme
@@ -42,12 +41,14 @@ import com.weatherpossum.app.ui.theme.WeatherPossumColors
 class WeatherGlanceWidget : GlanceAppWidget() {
 
     companion object {
-        private val SMALL_4X2 = DpSize(250.dp, 110.dp)
+        private val COMPACT_4X2 = DpSize(250.dp, 110.dp)
+        private val MEDIUM_4X3 = DpSize(250.dp, 155.dp)
         private val EXPANDED_4X3 = DpSize(250.dp, 180.dp)
+        private val TALL_4X4 = DpSize(250.dp, 220.dp)
     }
 
     override val sizeMode: SizeMode = SizeMode.Responsive(
-        setOf(SMALL_4X2, EXPANDED_4X3)
+        setOf(COMPACT_4X2, MEDIUM_4X3, EXPANDED_4X3, TALL_4X4)
     )
 
     override suspend fun provideGlance(context: Context, id: GlanceId) {
@@ -66,7 +67,6 @@ class WeatherGlanceWidget : GlanceAppWidget() {
 private fun WeatherWidgetContent(snapshot: WidgetSnapshot) {
     val context = LocalContext.current
     val size = LocalSize.current
-    val isExpanded = size.height >= 170.dp
     val openApp = actionStartActivity(Intent(context, MainActivity::class.java))
 
     val (topColor, bottomColor) = GreetingWidgetHelper.greetingColors(context)
@@ -89,7 +89,6 @@ private fun WeatherWidgetContent(snapshot: WidgetSnapshot) {
 
     GreetingWidgetLayout(
         snapshot = snapshot,
-        isExpanded = isExpanded,
         backgroundModifier = backgroundModifier,
         onColorProvider = onColorProvider,
         synopsisColorProvider = synopsisColorProvider,
@@ -100,44 +99,9 @@ private fun WeatherWidgetContent(snapshot: WidgetSnapshot) {
 private fun widgetBackgroundColor(top: Color, bottom: Color, isDarkMode: Boolean): Color =
     if (isDarkMode) bottom else WeatherPossumColors.lerpColor(top, bottom, 0.38f)
 
-private data class WidgetTypography(
-    val greeting: androidx.compose.ui.unit.TextUnit,
-    val synopsis: androidx.compose.ui.unit.TextUnit,
-    val metricLabel: androidx.compose.ui.unit.TextUnit,
-    val metricValue: androidx.compose.ui.unit.TextUnit,
-    val hint: androidx.compose.ui.unit.TextUnit,
-    val sectionGap: androidx.compose.ui.unit.Dp,
-    val lineGap: androidx.compose.ui.unit.Dp,
-    val metricGap: androidx.compose.ui.unit.Dp
-)
-
-private fun widgetTypography(size: DpSize, isExpanded: Boolean): WidgetTypography {
-    val scale = ((size.height.value / 110f) * 0.72f + (size.width.value / 250f) * 0.28f)
-        .coerceIn(1f, 2.1f)
-    val expandedBoost = if (isExpanded) 1.08f else 1f
-    val s = scale * expandedBoost
-
-    fun sp(base: Float, min: Float, max: Float) =
-        (base * s).coerceIn(min, max).sp
-
-    fun gap(base: Float) = (base * s).coerceIn(base, base * 1.35f).dp
-
-    return WidgetTypography(
-        greeting = sp(20f, 18f, 28f),
-        synopsis = sp(15f, 13f, 21f),
-        metricLabel = sp(11f, 10f, 14f),
-        metricValue = sp(13.5f, 12f, 18f),
-        hint = sp(11f, 10f, 13f),
-        sectionGap = gap(if (isExpanded) 10f else 8f),
-        lineGap = gap(6f),
-        metricGap = gap(5f)
-    )
-}
-
 @androidx.compose.runtime.Composable
 private fun GreetingWidgetLayout(
     snapshot: WidgetSnapshot,
-    isExpanded: Boolean,
     backgroundModifier: GlanceModifier,
     onColorProvider: ColorProvider,
     synopsisColorProvider: ColorProvider,
@@ -145,20 +109,32 @@ private fun GreetingWidgetLayout(
 ) {
     val context = LocalContext.current
     val size = LocalSize.current
-    val type = widgetTypography(size, isExpanded)
+    val density = context.resources.displayMetrics.density
     val greeting = GreetingWidgetHelper.widgetGreetingLine(context, snapshot.userName)
     val emoji = GreetingWidgetHelper.widgetGreetingEmoji()
     val synopsis = snapshot.synopsis?.takeIf { it.isNotBlank() }
         ?: context.getString(R.string.screen_greeting_loading_synopsis)
     val unavailable = context.getString(R.string.widget_metric_unavailable)
-
     val greetingText = "$greeting $emoji"
-    val density = context.resources.displayMetrics.density
-    val availableGreetingWidthPx = ((size.width - 40.dp).value * density).coerceAtLeast(0f)
+
+    val layoutPlan = WidgetLayoutPlanner.plan(
+        size = size,
+        greetingText = greetingText,
+        synopsis = synopsis,
+        windLabel = context.getString(R.string.widget_metric_wind),
+        seaLabel = context.getString(R.string.widget_metric_sea),
+        tideLabel = context.getString(R.string.widget_metric_tide),
+        wind = snapshot.windSummary,
+        sea = snapshot.seaSummary,
+        tide = snapshot.tideSummary,
+        hasCoastalDetails = snapshot.hasCoastalDetails,
+        unavailable = unavailable
+    )
+
     val greetingFontSize = WidgetTextSizer.fitSingleLineTextSize(
         text = greetingText,
-        availableWidthPx = availableGreetingWidthPx,
-        maxSp = type.greeting.value,
+        availableWidthPx = ((size.width - 40.dp).value * density).coerceAtLeast(0f),
+        maxSp = layoutPlan.greetingMaxSp,
         minSp = 12f,
         density = density,
         isBold = true
@@ -166,17 +142,17 @@ private fun GreetingWidgetLayout(
 
     Box(modifier = backgroundModifier, contentAlignment = Alignment.TopStart) {
         Column(modifier = GlanceModifier.fillMaxSize()) {
-            if (!isExpanded && snapshot.hasCoastalDetails) {
+            if (layoutPlan.showCoastalHint) {
                 Text(
                     text = context.getString(R.string.widget_coastal_available),
                     style = TextStyle(
                         color = hintColorProvider,
-                        fontSize = type.hint,
+                        fontSize = layoutPlan.typography.hint,
                         fontWeight = FontWeight.Normal
                     ),
                     maxLines = 1
                 )
-                Spacer(GlanceModifier.height(type.sectionGap))
+                Spacer(GlanceModifier.height(layoutPlan.typography.sectionGap))
             }
 
             Text(
@@ -190,26 +166,25 @@ private fun GreetingWidgetLayout(
                 modifier = GlanceModifier.fillMaxWidth()
             )
 
-            Spacer(GlanceModifier.height(type.lineGap))
+            Spacer(GlanceModifier.height(layoutPlan.typography.lineGap))
 
             Text(
                 text = synopsis,
                 style = TextStyle(
                     color = synopsisColorProvider,
-                    fontSize = type.synopsis,
+                    fontSize = layoutPlan.typography.synopsis,
                     fontWeight = FontWeight.Normal
                 ),
-                maxLines = if (isExpanded) 2 else 4
+                maxLines = layoutPlan.synopsisMaxLines
             )
 
-            if (isExpanded) {
-                Spacer(GlanceModifier.height(type.sectionGap))
-                ExpandedCoastalMetrics(
-                    snapshot = snapshot,
-                    unavailable = unavailable,
+            if (layoutPlan.metrics.isNotEmpty()) {
+                Spacer(GlanceModifier.height(layoutPlan.typography.sectionGap))
+                CoastalMetricsSection(
+                    metrics = layoutPlan.metrics,
                     onColorProvider = onColorProvider,
                     labelColorProvider = hintColorProvider,
-                    typography = type
+                    typography = layoutPlan.typography
                 )
             }
         }
@@ -217,41 +192,26 @@ private fun GreetingWidgetLayout(
 }
 
 @androidx.compose.runtime.Composable
-private fun ExpandedCoastalMetrics(
-    snapshot: WidgetSnapshot,
-    unavailable: String,
+private fun CoastalMetricsSection(
+    metrics: List<WidgetMetricSlot>,
     onColorProvider: ColorProvider,
     labelColorProvider: ColorProvider,
     typography: WidgetTypography
 ) {
-    val context = LocalContext.current
-
     Column(modifier = GlanceModifier.fillMaxWidth()) {
-        CoastalMetricRow(
-            label = context.getString(R.string.widget_metric_wind),
-            value = snapshot.windSummary ?: unavailable,
-            textColor = onColorProvider,
-            labelColor = labelColorProvider,
-            typography = typography
-        )
-        Spacer(GlanceModifier.height(typography.metricGap))
-        CoastalMetricRow(
-            label = context.getString(R.string.widget_metric_sea),
-            value = snapshot.seaSummary ?: unavailable,
-            textColor = onColorProvider,
-            labelColor = labelColorProvider,
-            typography = typography,
-            maxLines = 2
-        )
-        Spacer(GlanceModifier.height(typography.metricGap))
-        CoastalMetricRow(
-            label = context.getString(R.string.widget_metric_tide),
-            value = snapshot.tideSummary ?: unavailable,
-            textColor = onColorProvider,
-            labelColor = labelColorProvider,
-            typography = typography,
-            maxLines = 2
-        )
+        metrics.forEachIndexed { index, metric ->
+            CoastalMetricRow(
+                label = metric.label,
+                value = metric.value,
+                textColor = onColorProvider,
+                labelColor = labelColorProvider,
+                typography = typography,
+                maxLines = metric.maxLines
+            )
+            if (index < metrics.lastIndex) {
+                Spacer(GlanceModifier.height(typography.metricGap))
+            }
+        }
     }
 }
 

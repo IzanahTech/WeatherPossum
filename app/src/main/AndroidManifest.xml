@@ -38,15 +38,6 @@
             </intent-filter>
         </activity>
 
-        <activity
-            android:name=".widget.WeatherWidgetConfigureActivity"
-            android:exported="true"
-            android:theme="@style/Theme.WeatherPossum">
-            <intent-filter>
-                <action android:name="android.appwidget.action.APPWIDGET_CONFIGURE" />
-            </intent-filter>
-        </activity>
-
         <receiver
             android:name=".widget.WeatherWidgetReceiver"
             android:exported="true"
