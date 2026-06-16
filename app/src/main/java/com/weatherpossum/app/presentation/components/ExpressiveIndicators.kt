@@ -199,7 +199,7 @@ fun WavyCircleProgressIndicator(
                 
                 while (angle <= startAngle + totalAngle) {
                     val angleRad = Math.toRadians(angle.toDouble())
-                    val waveOffset = amplitudePx * sin((angleRad * waveFrequency + phase).toDouble()).toFloat()
+                    val waveOffset = amplitudePx * sin(angleRad * waveFrequency + phase).toFloat()
                     val currentRadius = baseRadius + waveOffset
                     
                     val x = center.x + currentRadius * cos(angleRad).toFloat()

@@ -16,7 +16,6 @@ import com.weatherpossum.app.widget.WeatherWidgetWorker
 import net.time4j.android.ApplicationStarter
 import org.koin.android.ext.koin.androidContext
 import org.koin.android.ext.koin.androidLogger
-import org.koin.androidx.compose.KoinAndroidContext
 import org.koin.core.context.startKoin
 
 class WeatherPossumApp : Application() {
@@ -38,14 +37,12 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
-            KoinAndroidContext {
-                WeatherPossumTheme {
-                    Surface(
-                        modifier = Modifier.fillMaxSize(),
-                        color = MaterialTheme.colorScheme.background
-                    ) {
-                        WeatherScreen()
-                    }
+            WeatherPossumTheme {
+                Surface(
+                    modifier = Modifier.fillMaxSize(),
+                    color = MaterialTheme.colorScheme.background
+                ) {
+                    WeatherScreen()
                 }
             }
         }

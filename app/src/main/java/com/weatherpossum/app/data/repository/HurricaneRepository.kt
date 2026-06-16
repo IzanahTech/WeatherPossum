@@ -10,6 +10,7 @@ import com.squareup.moshi.Moshi
 import com.weatherpossum.app.data.model.StormDto
 import com.weatherpossum.app.data.parser.TwoTextParser
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -52,6 +53,8 @@ class HurricaneRepository(
                 withTimeout(FETCH_TIMEOUT_MS) {
                     fetchActiveHurricanes(forceRefresh)
                 }
+            } catch (e: CancellationException) {
+                throw e
             } catch (e: Exception) {
                 Log.e(TAG, "Error fetching hurricane data", e)
                 handleHurricaneFetchFailure(e)
@@ -79,6 +82,8 @@ class HurricaneRepository(
             val stormsJson = try {
                 Log.d(TAG, "Attempting to fetch CurrentStorms.json")
                 nhcApi.currentStorms().string()
+            } catch (e: CancellationException) {
+                throw e
             } catch (e: Exception) {
                 Log.w(TAG, "First attempt failed for storms, retrying: ${e.message}", e)
                 retryWithTimeout { nhcApi.currentStorms().string() }
@@ -88,6 +93,8 @@ class HurricaneRepository(
             val twoHtml = try {
                 Log.d(TAG, "Attempting to fetch TWO text")
                 nhcApi.atlanticTwoText().string()
+            } catch (e: CancellationException) {
+                throw e
             } catch (e: Exception) {
                 Log.w(TAG, "First attempt failed for TWO, retrying: ${e.message}", e)
                 retryWithTimeout { nhcApi.atlanticTwoText().string() }
@@ -105,6 +112,8 @@ class HurricaneRepository(
 
             persistCache(data)
             return Result.success(data)
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
             return handleHurricaneFetchFailure(e)
         }
@@ -139,6 +148,8 @@ class HurricaneRepository(
         repeat(MAX_RETRIES) {
             try {
                 return withContext(Dispatchers.IO) { block() }
+            } catch (e: CancellationException) {
+                throw e
             } catch (e: Exception) {
                 Log.w(TAG, "Retry attempt ${it + 1} failed: ${e.message}")
 

@@ -105,7 +105,7 @@ data class Hurricane(
 
 @JsonClass(generateAdapter = true)
 data class CurrentStormsDto(
-    @Json(name = "activeStorms") val activeStorms: List<StormDto> = emptyList()
+    @param:Json(name = "activeStorms") val activeStorms: List<StormDto> = emptyList()
 )
 
 @JsonClass(generateAdapter = true)

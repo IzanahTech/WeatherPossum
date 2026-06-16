@@ -8,6 +8,7 @@ import com.weatherpossum.app.R
 import com.weatherpossum.app.data.model.ForecastDay
 import com.weatherpossum.app.data.model.Result
 import com.weatherpossum.app.data.repository.ExtendedForecastRepository
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -67,6 +68,8 @@ class ExtendedForecastViewModel(
                 }
                 is Result.Loading -> Unit
             }
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
             if (_forecast.value.isEmpty()) {
                 _error.value = application.getString(R.string.extended_forecast_error_load)

@@ -45,7 +45,7 @@ internal fun Color.relativeLuminance(): Float {
     val r = channel(red)
     val g = channel(green)
     val b = channel(blue)
-    return (0.2126f * r + 0.7152f * g + 0.0722f * b).toFloat()
+    return 0.2126f * r + 0.7152f * g + 0.0722f * b
 }
 
 internal fun Color.isNeutralTint(): Boolean {

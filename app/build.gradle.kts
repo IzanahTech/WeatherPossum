@@ -2,19 +2,18 @@ import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
     alias(libs.plugins.android.application)
-    alias(libs.plugins.kotlin.android)
     alias(libs.plugins.compose.compiler)
     alias(libs.plugins.ksp)
 }
 
 android {
     namespace = "com.weatherpossum.app"
-    compileSdk = 36
+    compileSdk = 37
 
     defaultConfig {
         applicationId = "com.weatherpossum.app"
         minSdk = 31
-        targetSdk = 36
+        targetSdk = 37
         versionCode = 8
         versionName = "1.6.2"
 
@@ -28,6 +27,11 @@ android {
         release {
             isMinifyEnabled = true
             isShrinkResources = true
+            optimization {
+                keepRules {
+                    ignoreFrom("net.time4j:time4j-android")
+                }
+            }
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
@@ -43,6 +47,7 @@ android {
     buildFeatures {
         compose = true
         buildConfig = true  // Enable BuildConfig generation
+        resValues = true
     }
     
     packaging {
@@ -57,7 +62,6 @@ kotlin {
         jvmTarget.set(JvmTarget.JVM_17)
         freeCompilerArgs.addAll(
             "-opt-in=kotlin.RequiresOptIn",
-            "-opt-in=org.koin.core.annotation.KoinExperimentalAPI",
             "-opt-in=androidx.compose.material3.ExperimentalMaterial3Api"
         )
     }
@@ -69,6 +73,8 @@ dependencies {
     androidTestImplementation(composeBom)
 
     implementation(libs.androidx.core.ktx)
+    implementation(libs.androidx.concurrent.futures)
+    implementation(libs.androidx.concurrent.futures.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.lifecycle.runtime.compose)
     implementation(libs.androidx.activity.compose)

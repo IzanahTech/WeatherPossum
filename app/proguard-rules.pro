@@ -6,6 +6,7 @@
 #   http://developer.android.com/guide/developing/tools/proguard.html
 
 # --- Koin ---
+-keep class org.koin.core.** { *; }
 -keep class org.koin.core.scope.Scope { *; }
 -keep class org.koin.java.* { *; }
 -keep class org.koin.android.* { *; }
@@ -23,6 +24,11 @@
 -keepnames class com.weatherpossum.app.data.api.GhRelease { *; }
 -keepnames class com.weatherpossum.app.data.api.GhAsset { *; }
 -keepnames class com.weatherpossum.app.data.cache.** { *; }
+
+# --- Retrofit ---
+-keep,allowobfuscation,allowshrinking interface com.weatherpossum.app.data.api.** { *; }
+-dontwarn okhttp3.internal.platform.**
+-dontwarn org.codehaus.mojo.animal_sniffer.**
 
 # --- JSoup ---
 -keep class org.jsoup.** { *; }

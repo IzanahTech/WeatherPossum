@@ -73,10 +73,10 @@ class DominicaWeatherParserTest {
 
         assertEquals("A high pressure system is becoming the dominant feature", parsed.synopsis)
         assertEquals("E to SE @ 10 to 30 km/h", parsed.wind)
-        requireNotNull(parsed.shortTermForecast)
+        val shortTermForecast = requireNotNull(parsed.shortTermForecast)
         assertEquals(
             "Partly cloudy to cloudy and hazy with a few, brief showers",
-            parsed.shortTermForecast?.body
+            shortTermForecast.body
         )
         assertEquals(
             "Weather Outlook for Dominica and the Lesser Antilles",
@@ -91,8 +91,8 @@ class DominicaWeatherParserTest {
 
         assertEquals("Breezy with passing showers", parsed.synopsis)
         assertEquals("E @ 15 to 25 km/h", parsed.wind)
-        requireNotNull(parsed.shortTermForecast)
-        assertTrue(parsed.shortTermForecast?.section is ForecastSection.TONIGHT)
+        val shortTermForecast = requireNotNull(parsed.shortTermForecast)
+        assertTrue(shortTermForecast.section is ForecastSection.TONIGHT)
         assertEquals(
             "Weather Outlook for Dominica and the Lesser Antilles",
             parsed.outlookTitle

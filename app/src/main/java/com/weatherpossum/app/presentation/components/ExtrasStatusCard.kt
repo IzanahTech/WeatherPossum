@@ -18,11 +18,11 @@ import com.weatherpossum.app.ui.theme.WeatherPossumGlass
 @Composable
 fun ExtrasLoadingCard(
     title: String,
+    modifier: Modifier = Modifier,
     gradient: Brush? = null,
     style: CardGradientStyle? = null,
     titleColor: androidx.compose.ui.graphics.Color? = null,
-    indicatorColor: androidx.compose.ui.graphics.Color? = null,
-    modifier: Modifier = Modifier
+    indicatorColor: androidx.compose.ui.graphics.Color? = null
 ) {
     val isDarkMode = isSystemInDarkTheme()
     val resolvedStyle = style ?: CardGradientStyle.Moon
@@ -55,9 +55,9 @@ fun ExtrasLoadingCard(
 fun ExtrasErrorCard(
     title: String,
     message: String,
+    modifier: Modifier = Modifier,
     gradient: Brush? = null,
-    contentColor: androidx.compose.ui.graphics.Color? = null,
-    modifier: Modifier = Modifier
+    contentColor: androidx.compose.ui.graphics.Color? = null
 ) {
     val isDarkMode = isSystemInDarkTheme()
     val (tintTop, tintBottom) = WeatherPossumGlass.colorsForStyle(CardGradientStyle.Error, isDarkMode)

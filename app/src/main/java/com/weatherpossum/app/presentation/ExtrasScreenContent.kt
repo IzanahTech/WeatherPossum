@@ -30,12 +30,12 @@ import com.weatherpossum.app.ui.theme.WeatherPossumDimens
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun ExtrasScreenContent(
+    modifier: Modifier = Modifier,
     scrollState: ScrollState = rememberScrollState(),
     weatherViewModel: WeatherViewModel = koinViewModel(),
     extendedForecastViewModel: ExtendedForecastViewModel = koinViewModel(),
     moonViewModel: MoonViewModel = koinViewModel(),
-    hurricaneViewModel: HurricaneViewModel = koinViewModel(),
-    modifier: Modifier = Modifier
+    hurricaneViewModel: HurricaneViewModel = koinViewModel()
 ) {
     val userName by weatherViewModel.userName.collectAsStateWithLifecycle()
     val synopsis by weatherViewModel.synopsis.collectAsStateWithLifecycle()

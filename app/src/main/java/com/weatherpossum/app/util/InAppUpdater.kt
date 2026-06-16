@@ -5,15 +5,15 @@ import android.content.Context
 import android.content.ContextWrapper
 import android.content.Intent
 import android.content.pm.PackageManager
-import android.net.Uri
-import android.os.Build
 import android.provider.Settings
 import androidx.core.content.FileProvider
+import androidx.core.net.toUri
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.Interceptor
 import com.weatherpossum.app.data.api.GhRelease
 import com.weatherpossum.app.data.api.GitHubApi
+import com.weatherpossum.app.data.api.HttpClients
 import com.squareup.moshi.Moshi
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -107,11 +107,12 @@ object InAppUpdater {
             val resp = client.newCall(req).execute()
             require(resp.isSuccessful) { "HTTP ${resp.code}" }
             
-            val contentLength = resp.body!!.contentLength()
+            val body = resp.body
+            val contentLength = body.contentLength()
             val dir = File(context.cacheDir, "updates").apply { mkdirs() }
             val out = File(dir, fileName)
-            
-            resp.body!!.source().use { src ->
+
+            body.source().use { src ->
                 out.outputStream().sink().buffer().use { dst ->
                     val buffer = Buffer()
                     var totalBytesRead = 0L
@@ -165,23 +166,21 @@ object InAppUpdater {
             context.packageName,
             PackageManager.GET_SIGNING_CERTIFICATES
         )
-        
-        val current = if (Build.VERSION.SDK_INT >= 28)
-            installed.signingInfo?.apkContentsSigners?.map { it.toCharsString() }?.toSet() ?: emptySet()
-        else 
-            @Suppress("DEPRECATION")
-            installed.signatures?.map { it.toCharsString() }?.toSet() ?: emptySet()
+
+        val current = installed.signingInfo?.apkContentsSigners
+            ?.map { it.toCharsString() }
+            ?.toSet()
+            ?: emptySet()
 
         val archive = pm.getPackageArchiveInfo(
             apkFile.path,
             PackageManager.GET_SIGNING_CERTIFICATES
         ) ?: return false
-        
-        val update = if (Build.VERSION.SDK_INT >= 28)
-            archive.signingInfo?.apkContentsSigners?.map { it.toCharsString() }?.toSet() ?: emptySet()
-        else 
-            @Suppress("DEPRECATION")
-            archive.signatures?.map { it.toCharsString() }?.toSet() ?: emptySet()
+
+        val update = archive.signingInfo?.apkContentsSigners
+            ?.map { it.toCharsString() }
+            ?.toSet()
+            ?: emptySet()
 
         return current.intersect(update).isNotEmpty()
     }
@@ -193,13 +192,11 @@ object InAppUpdater {
         val activity = context.findActivity()
         val launchContext = activity ?: context.applicationContext
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O &&
-            !launchContext.packageManager.canRequestPackageInstalls()
-        ) {
+        if (!launchContext.packageManager.canRequestPackageInstalls()) {
             launchContext.startActivity(
                 Intent(
                     Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES,
-                    Uri.parse("package:${launchContext.packageName}")
+                    "package:${launchContext.packageName}".toUri()
                 ).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             )
             return
@@ -229,9 +226,10 @@ object InAppUpdater {
         return current as? Activity
     }
 
-    private fun githubHttpClient(): OkHttpClient = OkHttpClient.Builder()
-        .addInterceptor(githubUserAgentInterceptor())
-        .build()
+    private fun githubHttpClient(): OkHttpClient =
+        HttpClients.timedBuilder()
+            .addInterceptor(githubUserAgentInterceptor())
+            .build()
 
     private fun githubUserAgentInterceptor(): Interceptor = Interceptor { chain ->
         val request = chain.request().newBuilder()

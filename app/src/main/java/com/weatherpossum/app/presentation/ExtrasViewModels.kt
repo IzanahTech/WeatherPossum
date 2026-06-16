@@ -8,6 +8,7 @@ import java.net.SocketTimeoutException
 import java.net.UnknownHostException
 import kotlinx.coroutines.TimeoutCancellationException
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
@@ -20,6 +21,7 @@ import com.weatherpossum.app.data.repository.MoonFetchSchedule
 import com.weatherpossum.app.data.repository.MoonRepository
 import com.weatherpossum.app.util.InAppUpdater
 import com.weatherpossum.app.widget.WeatherWidgetUpdateManager
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.withContext
@@ -81,6 +83,8 @@ class MoonViewModel(
                                     }
                                 }
                             )
+                        } catch (e: CancellationException) {
+                            throw e
                         } catch (e: Exception) {
                             Log.e(MOON_TAG, "Error fetching moon data", e)
                             _uiState.value = if (moonData != null) {
@@ -121,6 +125,8 @@ class MoonViewModel(
                     }
                 }
             )
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
             Log.e(MOON_TAG, "Error force-refreshing moon data", e)
             _uiState.value = if (cached != null) {
@@ -189,6 +195,8 @@ class HurricaneViewModel(
                     }
                 }
             )
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
             Log.e(HURRICANE_TAG, "Error refreshing hurricane data", e)
             if (cached != null) {
@@ -234,7 +242,7 @@ class UpdateViewModel(
     var progressText by mutableStateOf<String?>(null)
         private set
 
-    var downloadProgress by mutableStateOf(0f)
+    var downloadProgress by mutableFloatStateOf(0f)
         private set
 
     var error by mutableStateOf<String?>(null)
@@ -308,6 +316,8 @@ class UpdateViewModel(
             downloadProgress = 1.0f
             progressText = application.getString(R.string.update_installing)
             InAppUpdater.installApk(context, apk)
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
             Log.e("UpdateViewModel", "Update install failed", e)
             error = e.message

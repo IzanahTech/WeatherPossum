@@ -7,6 +7,7 @@ import com.weatherpossum.app.data.model.ForecastDay
 import com.weatherpossum.app.data.model.Result
 import com.weatherpossum.app.data.parser.ExtendedForecastParser
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.withContext
 import java.util.Calendar
 
@@ -62,6 +63,8 @@ class ExtendedForecastRepository(
 
             persistCache(days)
             Result.Success(days)
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
             Log.e(TAG, "Error fetching extended forecast", e)
             staleCacheOrError(e.message ?: "Extended forecast fetch failed", e)

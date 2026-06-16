@@ -13,6 +13,7 @@ import androidx.work.WorkerParameters
 import com.weatherpossum.app.data.model.Result as DataResult
 import com.weatherpossum.app.data.repository.HurricaneRepository
 import com.weatherpossum.app.data.repository.WeatherRepository
+import kotlinx.coroutines.CancellationException
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 import java.util.concurrent.TimeUnit
@@ -39,6 +40,8 @@ class WeatherWidgetWorker(
                 }
                 is DataResult.Loading -> ListenableWorker.Result.retry()
             }
+        } catch (e: CancellationException) {
+            throw e
         } catch (_: Exception) {
             WeatherWidgetUpdateManager.updateAllWidgets(applicationContext)
             ListenableWorker.Result.retry()

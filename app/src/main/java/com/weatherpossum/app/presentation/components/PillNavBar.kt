@@ -40,6 +40,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
 import com.weatherpossum.app.ui.theme.CardGradientStyle
@@ -130,7 +131,7 @@ fun PillNavBar(
 
             Box(
                 modifier = Modifier
-                    .offset(x = highlightOffset)
+                    .offset { IntOffset(highlightOffset.roundToPx(), 0) }
                     .width(tabWidth)
                     .fillMaxHeight()
                     .padding(5.dp)

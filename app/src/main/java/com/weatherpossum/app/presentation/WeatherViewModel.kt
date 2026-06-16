@@ -12,6 +12,7 @@ import com.weatherpossum.app.data.repository.WeatherRepository
 import com.weatherpossum.app.domain.forecast.ForecastParser
 import com.weatherpossum.app.domain.forecast.normalizeTitle
 import com.weatherpossum.app.widget.WeatherWidgetUpdateManager
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.flow.*
@@ -120,6 +121,8 @@ class WeatherViewModel(
             _uiState.value = WeatherUiState.Error(
                 application.getString(R.string.repository_error_socket_timeout)
             )
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
             Log.e(TAG, "Error loading weather", e)
             _uiState.value = WeatherUiState.Error(

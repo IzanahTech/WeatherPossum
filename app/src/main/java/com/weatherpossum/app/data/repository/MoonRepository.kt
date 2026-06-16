@@ -5,6 +5,7 @@ import com.weatherpossum.app.data.UserPreferences
 import com.weatherpossum.app.data.model.MoonData
 import com.weatherpossum.app.util.MoonPhaseCalculator
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -40,6 +41,8 @@ class MoonRepository(
 
             persistMoonData(moonData)
             Result.success(moonData)
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
             Log.e(TAG, "Error calculating moon phase data locally", e)
             Result.failure(e)

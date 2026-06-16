@@ -8,6 +8,7 @@ import com.weatherpossum.app.data.model.WeatherCard
 import com.weatherpossum.app.data.parser.DominicaWeatherParser
 import com.weatherpossum.app.data.parser.WeatherCardMapper
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
 
@@ -56,6 +57,8 @@ class WeatherRepository(
 
             persistCache(cards)
             Result.Success(cards)
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
             Log.e(TAG, "Error fetching weather forecast", e)
             staleCacheOrError(e.message ?: "Network error", e)
@@ -102,6 +105,8 @@ class WeatherRepository(
         repeat(MAX_RETRIES) {
             try {
                 return withContext(Dispatchers.IO) { block() }
+            } catch (e: CancellationException) {
+                throw e
             } catch (_: Exception) {
                 delay(delayTime)
                 delayTime *= 2

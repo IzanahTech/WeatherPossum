@@ -30,6 +30,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -73,8 +74,8 @@ private object StaggeredRevealState {
 @Composable
 fun StaggeredReveal(
     key: Any,
-    index: Int = 0,
     modifier: Modifier = Modifier,
+    index: Int = 0,
     content: @Composable () -> Unit
 ) {
     val alreadyRevealed = key in StaggeredRevealState.revealedKeys
@@ -151,11 +152,16 @@ fun ParallaxCard(
     modifier: Modifier = Modifier,
     content: @Composable () -> Unit
 ) {
+    val scrollPosition by remember {
+        derivedStateOf {
+            listState.firstVisibleItemIndex to listState.firstVisibleItemScrollOffset
+        }
+    }
     Box(
         modifier = modifier.parallaxScrollEffect(
             index = index,
-            firstVisibleIndex = listState.firstVisibleItemIndex,
-            scrollOffset = listState.firstVisibleItemScrollOffset
+            firstVisibleIndex = scrollPosition.first,
+            scrollOffset = scrollPosition.second
         )
     ) {
         content()
@@ -211,11 +217,11 @@ fun Modifier.navSelectedSurface(
     tintBottom: Color,
     isDarkMode: Boolean,
     cornerRadius: Dp = 26.dp
-): Modifier = composed {
+): Modifier {
     val shape = RoundedCornerShape(cornerRadius)
     val rim = WeatherPossumGlass.rimBrush(tintTop, tintBottom, isDarkMode)
 
-    this
+    return this
         .clip(shape)
         .background(WeatherPossumGlass.navSelectedBrush(tintTop, tintBottom, isDarkMode))
         .drawBehind {
