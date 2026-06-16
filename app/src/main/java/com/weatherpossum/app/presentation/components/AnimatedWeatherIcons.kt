@@ -44,7 +44,8 @@ enum class WeatherIconType {
     AFTERNOON,
     MORNING,
     NIGHT,
-    ADVISORY
+    ADVISORY,
+    CREDITS
 }
 
 private fun WeatherIconType.defaultContentDescription(): String = when (this) {
@@ -65,6 +66,7 @@ private fun WeatherIconType.defaultContentDescription(): String = when (this) {
     WeatherIconType.MORNING -> "Morning"
     WeatherIconType.NIGHT -> "Night"
     WeatherIconType.ADVISORY -> "Weather advisory"
+    WeatherIconType.CREDITS -> "Credits"
 }
 
 @Composable
@@ -98,6 +100,7 @@ fun AnimatedWeatherIcon(
             WeatherIconType.MORNING -> AnimatedMorningIcon(color = color)
             WeatherIconType.NIGHT -> AnimatedNightIcon(color = color)
             WeatherIconType.ADVISORY -> AnimatedAdvisoryIcon(color = color)
+            WeatherIconType.CREDITS -> AnimatedCreditsIcon(color = color)
         }
     }
 }
@@ -794,6 +797,54 @@ fun AnimatedExtrasIcon(
                 )
             }
         }
+    }
+}
+
+@Composable
+fun AnimatedCreditsIcon(modifier: Modifier = Modifier, color: Color = Color.Unspecified) {
+    val infiniteTransition = rememberInfiniteTransition(label = "credits")
+    val pulseScale by infiniteTransition.animateFloat(
+        initialValue = 0.94f,
+        targetValue = 1.06f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(1800, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "pulseScale"
+    )
+    val glowIntensity by infiniteTransition.animateFloat(
+        initialValue = 0.35f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(2200, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "glowIntensity"
+    )
+    val sparkle by infiniteTransition.animateFloat(
+        initialValue = 0f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(2600, easing = LinearEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "sparkle"
+    )
+
+    val onDark = tintSuggestsDarkSurface(color)
+    val accent = iconAccentColor(color, Color(0xFFE91E63), Color(0xFFF48FB1), onDark)
+
+    Canvas(modifier = modifier.fillMaxSize()) {
+        val center = Offset(size.width / 2f, size.height / 2f)
+        val heartSize = size.minDimension * 0.42f
+        drawStarField(center = center, radius = heartSize * 1.15f, tint = accent, twinkle = sparkle)
+        drawHeart(
+            center = center,
+            size = heartSize,
+            scale = pulseScale,
+            glow = glowIntensity,
+            accent = accent
+        )
     }
 }
 

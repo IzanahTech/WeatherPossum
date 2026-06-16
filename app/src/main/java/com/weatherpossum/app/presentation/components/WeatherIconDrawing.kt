@@ -876,3 +876,65 @@ internal fun DrawScope.drawLightBulb(
         }
     }
 }
+
+internal fun DrawScope.drawHeart(
+    center: Offset,
+    size: Float,
+    scale: Float,
+    glow: Float,
+    accent: Color
+) {
+    val w = size * scale
+    val h = size * scale
+    val top = center.y - h * 0.32f
+    val bottom = center.y + h * 0.52f
+
+    val heartPath = Path().apply {
+        moveTo(center.x, top + h * 0.32f)
+        cubicTo(
+            center.x - w * 0.5f, top,
+            center.x - w * 0.95f, center.y - h * 0.02f,
+            center.x, bottom
+        )
+        cubicTo(
+            center.x + w * 0.95f, center.y - h * 0.02f,
+            center.x + w * 0.5f, top,
+            center.x, top + h * 0.32f
+        )
+        close()
+    }
+
+    drawCircle(
+        brush = Brush.radialGradient(
+            colors = listOf(accent.copy(alpha = glow * 0.4f), Color.Transparent),
+            center = center,
+            radius = w * 1.4f
+        ),
+        radius = w * 1.4f,
+        center = center
+    )
+
+    drawPath(
+        path = heartPath,
+        brush = Brush.radialGradient(
+            colors = listOf(
+                blendColor(accent, Color.White, 0.45f),
+                accent,
+                darkenColor(accent, 0.72f)
+            ),
+            center = Offset(center.x - w * 0.12f, center.y - h * 0.08f),
+            radius = w * 1.1f
+        )
+    )
+    drawPath(
+        path = heartPath,
+        color = darkenColor(accent, 0.6f).copy(alpha = 0.5f),
+        style = Stroke(width = 1.5.dp.toPx(), cap = StrokeCap.Round)
+    )
+
+    drawCircle(
+        color = Color.White.copy(alpha = 0.35f + glow * 0.2f),
+        radius = w * 0.1f,
+        center = Offset(center.x - w * 0.18f, top + h * 0.22f)
+    )
+}

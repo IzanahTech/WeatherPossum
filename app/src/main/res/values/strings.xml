@@ -120,6 +120,7 @@
     <string name="card_credits_collapse">Collapse credits</string>
     <string name="credits_local_weather">Local weather information provided by the Dominica Meteorological Service.</string>
     <string name="credits_hurricane_data">Hurricane data provided by the National Oceanic and Atmospheric Administration (NOAA).</string>
+    <string name="credits_time4j">Sun and moon calculations powered by Time4J, the advanced date, time and interval library created by Meno Hochschild (MenoData).</string>
     <string name="credits_app_development">App development and maintenance by Everton Frederick.</string>
 
     <!-- Welcome dialog -->

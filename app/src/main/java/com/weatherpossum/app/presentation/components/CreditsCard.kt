@@ -32,6 +32,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.weatherpossum.app.R
 import com.weatherpossum.app.ui.theme.CardGradientStyle
+import com.weatherpossum.app.ui.theme.WeatherPossumDimens
 import com.weatherpossum.app.ui.theme.WeatherPossumMotion
 
 @Composable
@@ -43,15 +44,30 @@ fun CreditsCard() {
         label = "creditsExpandRotation"
     )
 
-    ExpressiveCard(style = CardGradientStyle.Info) { onColor ->
+    ExpressiveCard(
+        style = CardGradientStyle.Info,
+        header = { onColor ->
+            CardHeader(
+                title = stringResource(R.string.card_credits_title),
+                endContent = {
+                    Box(
+                        modifier = Modifier.size(WeatherPossumDimens.iconMedium),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        AnimatedWeatherIcon(
+                            type = WeatherIconType.CREDITS,
+                            modifier = Modifier.fillMaxSize(),
+                            color = onColor
+                        )
+                    }
+                },
+                onColor = onColor
+            )
+        }
+    ) { onColor ->
         Column(
             modifier = Modifier.animateContentSize(animationSpec = WeatherPossumMotion.fluidSpring())
         ) {
-            CardHeader(
-                title = stringResource(R.string.card_credits_title),
-                onColor = onColor
-            )
-
             if (expanded) {
                 Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     CreditEntry(
@@ -60,6 +76,10 @@ fun CreditsCard() {
                     )
                     CreditEntry(
                         text = stringResource(R.string.credits_hurricane_data),
+                        onColor = onColor
+                    )
+                    CreditEntry(
+                        text = stringResource(R.string.credits_time4j),
                         onColor = onColor
                     )
                     CreditEntry(
