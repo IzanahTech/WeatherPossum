@@ -299,7 +299,6 @@ object WeatherPossumColors {
         }
         return when (style) {
             CardGradientStyle.HurricaneNeutral -> hurricaneNeutralOn
-            CardGradientStyle.HurricaneWarm -> softInk
             else -> onColorForGradient(top, bottom)
         }
     }
