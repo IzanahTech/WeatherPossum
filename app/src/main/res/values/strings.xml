@@ -15,20 +15,17 @@
     <string name="greeting_good_morning">Good morning</string>
     <string name="greeting_good_afternoon">Good afternoon</string>
     <string name="greeting_good_night">Good evening</string>
+    <string name="widget_daylight_label">%1$d%% DAYLIGHT</string>
 
     <!-- Home screen widget -->
-    <string name="widget_description">Time-based greeting and daily weather synopsis</string>
+    <string name="widget_description">Greeting, daily synopsis, and sea conditions</string>
     <string name="widget_preview_greeting">Morning, Possum! 😊</string>
-    <string name="widget_preview_synopsis">Partly cloudy with a few showers. Moderate seas and light winds along the coast.</string>
-    <string name="widget_daylight_label">%1$d%% DAYLIGHT</string>
-    <string name="widget_coastal_available">🌊 Coastal Info Available</string>
+    <string name="widget_preview_synopsis">A weak high pressure system is the dominant feature. A tropical wave is approaching the island chain.</string>
+    <string name="widget_preview_sea">Slight to moderate • 1.0 to 2.0 meters</string>
+    <string name="widget_sea_conditions_label">SEA CONDITIONS</string>
     <string name="widget_greeting_morning">Morning</string>
     <string name="widget_greeting_afternoon">Afternoon</string>
     <string name="widget_greeting_night">Good evening</string>
-    <string name="widget_metric_wind">WIND</string>
-    <string name="widget_metric_sea">SEA</string>
-    <string name="widget_metric_tide">TIDE</string>
-    <string name="widget_metric_unavailable">Not available yet</string>
     <string name="weather_stale_cache_notice">Showing saved weather — pull to refresh.</string>
     <string name="viewmodel_error_no_weather_data">No weather data available right now.</string>
 

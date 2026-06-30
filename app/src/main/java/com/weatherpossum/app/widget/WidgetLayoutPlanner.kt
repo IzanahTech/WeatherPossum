@@ -3,274 +3,238 @@ package com.weatherpossum.app.widget
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-
-data class WidgetMetricSlot(
-    val label: String,
-    val value: String,
-    val maxLines: Int
-)
 
 data class WidgetLayoutPlan(
-    val typography: WidgetTypography,
-    val greetingMaxSp: Float,
-    val showCoastalHint: Boolean,
-    val synopsisMaxLines: Int,
-    val metrics: List<WidgetMetricSlot>
-) {
-    val showsCoastalMetrics: Boolean get() = metrics.isNotEmpty()
-}
+  val greetingFontSp: Float,
+  val synopsisFontSp: Float,
+  val seaLabelFontSp: Float,
+  val seaValueFontSp: Float,
+  val greetingLineGap: Dp,
+  val synopsisToSeaGap: Dp,
+  val seaLabelGap: Dp,
+  val greetingText: String,
+  val synopsisText: String,
+  val synopsisLineCount: Int,
+  val showSea: Boolean,
+  val seaText: String?
+)
 
-data class WidgetTypography(
-    val greeting: androidx.compose.ui.unit.TextUnit,
-    val synopsis: androidx.compose.ui.unit.TextUnit,
-    val metricLabel: androidx.compose.ui.unit.TextUnit,
-    val metricValue: androidx.compose.ui.unit.TextUnit,
-    val hint: androidx.compose.ui.unit.TextUnit,
-    val sectionGap: Dp,
-    val lineGap: Dp,
-    val metricGap: Dp
+private data class WidgetTypeScale(
+  val greetingMaxSp: Float,
+  val greetingMinSp: Float,
+  val synopsisSp: Float,
+  val seaLabelSp: Float,
+  val seaValueSp: Float,
+  val greetingLineGap: Float,
+  val synopsisToSeaGap: Float,
+  val seaLabelGap: Float,
+  val dividerHeight: Float
 )
 
 object WidgetLayoutPlanner {
 
-    private const val PADDING_DP = 40f
-    private const val LABEL_WIDTH_DP = 46f
-    private const val LINE_HEIGHT_MULT = 1.22f
-    private const val HEIGHT_FUDGE_DP = 8f
-    private const val MIN_METRICS_WIDGET_HEIGHT_DP = 148f
+  private const val PADDING_DP = 36f
+  private const val HEIGHT_FUDGE_DP = 2f
+  private const val MIN_SEA_WIDGET_HEIGHT_DP = 150f
 
-    fun plan(
-        size: DpSize,
-        greetingText: String,
-        synopsis: String,
-        windLabel: String,
-        seaLabel: String,
-        tideLabel: String,
-        wind: String?,
-        sea: String?,
-        tide: String?,
-        hasCoastalDetails: Boolean,
-        unavailable: String
-    ): WidgetLayoutPlan {
-        val contentHeightDp = (size.height.value - PADDING_DP).coerceAtLeast(0f)
-        val contentWidthDp = (size.width.value - PADDING_DP).coerceAtLeast(0f)
-        val valueWidthDp = (contentWidthDp - LABEL_WIDTH_DP).coerceAtLeast(48f)
-        val canShowMetrics = hasCoastalDetails && size.height.value >= MIN_METRICS_WIDGET_HEIGHT_DP
+  private val typeScales = listOf(
+    WidgetTypeScale(
+      greetingMaxSp = 22f,
+      greetingMinSp = 16f,
+      synopsisSp = 15.5f,
+      seaLabelSp = 10f,
+      seaValueSp = 13f,
+      greetingLineGap = 6f,
+      synopsisToSeaGap = 10f,
+      seaLabelGap = 4f,
+      dividerHeight = 1f
+    ),
+    WidgetTypeScale(
+      greetingMaxSp = 20f,
+      greetingMinSp = 15f,
+      synopsisSp = 14.5f,
+      seaLabelSp = 10f,
+      seaValueSp = 12.5f,
+      greetingLineGap = 5f,
+      synopsisToSeaGap = 8f,
+      seaLabelGap = 4f,
+      dividerHeight = 1f
+    ),
+    WidgetTypeScale(
+      greetingMaxSp = 18f,
+      greetingMinSp = 14f,
+      synopsisSp = 13.5f,
+      seaLabelSp = 9.5f,
+      seaValueSp = 12f,
+      greetingLineGap = 4f,
+      synopsisToSeaGap = 7f,
+      seaLabelGap = 3f,
+      dividerHeight = 1f
+    )
+  )
 
-        val metricCandidates = buildMetricCandidates(
-            windLabel = windLabel,
-            seaLabel = seaLabel,
-            tideLabel = tideLabel,
-            wind = wind,
-            sea = sea,
-            tide = tide,
-            unavailable = unavailable,
-            includeMetrics = canShowMetrics
+  fun plan(
+    size: DpSize,
+    greetingText: String,
+    synopsis: String,
+    seaConditions: String?
+  ): WidgetLayoutPlan {
+    val contentHeightDp = (size.height.value - PADDING_DP).coerceAtLeast(0f)
+    val contentWidthDp = (size.width.value - PADDING_DP).coerceAtLeast(0f)
+    val sentences = WidgetTextWrap.splitSentences(synopsis)
+    val seaText = seaConditions?.trim()?.takeIf { it.isNotBlank() }
+    val canConsiderSea = seaText != null && size.height.value >= MIN_SEA_WIDGET_HEIGHT_DP
+
+    for (scale in typeScales) {
+      val greetingSp = WidgetTextWrap.fittedSingleLineSp(
+        text = greetingText,
+        widthDp = contentWidthDp,
+        maxSp = scale.greetingMaxSp,
+        minSp = scale.greetingMinSp,
+        bold = true
+      )
+
+      val greetingHeight = WidgetTextWrap.lineHeightDp(greetingSp, 1) + scale.greetingLineGap
+      var remainingHeight = contentHeightDp - greetingHeight
+
+      if (remainingHeight <= 0f) continue
+
+      val synopsisHeightBudget = if (canConsiderSea) {
+        val seaBlockHeight = estimateSeaBlockHeight(
+          seaText = seaText,
+          scale = scale,
+          contentWidthDp = contentWidthDp
         )
+        if (seaBlockHeight <= remainingHeight) {
+          remainingHeight - seaBlockHeight
+        } else {
+          remainingHeight
+        }
+      } else {
+        remainingHeight
+      }
 
-        for (scale in generateSequence(2.05f) { it - 0.08f }.takeWhile { it >= 0.82f }) {
-            val typography = buildTypography(size, scale)
-            val greetingMaxSp = typography.greeting.value
+      val fittedSynopsis = WidgetTextWrap.fitSentences(
+        sentences = sentences,
+        widthDp = contentWidthDp,
+        fontSp = scale.synopsisSp,
+        maxHeightDp = synopsisHeightBudget
+      )
 
-            for (synopsisLines in listOf(2, 1)) {
-                for (metricMaxLines in listOf(2, 1)) {
-                    for (metrics in metricCandidates) {
-                        val estimated = estimateHeightDp(
-                            typography = typography,
-                            greetingText = greetingText,
-                            greetingMaxSp = greetingMaxSp,
-                            synopsis = synopsis,
-                            synopsisMaxLines = synopsisLines,
-                            metrics = metrics,
-                            metricMaxLines = metricMaxLines,
-                            showCoastalHint = !canShowMetrics && hasCoastalDetails,
-                            contentWidthDp = contentWidthDp,
-                            valueWidthDp = valueWidthDp
-                        )
-                        if (estimated <= contentHeightDp + HEIGHT_FUDGE_DP) {
-                            return WidgetLayoutPlan(
-                                typography = typography,
-                                greetingMaxSp = greetingMaxSp,
-                                showCoastalHint = !canShowMetrics && hasCoastalDetails,
-                                synopsisMaxLines = synopsisLines,
-                                metrics = metrics.map { slot ->
-                                    slot.copy(maxLines = metricMaxLines.coerceAtMost(slot.maxLines))
-                                }
-                            )
-                        }
-                    }
-                }
-            }
+      if (fittedSynopsis.isBlank()) continue
+
+      val synopsisLineCount = WidgetTextWrap.lineCount(
+        text = fittedSynopsis,
+        widthDp = contentWidthDp,
+        fontSp = scale.synopsisSp
+      )
+
+      val synopsisHeight = WidgetTextWrap.blockHeightDp(
+        text = fittedSynopsis,
+        widthDp = contentWidthDp,
+        fontSp = scale.synopsisSp
+      )
+
+      val usedHeight = greetingHeight + synopsisHeight
+      val showSea = canConsiderSea && run {
+        val seaBlockHeight = estimateSeaBlockHeight(seaText, scale, contentWidthDp)
+        usedHeight + scale.synopsisToSeaGap + seaBlockHeight <= contentHeightDp + HEIGHT_FUDGE_DP
+      }
+
+      val totalHeight = usedHeight +
+        if (showSea) {
+          scale.synopsisToSeaGap + estimateSeaBlockHeight(seaText, scale, contentWidthDp)
+        } else {
+          0f
         }
 
-        val fallbackTypography = buildTypography(size, 0.82f)
+      if (totalHeight <= contentHeightDp + HEIGHT_FUDGE_DP) {
         return WidgetLayoutPlan(
-            typography = fallbackTypography,
-            greetingMaxSp = fallbackTypography.greeting.value,
-            showCoastalHint = !canShowMetrics && hasCoastalDetails,
-            synopsisMaxLines = 1,
-            metrics = emptyList()
+          greetingFontSp = greetingSp,
+          synopsisFontSp = scale.synopsisSp,
+          seaLabelFontSp = scale.seaLabelSp,
+          seaValueFontSp = scale.seaValueSp,
+          greetingLineGap = scale.greetingLineGap.dp,
+          synopsisToSeaGap = scale.synopsisToSeaGap.dp,
+          seaLabelGap = scale.seaLabelGap.dp,
+          greetingText = greetingText,
+          synopsisText = fittedSynopsis,
+          synopsisLineCount = synopsisLineCount,
+          showSea = showSea,
+          seaText = if (showSea) seaText else null
         )
+      }
     }
 
-    private fun buildMetricCandidates(
-        windLabel: String,
-        seaLabel: String,
-        tideLabel: String,
-        wind: String?,
-        sea: String?,
-        tide: String?,
-        unavailable: String,
-        includeMetrics: Boolean
-    ): List<List<WidgetMetricSlot>> {
-        if (!includeMetrics) return listOf(emptyList())
+    return fallbackPlan(
+      greetingText = greetingText,
+      synopsis = synopsis,
+      sentences = sentences,
+      contentWidthDp = contentWidthDp,
+      contentHeightDp = contentHeightDp
+    )
+  }
 
-        fun slot(label: String, value: String?) = WidgetMetricSlot(
-            label = label,
-            value = value?.takeIf { it.isNotBlank() } ?: unavailable,
-            maxLines = 2
-        )
+  private fun estimateSeaBlockHeight(
+    seaText: String,
+    scale: WidgetTypeScale,
+    contentWidthDp: Float
+  ): Float {
+    val dividerAndGaps = scale.dividerHeight + scale.seaLabelGap
+    val labelHeight = WidgetTextWrap.lineHeightDp(scale.seaLabelSp, 1)
+    val valueHeight = WidgetTextWrap.blockHeightDp(
+      text = seaText,
+      widthDp = contentWidthDp,
+      fontSp = scale.seaValueSp
+    )
+    return dividerAndGaps + labelHeight + valueHeight
+  }
 
-        val windSlot = slot(windLabel, wind)
-        val seaSlot = slot(seaLabel, sea)
-        val tideSlot = slot(tideLabel, tide)
-
-        return listOf(
-            listOf(windSlot, seaSlot, tideSlot),
-            listOf(windSlot, seaSlot),
-            listOf(windSlot, tideSlot),
-            listOf(windSlot)
-        )
+  private fun fallbackPlan(
+    greetingText: String,
+    synopsis: String,
+    sentences: List<String>,
+    contentWidthDp: Float,
+    contentHeightDp: Float
+  ): WidgetLayoutPlan {
+    val scale = typeScales.last()
+    val greetingSp = WidgetTextWrap.fittedSingleLineSp(
+      text = greetingText,
+      widthDp = contentWidthDp,
+      maxSp = scale.greetingMaxSp,
+      minSp = scale.greetingMinSp,
+      bold = true
+    )
+    val greetingHeight = WidgetTextWrap.lineHeightDp(greetingSp, 1) + scale.greetingLineGap
+    val synopsisBudget = (contentHeightDp - greetingHeight).coerceAtLeast(0f)
+    val fittedSynopsis = WidgetTextWrap.fitSentences(
+      sentences = sentences,
+      widthDp = contentWidthDp,
+      fontSp = scale.synopsisSp,
+      maxHeightDp = synopsisBudget
+    ).ifBlank {
+      sentences.firstOrNull().orEmpty()
     }
 
-    private fun estimateHeightDp(
-        typography: WidgetTypography,
-        greetingText: String,
-        greetingMaxSp: Float,
-        synopsis: String,
-        synopsisMaxLines: Int,
-        metrics: List<WidgetMetricSlot>,
-        metricMaxLines: Int,
-        showCoastalHint: Boolean,
-        contentWidthDp: Float,
-        valueWidthDp: Float
-    ): Float {
-        var height = 0f
+    val synopsisLineCount = WidgetTextWrap.lineCount(
+      text = fittedSynopsis,
+      widthDp = contentWidthDp,
+      fontSp = scale.synopsisSp
+    ).coerceAtLeast(1)
 
-        if (showCoastalHint) {
-            height += lineHeightDp(typography.hint.value, 1)
-            height += typography.sectionGap.value
-        }
-
-        val greetingSp = fittedSingleLineSp(
-            text = greetingText,
-            widthDp = contentWidthDp,
-            maxSp = greetingMaxSp,
-            minSp = 12f,
-            bold = true
-        )
-        height += lineHeightDp(greetingSp, 1)
-        height += typography.lineGap.value
-
-        height += textBlockHeightDp(
-            text = synopsis,
-            widthDp = contentWidthDp,
-            fontSp = typography.synopsis.value,
-            maxLines = synopsisMaxLines
-        )
-
-        if (metrics.isNotEmpty()) {
-            height += typography.sectionGap.value
-            metrics.forEachIndexed { index, metric ->
-                height += textBlockHeightDp(
-                    text = metric.value,
-                    widthDp = valueWidthDp,
-                    fontSp = typography.metricValue.value,
-                    maxLines = metricMaxLines.coerceAtMost(metric.maxLines)
-                )
-                if (index < metrics.lastIndex) {
-                    height += typography.metricGap.value
-                }
-            }
-        }
-
-        return height
-    }
-
-    private fun fittedSingleLineSp(
-        text: String,
-        widthDp: Float,
-        maxSp: Float,
-        minSp: Float,
-        bold: Boolean = false
-    ): Float {
-        if (text.isEmpty() || widthDp <= 0f) return maxSp.coerceAtLeast(minSp)
-
-        val widthFactor = if (bold) 0.54f else 0.48f
-        var sizeSp = maxSp
-        while (sizeSp >= minSp) {
-            if (text.length * sizeSp * widthFactor <= widthDp) {
-                return sizeSp
-            }
-            sizeSp -= 0.5f
-        }
-        return minSp
-    }
-
-    private fun textBlockHeightDp(
-        text: String,
-        widthDp: Float,
-        fontSp: Float,
-        maxLines: Int
-    ): Float {
-        val lines = estimatedLineCount(
-            text = text,
-            widthDp = widthDp,
-            fontSp = fontSp
-        ).coerceIn(1, maxLines)
-        return lineHeightDp(fontSp, lines)
-    }
-
-    private fun estimatedLineCount(
-        text: String,
-        widthDp: Float,
-        fontSp: Float
-    ): Int {
-        if (text.isEmpty() || widthDp <= 0f) return 0
-
-        val charsPerLine = (widthDp / (fontSp * 0.48f)).toInt().coerceAtLeast(8)
-        return text.split('\n').sumOf { paragraph ->
-            if (paragraph.isBlank()) {
-                1
-            } else {
-                ((paragraph.length + charsPerLine - 1) / charsPerLine).coerceAtLeast(1)
-            }
-        }.coerceAtLeast(1)
-    }
-
-    private fun lineHeightDp(fontSp: Float, lines: Int): Float =
-        fontSp * LINE_HEIGHT_MULT * lines
-
-    private fun buildTypography(size: DpSize, scale: Float): WidgetTypography {
-        val sizeScale = ((size.height.value / 110f) * 0.72f + (size.width.value / 250f) * 0.28f)
-            .coerceIn(1f, 2.1f)
-        val s = sizeScale * scale
-
-        fun sp(base: Float, min: Float, max: Float) =
-            (base * s).coerceIn(min, max).sp
-
-        fun gap(base: Float) = (base * s).coerceIn(base, base * 1.35f).dp
-
-        return WidgetTypography(
-            greeting = sp(20f, 16f, 28f),
-            synopsis = sp(15f, 12f, 20f),
-            metricLabel = sp(11f, 9f, 14f),
-            metricValue = sp(13.5f, 11f, 17f),
-            hint = sp(11f, 9f, 13f),
-            sectionGap = gap(8f),
-            lineGap = gap(5f),
-            metricGap = gap(4f)
-        )
-    }
+    return WidgetLayoutPlan(
+      greetingFontSp = greetingSp,
+      synopsisFontSp = scale.synopsisSp,
+      seaLabelFontSp = scale.seaLabelSp,
+      seaValueFontSp = scale.seaValueSp,
+      greetingLineGap = scale.greetingLineGap.dp,
+      synopsisToSeaGap = scale.synopsisToSeaGap.dp,
+      seaLabelGap = scale.seaLabelGap.dp,
+      greetingText = greetingText,
+      synopsisText = fittedSynopsis,
+      synopsisLineCount = synopsisLineCount,
+      showSea = false,
+      seaText = null
+    )
+  }
 }

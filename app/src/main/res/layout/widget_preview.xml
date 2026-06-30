@@ -4,22 +4,11 @@
     android:layout_height="match_parent"
     android:background="@drawable/widget_preview_background"
     android:orientation="vertical"
-    android:padding="20dp">
+    android:padding="18dp">
 
     <TextView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:alpha="0.5"
-        android:ellipsize="end"
-        android:maxLines="1"
-        android:text="@string/widget_coastal_available"
-        android:textColor="#FFFFFFFF"
-        android:textSize="11sp" />
-
-    <TextView
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
         android:ellipsize="end"
         android:maxLines="1"
         android:text="@string/widget_preview_greeting"
@@ -34,7 +23,32 @@
         android:ellipsize="end"
         android:maxLines="3"
         android:text="@string/widget_preview_synopsis"
-        android:textColor="#E0FFFFFF"
-        android:textSize="15sp" />
+        android:textColor="#E6FFFFFF"
+        android:textSize="14sp" />
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:layout_marginTop="10dp"
+        android:background="#38FFFFFF" />
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="6dp"
+        android:text="@string/widget_sea_conditions_label"
+        android:textAllCaps="true"
+        android:textColor="#9EFFFFFF"
+        android:textSize="10sp" />
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="3dp"
+        android:ellipsize="end"
+        android:maxLines="2"
+        android:text="@string/widget_preview_sea"
+        android:textColor="#FFFFFFFF"
+        android:textSize="12sp" />
 
 </LinearLayout>

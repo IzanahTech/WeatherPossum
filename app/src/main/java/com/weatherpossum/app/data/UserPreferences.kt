@@ -124,14 +124,10 @@ class UserPreferences(private val context: Context) {
         val cards = preferences[CACHED_WEATHER_CARDS_JSON_KEY]
             ?.let { json -> WeatherCardCache.decode(json) }
             .orEmpty()
-        val coastal = WidgetMetricsParser.fromCards(cards)
         return WidgetSnapshot(
             userName = preferences[USER_NAME_KEY],
             synopsis = preferences[CACHED_SYNOPSIS_KEY],
-            windSummary = coastal.wind,
-            seaSummary = coastal.sea,
-            tideSummary = coastal.tide,
-            hasCoastalDetails = coastal.hasAny
+            seaConditions = WidgetMetricsParser.seaConditionsFromCards(cards)
         )
     }
 } 
