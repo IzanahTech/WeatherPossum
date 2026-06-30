@@ -4,7 +4,6 @@ import android.content.Context
 import android.content.Intent
 import android.content.res.Configuration
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.glance.GlanceId
@@ -37,23 +36,34 @@ import com.weatherpossum.app.R
 import com.weatherpossum.app.data.UserPreferences
 import com.weatherpossum.app.ui.theme.WeatherPossumColors
 
+/**
+ * Home-screen widget built with Jetpack Glance (Compose for App Widgets).
+ *
+ * Runtime content is fully dynamic: greeting, synopsis, and sea conditions are loaded from
+ * [UserPreferences] on each update. The XML layouts referenced in [R.xml.weather_widget_info]
+ * are system fallbacks only (initial placeholder + picker preview on older Android versions).
+ */
 class WeatherGlanceWidget : GlanceAppWidget() {
 
-    companion object {
-        private val COMPACT = DpSize(180.dp, 110.dp)
-        private val STANDARD = DpSize(250.dp, 110.dp)
-        private val MEDIUM = DpSize(250.dp, 155.dp)
-        private val TALL = DpSize(250.dp, 210.dp)
-        private val WIDE = DpSize(320.dp, 110.dp)
-    }
-
-    override val sizeMode: SizeMode = SizeMode.Responsive(
-        setOf(COMPACT, STANDARD, MEDIUM, TALL, WIDE)
-    )
+    override val sizeMode: SizeMode = SizeMode.Exact
 
     override suspend fun provideGlance(context: Context, id: GlanceId) {
         val appWidgetId = GlanceAppWidgetManager(context).getAppWidgetId(id)
         val snapshot = UserPreferences(context).readWidgetSnapshot(appWidgetId)
+
+        provideContent {
+            GlanceTheme {
+                WeatherWidgetContent(snapshot = snapshot)
+            }
+        }
+    }
+
+    override suspend fun providePreview(context: Context, widgetCategory: Int) {
+        val snapshot = WidgetSnapshot(
+            userName = "Possum",
+            synopsis = context.getString(R.string.widget_preview_synopsis),
+            seaConditions = context.getString(R.string.widget_preview_sea)
+        )
 
         provideContent {
             GlanceTheme {
@@ -154,12 +164,14 @@ private fun WidgetBody(
                 fontWeight = FontWeight.Normal
             ),
             maxLines = plan.synopsisLineCount,
-            modifier = GlanceModifier.fillMaxWidth()
+            modifier = GlanceModifier
+                .fillMaxWidth()
+                .then(
+                    if (plan.showSea) GlanceModifier.defaultWeight() else GlanceModifier
+                )
         )
 
         if (plan.showSea && !plan.seaText.isNullOrBlank()) {
-            Spacer(GlanceModifier.defaultWeight())
-
             Spacer(GlanceModifier.height(plan.synopsisToSeaGap))
 
             Box(

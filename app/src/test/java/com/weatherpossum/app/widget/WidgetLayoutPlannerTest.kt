@@ -76,6 +76,13 @@ class WidgetLayoutPlannerTest {
         assertTrue(plan.synopsisLineCount >= 1)
     }
 
+    @Test
+    fun typographyTier_scalesWithExactHeight() {
+        assertEquals(0, WidgetLayoutPlanner.typographyTierForHeight(210f))
+        assertEquals(1, WidgetLayoutPlanner.typographyTierForHeight(155f))
+        assertEquals(2, WidgetLayoutPlanner.typographyTierForHeight(110f))
+    }
+
     private fun planFor(
         size: DpSize,
         synopsis: String,

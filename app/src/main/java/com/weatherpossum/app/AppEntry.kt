@@ -13,6 +13,7 @@ import com.weatherpossum.app.di.appModule
 import com.weatherpossum.app.presentation.WeatherScreen
 import com.weatherpossum.app.ui.theme.WeatherPossumTheme
 import com.weatherpossum.app.widget.WeatherWidgetWorker
+import com.weatherpossum.app.widget.WidgetPreviewPublisher
 import net.time4j.android.ApplicationStarter
 import org.koin.android.ext.koin.androidContext
 import org.koin.android.ext.koin.androidLogger
@@ -30,6 +31,7 @@ class WeatherPossumApp : Application() {
             modules(appModule)
         }
         WeatherWidgetWorker.schedule(this)
+        WidgetPreviewPublisher.publishIfNeeded(this)
     }
 }
 
