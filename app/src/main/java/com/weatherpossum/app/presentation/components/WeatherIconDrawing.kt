@@ -322,8 +322,8 @@ internal fun DrawScope.drawRealisticMoon(
 }
 
 internal fun isWaxingMoonPhase(phase: String): Boolean = when (phase.uppercase()) {
-    "WAXING_CRESCENT", "FIRST_QUARTER", "WAXING_GIBBOUS", "NEW_MOON" -> true
-    "WANING_CRESCENT", "LAST_QUARTER", "WANING_GIBBOUS", "FULL_MOON" -> false
+    "NEW_MOON", "FIRST_QUARTER" -> true
+    "FULL_MOON", "LAST_QUARTER" -> false
     else -> phase.uppercase().contains("WAXING")
 }
 

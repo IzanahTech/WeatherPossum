@@ -70,7 +70,9 @@ data class MoonData(
     val phase: String,
     val moonrise: String,
     val moonset: String,
-    val illumination: Double
+    val illumination: Double,
+    val nextPhase: String,
+    val nextPhaseDate: String
 ) {
     companion object {
         fun formatMoonPhase(phase: String): String {

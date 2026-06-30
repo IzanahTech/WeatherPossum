@@ -44,6 +44,14 @@ fun CreditsCard() {
         label = "creditsExpandRotation"
     )
 
+    val creditEntries = listOf(
+        R.string.credits_local_weather,
+        R.string.credits_hurricane_data,
+        R.string.credits_time4j,
+        R.string.credits_app_development
+    )
+    val visibleCredits = if (expanded) creditEntries else creditEntries.take(1)
+
     ExpressiveCard(
         style = CardGradientStyle.Info,
         header = { onColor ->
@@ -68,27 +76,16 @@ fun CreditsCard() {
         Column(
             modifier = Modifier.animateContentSize(animationSpec = WeatherPossumMotion.fluidSpring())
         ) {
-            if (expanded) {
-                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                visibleCredits.forEach { creditRes ->
                     CreditEntry(
-                        text = stringResource(R.string.credits_local_weather),
-                        onColor = onColor
-                    )
-                    CreditEntry(
-                        text = stringResource(R.string.credits_hurricane_data),
-                        onColor = onColor
-                    )
-                    CreditEntry(
-                        text = stringResource(R.string.credits_time4j),
-                        onColor = onColor
-                    )
-                    CreditEntry(
-                        text = stringResource(R.string.credits_app_development),
+                        text = stringResource(creditRes),
                         onColor = onColor
                     )
                 }
-                Spacer(Modifier.height(14.dp))
             }
+
+            Spacer(Modifier.height(14.dp))
 
             Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
                 CreditsExpandChip(

@@ -63,5 +63,19 @@ fun MoonPhaseCard(data: MoonData) {
                 )
             }
         }
+
+        if (data.nextPhaseDate.isNotBlank()) {
+            Spacer(Modifier.height(8.dp))
+            DetailChip(
+                label = stringResource(R.string.card_moon_next_phase),
+                value = stringResource(
+                    R.string.card_moon_next_phase_value,
+                    formatMoonPhaseLabel(data.nextPhase),
+                    data.nextPhaseDate
+                ),
+                onColor = onColor,
+                modifier = Modifier.fillMaxWidth()
+            )
+        }
     }
 }

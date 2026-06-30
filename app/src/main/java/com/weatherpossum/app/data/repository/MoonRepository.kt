@@ -30,13 +30,16 @@ class MoonRepository(
         try {
             val currentDate = LocalDate.now()
             val moonState = MoonPhaseCalculator.computeMoonState(lat, long)
+            val nextPhase = MoonPhaseCalculator.computeNextPhase()
             val (moonrise, moonset) = MoonPhaseCalculator.calculateMoonTimes(currentDate, lat, long)
 
             val moonData = MoonData(
                 phase = moonState.phase,
                 moonrise = MoonPhaseCalculator.formatTimeTo12Hour(moonrise),
                 moonset = MoonPhaseCalculator.formatTimeTo12Hour(moonset),
-                illumination = moonState.illumination
+                illumination = moonState.illumination,
+                nextPhase = nextPhase.phase,
+                nextPhaseDate = nextPhase.dateLabel
             )
 
             persistMoonData(moonData)

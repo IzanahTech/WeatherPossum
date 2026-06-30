@@ -10,10 +10,12 @@ class MoonCacheTest {
     @Test
     fun round_trips_moon_data() {
         val data = MoonData(
-            phase = "WAXING_GIBBOUS",
+            phase = "FULL_MOON",
             moonrise = "8:42 PM",
             moonset = "7:15 AM",
-            illumination = 0.82
+            illumination = 0.82,
+            nextPhase = "FULL_MOON",
+            nextPhaseDate = "June 18, 2026"
         )
 
         val json = MoonCache.encode(data)
@@ -24,5 +26,7 @@ class MoonCacheTest {
         assertEquals(data.moonrise, decoded.moonrise)
         assertEquals(data.moonset, decoded.moonset)
         assertEquals(data.illumination, decoded.illumination, 0.001)
+        assertEquals(data.nextPhase, decoded.nextPhase)
+        assertEquals(data.nextPhaseDate, decoded.nextPhaseDate)
     }
 }

@@ -14,12 +14,12 @@ import java.util.concurrent.TimeUnit
 import kotlin.math.acos
 
 private const val TAG = "MoonPhaseCalculator"
+private const val PHASE_MATCH_TOLERANCE_SECONDS = 3_600L
 
 /**
- * Moon phase calculator using Time4A for astronomical calculations.
- * Illumination uses Time4A's Meeus-based [MoonPhase.getIllumination].
- * Phase names combine illumination-derived elongation with a short-term illumination trend
- * to distinguish waxing from waning (including near first/last quarter).
+ * Moon phase calculator using Time4J for astronomical calculations.
+ * Phase names and transition dates use Time4J's four major instants:
+ * new moon, first quarter, full moon, and last quarter.
  */
 data class MoonState(
     val phase: String,
@@ -28,15 +28,26 @@ data class MoonState(
     val waxing: Boolean
 )
 
+data class NextMoonPhase(
+    val phase: String,
+    val dateLabel: String
+)
+
 object MoonPhaseCalculator {
 
     private const val DOMINICA_LAT = 15.414999
     private const val DOMINICA_LON = -61.370976
     private const val DOMINICA_TZ = "America/Dominica"
 
-    /**
-     * Computes phase, illumination, and elongation in one pass.
-     */
+    private val astronomicalPhases = listOf(
+        MoonPhase.NEW_MOON,
+        MoonPhase.FIRST_QUARTER,
+        MoonPhase.FULL_MOON,
+        MoonPhase.LAST_QUARTER
+    )
+
+    val phaseCycle: List<String> = astronomicalPhases.map { it.name }
+
     fun computeMoonState(
         latitude: Double = DOMINICA_LAT,
         longitude: Double = DOMINICA_LON,
@@ -44,36 +55,14 @@ object MoonPhaseCalculator {
         moment: Moment = Moment.nowInSystemTime()
     ): MoonState {
         val illumination = MoonPhase.getIllumination(moment)
-
-        if (illumination < 0.02) {
-            return MoonState(
-                phase = "NEW_MOON",
-                illumination = illumination,
-                elongationDeg = 0.0,
-                waxing = true
-            )
-        }
-        if (illumination > 0.98) {
-            return MoonState(
-                phase = "FULL_MOON",
-                illumination = illumination,
-                elongationDeg = 180.0,
-                waxing = false
-            )
-        }
-
-        val phaseAngleDeg = Math.toDegrees(
-            acos((2.0 * illumination - 1.0).coerceIn(-1.0, 1.0))
-        )
-        val elongationDeg = 180.0 - phaseAngleDeg
-        val waxing = isWaxing(moment)
-        val label = phaseLabel(elongationDeg, waxing)
+        val phase = currentAstronomicalPhase(moment)
+        val elongationDeg = elongationFromIllumination(illumination)
 
         return MoonState(
-            phase = label.uppercase().replace(' ', '_'),
+            phase = phase.name,
             illumination = illumination,
             elongationDeg = elongationDeg,
-            waxing = waxing
+            waxing = isWaxing(moment)
         )
     }
 
@@ -86,6 +75,38 @@ object MoonPhaseCalculator {
         latitude: Double = DOMINICA_LAT,
         longitude: Double = DOMINICA_LON
     ): Double = computeMoonState(latitude, longitude).illumination
+
+    fun nextPhaseKey(currentPhase: String): String {
+        val current = runCatching { MoonPhase.valueOf(currentPhase.uppercase()) }
+            .getOrDefault(MoonPhase.NEW_MOON)
+        return nextAstronomicalPhase(current).name
+    }
+
+    fun computeNextPhase(
+        moment: Moment = Moment.nowInSystemTime()
+    ): NextMoonPhase {
+        val current = currentAstronomicalPhase(moment)
+        val next = nextAstronomicalPhase(current)
+        val nextMoment = next.after(moment)
+        return NextMoonPhase(
+            phase = next.name,
+            dateLabel = formatPhaseDate(nextMoment)
+        )
+    }
+
+    fun formatPhaseDate(moment: Moment): String {
+        val tzid = Timezone.of(DOMINICA_TZ).id
+        val plainDate = moment.toZonalTimestamp(tzid).toDate()
+        val formatter = java.time.format.DateTimeFormatter.ofPattern(
+            "MMMM d, yyyy",
+            java.util.Locale.ENGLISH
+        )
+        return LocalDate.of(
+            plainDate.year,
+            plainDate.getInt(PlainDate.MONTH_AS_NUMBER),
+            plainDate.dayOfMonth
+        ).format(formatter)
+    }
 
     fun calculateMoonTimes(
         date: LocalDate = LocalDate.now(),
@@ -139,6 +160,29 @@ object MoonPhaseCalculator {
         return "N/A"
     }
 
+    internal fun elongationFromIllumination(illumination: Double): Double {
+        val phaseAngleDeg = Math.toDegrees(
+            acos((2.0 * illumination - 1.0).coerceIn(-1.0, 1.0))
+        )
+        return 180.0 - phaseAngleDeg
+    }
+
+    internal fun currentAstronomicalPhase(moment: Moment): MoonPhase {
+        astronomicalPhases.forEach { phase ->
+            val at = phase.atOrAfter(moment)
+            if (moment.until(at, TimeUnit.SECONDS) <= PHASE_MATCH_TOLERANCE_SECONDS) {
+                return phase
+            }
+        }
+
+        return astronomicalPhases.maxBy { phase -> phase.before(moment) }
+    }
+
+    private fun nextAstronomicalPhase(current: MoonPhase): MoonPhase {
+        val index = astronomicalPhases.indexOf(current).coerceAtLeast(0)
+        return astronomicalPhases[(index + 1) % astronomicalPhases.size]
+    }
+
     private fun isWaxing(moment: Moment): Boolean {
         val earlier = moment.minus(6, TimeUnit.HOURS)
         val later = moment.plus(6, TimeUnit.HOURS)
@@ -146,21 +190,6 @@ object MoonPhaseCalculator {
         val illuminationEarlier = MoonPhase.getIllumination(earlier)
         val illuminationLater = MoonPhase.getIllumination(later)
         return illuminationLater >= illuminationNow && illuminationNow >= illuminationEarlier
-    }
-
-    /**
-     * Names the eight canonical phases from sun–moon elongation (0° = new, 180° = full)
-     * and whether the moon is waxing or waning.
-     */
-    internal fun phaseLabel(elongationDeg: Double, waxing: Boolean): String {
-        val e = elongationDeg.coerceIn(0.0, 180.0)
-        return when {
-            e < 6.0 -> "New Moon"
-            e > 174.0 -> "Full Moon"
-            e < 84.0 -> if (waxing) "Waxing Crescent" else "Waning Crescent"
-            e < 96.0 -> if (waxing) "First Quarter" else "Last Quarter"
-            else -> if (waxing) "Waxing Gibbous" else "Waning Gibbous"
-        }
     }
 
     private fun formatMoonEvent(
