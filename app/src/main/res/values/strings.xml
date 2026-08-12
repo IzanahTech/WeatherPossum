@@ -56,6 +56,7 @@
     <string name="card_hurricane_forecaster">Forecaster</string>
     <string name="card_hurricane_active_systems">Active Systems</string>
     <string name="card_hurricane_eastern_tropical">Eastern Tropical Atlantic</string>
+    <string name="card_hurricane_central_tropical">Central Tropical Atlantic</string>
     <string name="hurricane_formation_chance_label">Formation chance through %1$s %2$s</string>
     <string name="hurricane_formation_chance_value">%1$s (%2$s%%)</string>
     <string name="hurricane_stale_notice">Showing saved hurricane outlook — pull down to refresh.</string>

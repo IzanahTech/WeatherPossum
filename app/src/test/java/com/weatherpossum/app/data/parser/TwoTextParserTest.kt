@@ -29,7 +29,7 @@ class TwoTextParserTest {
         
         assertNotNull("Forecaster should be extracted", res.forecaster)
         assertTrue("Forecaster should contain 'Brown'", res.forecaster!!.contains("Brown"))
-        assertTrue("Should have numbered items", res.items.any { it.startsWith("1.") })
+        assertTrue("Should have numbered items", res.items.any { it.contains("1.") })
         assertTrue("Cleaned text should contain formation chances", res.cleaned.contains("Formation chance"))
     }
 
@@ -39,7 +39,21 @@ class TwoTextParserTest {
         
         assertTrue("Should have items even with no active systems", res.items.isNotEmpty())
         assertTrue("Should contain 'None at this time'", res.cleaned.contains("None at this time"))
-        assertTrue("Should contain numbered disturbances", res.items.any { it.startsWith("1.") })
+        assertTrue("Should contain numbered disturbances", res.items.any { it.contains("1.") })
+    }
+
+    @Test fun two_4_keeps_central_tropical_atlantic_as_its_own_item() {
+        val html = loadFixture("two_4.txt")
+        val res = TwoTextParser.parse(html)
+
+        val central = res.items.firstOrNull { it.startsWith("Central Tropical Atlantic") }
+        val eastern = res.items.firstOrNull { it.startsWith("Eastern Tropical Atlantic") }
+        assertNotNull("Central Tropical Atlantic should be its own item", central)
+        assertNotNull("Eastern Tropical Atlantic should be its own item", eastern)
+        assertTrue(central!!.contains("west-southwest of the Cabo Verde Islands"))
+        assertTrue(!central.contains("Eastern Tropical Atlantic"))
+        assertTrue(eastern!!.contains("south of the Cabo Verde Islands"))
+        assertTrue(res.cleaned.contains("Central Tropical Atlantic (AL92)"))
     }
 
     @Test fun parse_handles_malformed_html() {

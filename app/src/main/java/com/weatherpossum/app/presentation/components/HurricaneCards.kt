@@ -21,6 +21,7 @@ import androidx.compose.ui.unit.sp
 import com.weatherpossum.app.ui.theme.CardGradientStyle
 import com.weatherpossum.app.domain.hurricane.FormationChance
 import com.weatherpossum.app.domain.hurricane.HurricaneFormationChanceParser
+import com.weatherpossum.app.domain.hurricane.HurricaneOutlookSectionParser
 import com.weatherpossum.app.ui.theme.WeatherPossumColors
 import com.weatherpossum.app.ui.theme.WeatherPossumDimens
 
@@ -33,7 +34,7 @@ data class HurricaneSystem(
 private data class HurricaneOutlookParsed(
     val activeSystems: String,
     val easternTropical: String,
-    val formationChances: List<FormationChance>,
+    val centralTropical: String,
     val individualSystems: List<HurricaneSystem>
 )
 
@@ -47,7 +48,7 @@ fun HurricaneOutlookCard(
         HurricaneOutlookParsed(
             activeSystems = parseActiveSystems(outlookText),
             easternTropical = parseEasternTropical(outlookText),
-            formationChances = HurricaneFormationChanceParser.parse(outlookText),
+            centralTropical = parseCentralTropical(outlookText),
             individualSystems = parseIndividualSystems(outlookText)
         )
     }
@@ -87,12 +88,21 @@ fun HurricaneOutlookCard(
                     )
                 }
 
+                if (parsed.centralTropical.isNotBlank()) {
+                    HurricaneSectionBlock(
+                        title = stringResource(R.string.card_hurricane_central_tropical),
+                        content = parsed.centralTropical,
+                        onColor = onColor,
+                        formationChances = HurricaneFormationChanceParser.parse(parsed.centralTropical)
+                    )
+                }
+
                 if (parsed.easternTropical.isNotBlank()) {
                     HurricaneSectionBlock(
                         title = stringResource(R.string.card_hurricane_eastern_tropical),
                         content = parsed.easternTropical,
                         onColor = onColor,
-                        formationChances = parsed.formationChances
+                        formationChances = HurricaneFormationChanceParser.parse(parsed.easternTropical)
                     )
                 }
             }
@@ -324,70 +334,41 @@ private fun FormationChanceChip(chance: FormationChance, onColor: Color) {
 // ── Outlook text parsing ─────────────────────────────────────────────────────
 
 private fun parseIndividualSystems(text: String): List<HurricaneSystem> {
-    val systems = mutableListOf<HurricaneSystem>()
-
-    val activeSystemsRegex = Regex(
-        "Active Systems:(.*?)(?=Central and Western Tropical Atlantic|Eastern Caribbean Sea|Eastern Tropical Atlantic|\\$\\$|$)",
-        RegexOption.DOT_MATCHES_ALL
-    )
-    activeSystemsRegex.find(text)?.groupValues?.get(1)?.trim()?.takeIf { it.isNotBlank() }?.let { content ->
-        systems.add(HurricaneSystem("Active Systems", content, emptyList()))
-    }
-
-    val centralWesternRegex = Regex(
-        "Central and Western Tropical Atlantic \\(AL93\\):(.*?)(?=Eastern Caribbean Sea|Eastern Tropical Atlantic|\\$\\$|$)",
-        RegexOption.DOT_MATCHES_ALL
-    )
-    centralWesternRegex.find(text)?.groupValues?.get(1)?.trim()?.takeIf { it.isNotBlank() }?.let { content ->
-        systems.add(
-            HurricaneSystem(
-                title = "Central and Western Tropical Atlantic (AL93)",
-                content = content,
-                formationChances = HurricaneFormationChanceParser.parse(content)
-            )
+    return HurricaneOutlookSectionParser.parse(text).map { section ->
+        val isActiveSystems = section.title.contains("Active Systems", ignoreCase = true)
+        HurricaneSystem(
+            title = section.title,
+            content = section.content,
+            formationChances = if (isActiveSystems) {
+                emptyList()
+            } else {
+                HurricaneFormationChanceParser.parse(section.content)
+            }
         )
     }
-
-    val easternCaribbeanRegex = Regex(
-        "Eastern Caribbean Sea \\(AL94\\):(.*?)(?=Eastern Tropical Atlantic|\\$\\$|$)",
-        RegexOption.DOT_MATCHES_ALL
-    )
-    easternCaribbeanRegex.find(text)?.groupValues?.get(1)?.trim()?.takeIf { it.isNotBlank() }?.let { content ->
-        systems.add(
-            HurricaneSystem(
-                title = "Eastern Caribbean Sea (AL94)",
-                content = content,
-                formationChances = HurricaneFormationChanceParser.parse(content)
-            )
-        )
-    }
-
-    val easternTropicalRegex = Regex(
-        "Eastern Tropical Atlantic:(.*?)(?=\\$\\$|$)",
-        RegexOption.DOT_MATCHES_ALL
-    )
-    easternTropicalRegex.find(text)?.groupValues?.get(1)?.trim()?.takeIf { it.isNotBlank() }?.let { content ->
-        if (systems.none { it.title.contains("Eastern Tropical Atlantic") }) {
-            systems.add(
-                HurricaneSystem(
-                    title = "Eastern Tropical Atlantic",
-                    content = content,
-                    formationChances = HurricaneFormationChanceParser.parse(content)
-                )
-            )
-        }
-    }
-
-    return systems
 }
 
 private fun parseActiveSystems(text: String): String {
-    val activeSystemsRegex = Regex("Active Systems:(.*?)(?=Eastern Tropical Atlantic|$)", RegexOption.DOT_MATCHES_ALL)
+    val activeSystemsRegex = Regex(
+        "Active Systems:(.*?)(?=Central Tropical Atlantic|Eastern Tropical Atlantic|$)",
+        RegexOption.DOT_MATCHES_ALL
+    )
     return activeSystemsRegex.find(text)?.groupValues?.get(1)?.trim().orEmpty()
 }
 
 private fun parseEasternTropical(text: String): String {
-    val easternRegex = Regex("Eastern Tropical Atlantic:(.*?)(?=\\$\\$|$)", RegexOption.DOT_MATCHES_ALL)
+    val easternRegex = Regex(
+        "Eastern Tropical Atlantic:(.*?)(?=Central Tropical Atlantic|\\$\\$|$)",
+        RegexOption.DOT_MATCHES_ALL
+    )
     return easternRegex.find(text)?.groupValues?.get(1)?.trim().orEmpty()
+}
+
+private fun parseCentralTropical(text: String): String {
+    val centralRegex = Regex(
+        "Central Tropical Atlantic(?:\\s+\\(AL\\d+\\))?:(.*?)(?=Eastern Tropical Atlantic|Central Subtropical Atlantic|\\$\\$|$)",
+        RegexOption.DOT_MATCHES_ALL
+    )
+    return centralRegex.find(text)?.groupValues?.get(1)?.trim().orEmpty()
 }
 

@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html>
+<head><title>Atlantic Tropical Weather Outlook</title></head>
+<body>
+<p>200 PM EDT Wed Aug 12 2026</p>
+<p>For the North Atlantic...Caribbean Sea and the Gulf of America:</p>
+<p>Active Systems:</p>
+<p>The National Hurricane Center is issuing advisories on newly formed Tropical Storm Cristobal, located over the Atlantic west-southwest of the Azores.</p>
+<p>Central Tropical Atlantic (AL92):</p>
+<p>An area of showers and thunderstorms associated with a tropical wave is located about 950 miles west-southwest of the Cabo Verde Islands. Environmental conditions are forecast to be conducive for development during the next couple of days, and a tropical depression will likely form while the system moves westward to west-northwestward across the central tropical Atlantic. Formation chance through 48 hours...high...80 percent. Formation chance through 7 days...high...80 percent.</p>
+<p>Eastern Tropical Atlantic:</p>
+<p>A tropical wave located several hundred miles south of the Cabo Verde Islands is producing disorganized showers and thunderstorms. Environmental conditions are forecast to be generally conducive for some development of this system during the next several days while it moves westward or west-northwestward across the eastern and central tropical Atlantic. Formation chance through 48 hours...low...20 percent. Formation chance through 7 days...medium...40 percent.</p>
+<p>$$</p>
+<p>Forecaster Adams</p>
+</body>
+</html>
