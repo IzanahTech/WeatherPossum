@@ -198,23 +198,6 @@ Cards use different visual treatments to distinguish general weather, astronomic
 
 ---
 
-## 📱 Screenshots
-
-> Current screenshots coming soon.
-
-Suggested gallery:
-
-* Now / Main Forecast
-* Wind, Sea & Tides
-* Sun
-* Moon Phase
-* Extended Outlook
-* Weather Outlook
-* Hurricane Outlook
-* Active Storms
-* Home-screen widget
-
----
 
 ## 🗺️ Data Sources
 
