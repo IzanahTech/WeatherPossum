@@ -7,6 +7,22 @@ All notable changes to WeatherPossum are documented here.
 WeatherPossum follows semantic-style versioning where practical, although some historical releases were rapid maintenance or versioning updates.
 
 ---
+## [1.8.7] - 2026-08-13
+
+Moved animated icons for the 7 day forecast cards up to the title block from the body.
+
+
+'
+'.'
+
+
+
+
+
+
+
+
+---
 
 ## [1.8.6] - 2026-08-12
 
