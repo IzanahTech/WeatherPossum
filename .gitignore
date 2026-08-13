@@ -35,3 +35,8 @@ out/
 # Log files
 *.log
 Archive.zip
+
+# Release signing (local secrets — never commit)
+keystore.properties
+*.jks
+*.keystore

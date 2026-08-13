@@ -1,9 +1,16 @@
+import java.util.Properties
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.compose.compiler)
     alias(libs.plugins.ksp)
+}
+
+fun loadKeystoreProperties(): Properties? {
+    val file = rootProject.file("keystore.properties")
+    if (!file.exists()) return null
+    return Properties().apply { file.inputStream().use { load(it) } }
 }
 
 android {
@@ -23,6 +30,22 @@ android {
         }
     }
 
+    val keystoreProperties = loadKeystoreProperties()
+    if (keystoreProperties != null) {
+        signingConfigs.create("release") {
+            storeFile = file(
+                keystoreProperties.getProperty("storeFile")
+                    ?: error("keystore.properties is missing storeFile")
+            )
+            storePassword = keystoreProperties.getProperty("storePassword")
+                ?: error("keystore.properties is missing storePassword")
+            keyAlias = keystoreProperties.getProperty("keyAlias")
+                ?: error("keystore.properties is missing keyAlias")
+            keyPassword = keystoreProperties.getProperty("keyPassword")
+                ?: error("keystore.properties is missing keyPassword")
+        }
+    }
+
     buildTypes {
         release {
             isMinifyEnabled = true
@@ -36,6 +59,9 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
+            if (keystoreProperties != null) {
+                signingConfig = signingConfigs.getByName("release")
+            }
         }
     }
     
