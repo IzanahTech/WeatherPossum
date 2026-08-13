@@ -26,6 +26,9 @@ CHANGELOG_FILE="CHANGELOG.md"
 GRADLE_FILE="app/build.gradle.kts"
 KEYSTORE_PROPERTIES="keystore.properties"
 DEFAULT_KEYSTORE="${HOME}/Documents/Weather/WeatherPossum.jks"
+SEMVER_REGEX='^[0-9]+\.[0-9]+\.[0-9]+$'
+# SHA-256 of the WeatherPossum release signing certificate (apksigner --print-certs).
+EXPECTED_CERT_SHA256="27edbf67021d2a3026213b2b98a8f99fd9cbc500c1661e3dda63a463dfa4b378"
 
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -58,7 +61,7 @@ Usage: ./create_release.sh [options]
   --patch            Bump patch version (default: 1.8.6 -> 1.8.7)
   --minor            Bump minor version (1.8.6 -> 1.9.0)
   --major            Bump major version (1.8.6 -> 2.0.0)
-  --version X.Y.Z    Set version name explicitly (versionCode still +1)
+  --version X.Y.Z    Set a strict SemVer version greater than the current one
   --notes-file FILE  Read release notes from FILE instead of prompting
   --yes              Skip the final confirmation prompt
   --dry-run          Show what would happen without changing anything
@@ -110,10 +113,39 @@ while [ $# -gt 0 ]; do
     esac
 done
 
+require_semver() {
+    local value="$1"
+    local label="${2:-Version}"
+    echo "$value" | grep -Eq "$SEMVER_REGEX" || die "${label} '$value' is not strict SemVer (X.Y.Z)"
+}
+
+# Returns 0 if $1 > $2 using numeric major.minor.patch comparison.
+semver_is_newer() {
+    local left="$1"
+    local right="$2"
+    local l1 l2 l3 r1 r2 r3
+    IFS='.' read -r l1 l2 l3 <<EOF
+$left
+EOF
+    IFS='.' read -r r1 r2 r3 <<EOF
+$right
+EOF
+    [ "$l1" -gt "$r1" ] && return 0
+    [ "$l1" -lt "$r1" ] && return 1
+    [ "$l2" -gt "$r2" ] && return 0
+    [ "$l2" -lt "$r2" ] && return 1
+    [ "$l3" -gt "$r3" ]
+}
+
+normalize_cert_sha256() {
+    echo "$1" | tr '[:upper:]' '[:lower:]' | tr -d '[:space:]:'
+}
+
 read_gradle_version() {
     VERSION_NAME="$(sed -nE 's/^[[:space:]]*versionName[[:space:]]*=[[:space:]]*"([^"]+)".*/\1/p' "$GRADLE_FILE" | head -1)"
     VERSION_CODE="$(sed -nE 's/^[[:space:]]*versionCode[[:space:]]*=[[:space:]]*([0-9]+).*/\1/p' "$GRADLE_FILE" | head -1)"
     [ -n "$VERSION_NAME" ] && [ -n "$VERSION_CODE" ] || die "Could not read versionName/versionCode from $GRADLE_FILE"
+    require_semver "$VERSION_NAME" "Current versionName"
 }
 
 bump_semver() {
@@ -159,6 +191,7 @@ prompt_bump_kind() {
             printf "Enter version name (e.g. 1.9.0): "
             read -r CUSTOM_VERSION
             [ -n "$CUSTOM_VERSION" ] || die "Version name cannot be empty"
+            require_semver "$CUSTOM_VERSION" "Custom version"
             ;;
         *) die "Invalid bump type: $choice" ;;
     esac
@@ -166,10 +199,14 @@ prompt_bump_kind() {
 
 compute_new_version() {
     if [ "$BUMP_KIND" = "custom" ]; then
-        echo "$CUSTOM_VERSION" | grep -Eq '^[0-9]+(\.[0-9]+)+$' || die "Invalid version: $CUSTOM_VERSION"
+        require_semver "$CUSTOM_VERSION" "Custom version"
         NEW_VERSION_NAME="$CUSTOM_VERSION"
     else
         NEW_VERSION_NAME="$(bump_semver "$VERSION_NAME" "$BUMP_KIND")"
+    fi
+    require_semver "$NEW_VERSION_NAME" "New version"
+    if ! semver_is_newer "$NEW_VERSION_NAME" "$VERSION_NAME"; then
+        die "New version $NEW_VERSION_NAME must be greater than current version $VERSION_NAME"
     fi
     NEW_VERSION_CODE="$((VERSION_CODE + 1))"
     TAG="v${NEW_VERSION_NAME}"
@@ -230,8 +267,8 @@ ensure_keystore_properties() {
     echo
     [ -n "$store_password" ] || die "Keystore password cannot be empty"
 
-    key_alias="$(keytool -list -keystore "$store_file" -storepass "$store_password" 2>/dev/null \
-        | awk -F': ' '/Alias name:/{print $2; exit}')"
+    key_alias="$(keytool -list -v -keystore "$store_file" -storepass "$store_password" 2>/dev/null \
+        | awk -F': ' '/^[[:space:]]*Alias name:/{print $2; exit}')"
     if [ -z "$key_alias" ]; then
         printf "Key alias: "
         read -r key_alias
@@ -318,13 +355,42 @@ confirm_plan() {
     esac
 }
 
+assert_clean_worktree() {
+    local status
+    status="$(git status --porcelain)"
+    if [ -n "$status" ]; then
+        echo "$status" >&2
+        die "Working tree is dirty. Commit or stash all changes before running the release script."
+    fi
+}
+
+load_java_home() {
+    if [ -n "${JAVA_HOME:-}" ] && [ -x "${JAVA_HOME}/bin/java" ]; then
+        export JAVA_HOME
+        export PATH="${JAVA_HOME}/bin:${PATH}"
+        return
+    fi
+    if command -v /usr/libexec/java_home >/dev/null 2>&1; then
+        JAVA_HOME="$(/usr/libexec/java_home 2>/dev/null || true)"
+    fi
+    if [ -z "${JAVA_HOME:-}" ] && [ -x "/Applications/Android Studio.app/Contents/jbr/Contents/Home/bin/java" ]; then
+        JAVA_HOME="/Applications/Android Studio.app/Contents/jbr/Contents/Home"
+    fi
+    [ -n "${JAVA_HOME:-}" ] && [ -x "${JAVA_HOME}/bin/java" ] || die "Java is required. Set JAVA_HOME to a JDK."
+    export JAVA_HOME
+    export PATH="${JAVA_HOME}/bin:${PATH}"
+}
+
 preflight() {
     [ -f "$GRADLE_FILE" ] || die "Run this script from the WeatherPossum repo root"
     [ -x "./gradlew" ] || die "./gradlew is missing"
     command -v git >/dev/null 2>&1 || die "git is required"
-    command -v gh >/dev/null 2>&1 || die "GitHub CLI (gh) is required"
-    command -v keytool >/dev/null 2>&1 || die "keytool is required (Java JDK)"
     git rev-parse --is-inside-work-tree >/dev/null 2>&1 || die "Not a git repository"
+    assert_clean_worktree
+
+    command -v gh >/dev/null 2>&1 || die "GitHub CLI (gh) is required"
+    load_java_home
+    command -v keytool >/dev/null 2>&1 || die "keytool is required (Java JDK)"
 
     gh auth status >/dev/null 2>&1 || die "GitHub CLI is not authenticated. Run: gh auth login"
 
@@ -409,13 +475,21 @@ verify_apk() {
     [ "$apk_name" = "$NEW_VERSION_NAME" ] || die "APK versionName is '$apk_name', expected '$NEW_VERSION_NAME'"
     [ "$apk_code" = "$NEW_VERSION_CODE" ] || die "APK versionCode is '$apk_code', expected '$NEW_VERSION_CODE'"
 
-    local verify_out
+    local verify_out apk_cert expected_cert
     verify_out="$("$APKSIGNER_CMD" verify --verbose --print-certs "$GRADLE_APK" 2>&1)" || die "APK signature verification failed"
     printf '%s\n' "$verify_out" | grep -Eq 'Verified using v[23](\.[0-9]+)? scheme.*: true' \
         || die "APK is not signed with APK Signature Scheme v2 or v3"
-    echo "$verify_out" | sed -n 's/^/  /p'
 
-    info "✅ APK version ${apk_name} (${apk_code}) and signature verified"
+    apk_cert="$(printf '%s\n' "$verify_out" | awk -F': ' '/certificate SHA-256 digest:/{print $2; exit}')"
+    [ -n "$apk_cert" ] || die "Could not read the APK certificate SHA-256 digest"
+    apk_cert="$(normalize_cert_sha256 "$apk_cert")"
+    expected_cert="$(normalize_cert_sha256 "$EXPECTED_CERT_SHA256")"
+    if [ "$apk_cert" != "$expected_cert" ]; then
+        die "APK is not signed with the WeatherPossum release certificate (got $apk_cert, expected $expected_cert)"
+    fi
+    printf '%s\n' "$verify_out" | sed -n 's/^/  /p'
+
+    info "✅ APK version ${apk_name} (${apk_code}) verified with WeatherPossum signature"
 }
 
 generate_checksum() {
