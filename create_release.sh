@@ -435,28 +435,45 @@ update_gradle_version() {
 }
 
 update_changelog() {
-    local tmp body release_date
+    local tmp preamble releases release_date
     tmp="$(mktemp)"
     release_date="$(date +%Y-%m-%d)"
+
+    preamble=""
+    releases=""
+
     if [ -f "$CHANGELOG_FILE" ]; then
-        body="$(awk '
-            BEGIN { skip=1 }
-            /^# Changelog/ { next }
-            skip && /^[[:space:]]*$/ { next }
-            { skip=0; print }
+        preamble="$(awk '
+            /^## \[[0-9]+\.[0-9]+\.[0-9]+\]/ { exit }
+            { print }
         ' "$CHANGELOG_FILE")"
-    else
-        body=""
+
+        releases="$(awk '
+            found || /^## \[[0-9]+\.[0-9]+\.[0-9]+\]/ {
+                found=1
+                print
+            }
+        ' "$CHANGELOG_FILE")"
     fi
+
     {
-        printf '# Changelog\n\n'
+        if [ -n "$preamble" ]; then
+            printf '%s' "$preamble"
+            # Ensure the preamble ends with a blank line.
+            printf '\n'
+        else
+            printf '# Changelog\n\n'
+        fi
+
         printf '## [%s] - %s\n\n' "$NEW_VERSION_NAME" "$release_date"
         printf '%s\n\n' "$RELEASE_NOTES"
-        printf '---\n'
-        if [ -n "$body" ]; then
-            printf '\n%s\n' "$body"
+        printf '%s\n' '---'
+
+        if [ -n "$releases" ]; then
+            printf '\n%s\n' "$releases"
         fi
     } > "$tmp"
+
     mv "$tmp" "$CHANGELOG_FILE"
 }
 
