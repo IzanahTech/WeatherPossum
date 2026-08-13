@@ -249,19 +249,24 @@ ensure_keystore_properties() {
     [ -t 0 ] || die "Missing $KEYSTORE_PROPERTIES. Create it or run this script interactively."
 
     warn "🔐 No $KEYSTORE_PROPERTIES found. Let's set up release signing."
+    echo "This is a one-time setup. Values are saved to $KEYSTORE_PROPERTIES (gitignored)."
     local store_file store_password key_alias key_password
     store_file="$DEFAULT_KEYSTORE"
     if [ ! -f "$store_file" ]; then
-        printf "Keystore path: "
+        echo "Could not find the default keystore at: $DEFAULT_KEYSTORE"
+        printf "Enter the full path to your WeatherPossum .jks keystore: "
         read -r store_file
     else
-        printf "Keystore path [%s]: " "$store_file"
+        echo "Found a keystore at: $store_file"
+        echo "Press Enter to use it, or type a different .jks path."
+        printf "Keystore path: "
         local entered
         read -r entered
         [ -n "$entered" ] && store_file="$entered"
     fi
     [ -f "$store_file" ] || die "Keystore not found: $store_file"
 
+    echo "Enter the password for this keystore (input is hidden)."
     printf "Keystore password: "
     read -rs store_password
     echo
@@ -270,17 +275,22 @@ ensure_keystore_properties() {
     key_alias="$(keytool -list -v -keystore "$store_file" -storepass "$store_password" 2>/dev/null \
         | awk -F': ' '/^[[:space:]]*Alias name:/{print $2; exit}')"
     if [ -z "$key_alias" ]; then
-        printf "Key alias: "
+        echo "Could not auto-detect a key alias in that keystore."
+        printf "Enter the key alias: "
         read -r key_alias
     else
-        printf "Key alias [%s]: " "$key_alias"
+        echo "Found key alias: $key_alias"
+        echo "Press Enter to use it, or type a different alias."
+        printf "Key alias: "
         local entered_alias
         read -r entered_alias
         [ -n "$entered_alias" ] && key_alias="$entered_alias"
     fi
     [ -n "$key_alias" ] || die "Key alias cannot be empty"
 
-    printf "Key password (Enter if same as keystore): "
+    echo "Enter the password for alias '$key_alias' (input is hidden)."
+    echo "Press Enter if it is the same as the keystore password."
+    printf "Key password: "
     read -rs key_password
     echo
     [ -z "$key_password" ] && key_password="$store_password"
