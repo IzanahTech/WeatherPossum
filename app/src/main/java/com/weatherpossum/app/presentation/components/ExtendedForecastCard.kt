@@ -140,22 +140,41 @@ private fun DayForecastBlock(
     ) {
         Column {
 
-            // Large, Expressive day header
-            Text(
-                text = day.date.uppercase(), 
-                fontSize = 16.sp,
-                fontWeight = FontWeight.ExtraBold, // Bolder
-                letterSpacing = 0.5.sp,
-                color = onTextColor,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = day.date.uppercase(),
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.ExtraBold,
+                    letterSpacing = 0.5.sp,
+                    color = onTextColor,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f)
+                )
+
+                val iconType = getWeatherIconType(day.weather)
+                Box(
+                    modifier = Modifier
+                        .padding(start = 12.dp)
+                        .size(WeatherPossumDimens.iconLarge),
+                    contentAlignment = Alignment.Center
+                ) {
+                    AnimatedWeatherIcon(
+                        type = iconType,
+                        modifier = Modifier.fillMaxSize(),
+                        color = onTextColor
+                    )
+                }
+            }
 
             Spacer(Modifier.height(6.dp))
             HorizontalDivider(color = onTextColor.copy(alpha = 0.15f), thickness = 1.dp)
             Spacer(Modifier.height(6.dp))
 
-            // Details row (no date inside)
             ForecastSummaryRow(
                 day = day,
                 onTextColor = onTextColor
@@ -173,50 +192,30 @@ fun ForecastSummaryRow(
     day: ForecastDay,
     onTextColor: Color
 ) {
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
+    Column(
+        verticalArrangement = Arrangement.spacedBy(4.dp),
         modifier = Modifier.fillMaxWidth()
     ) {
-        // Weather icon (Slightly smaller for detail density)
-        val iconType = getWeatherIconType(day.weather)
-        Box(
-            modifier = Modifier.size(WeatherPossumDimens.iconLarge),
-            contentAlignment = Alignment.Center
-        ) {
-            AnimatedWeatherIcon(
-                type = iconType,
-                modifier = Modifier.fillMaxSize(),
-                color = onTextColor // Match color
-            )
-        }
-
-        Spacer(modifier = Modifier.width(16.dp)) // Slightly more separation
-
-        Column(
-            verticalArrangement = Arrangement.spacedBy(4.dp), // Tighter spacing for density
-            modifier = Modifier.weight(1f)
-        ) {
-            AlignedDetailRow(
-                label = stringResource(R.string.card_extended_forecast_weather),
-                value = day.weather,
-                color = onTextColor
-            )
-            AlignedDetailRow(
-                label = stringResource(R.string.card_extended_forecast_wind),
-                value = day.wind,
-                color = onTextColor
-            )
-            AlignedDetailRow(
-                label = stringResource(R.string.card_extended_forecast_seas),
-                value = day.seas,
-                color = onTextColor
-            )
-            AlignedDetailRow(
-                label = stringResource(R.string.card_extended_forecast_waves),
-                value = day.waves,
-                color = onTextColor
-            )
-        }
+        AlignedDetailRow(
+            label = stringResource(R.string.card_extended_forecast_weather),
+            value = day.weather,
+            color = onTextColor
+        )
+        AlignedDetailRow(
+            label = stringResource(R.string.card_extended_forecast_wind),
+            value = day.wind,
+            color = onTextColor
+        )
+        AlignedDetailRow(
+            label = stringResource(R.string.card_extended_forecast_seas),
+            value = day.seas,
+            color = onTextColor
+        )
+        AlignedDetailRow(
+            label = stringResource(R.string.card_extended_forecast_waves),
+            value = day.waves,
+            color = onTextColor
+        )
     }
 }
 
