@@ -258,7 +258,6 @@ The updater includes:
 
 Downloaded APKs are checked to ensure that they are signed by the same developer certificate as the installed WeatherPossum application.
 
-See [`IN_APP_UPDATER.md`](IN_APP_UPDATER.md) for implementation details.
 
 ---
 
