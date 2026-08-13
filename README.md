@@ -1,266 +1,580 @@
+# WeatherPossum README
+
 # 🌤️ WeatherPossum
 
-A beautiful, modern Android weather application built with Jetpack Compose, featuring accurate astronomical calculations, comprehensive weather information for Dominica and the Caribbean region, and **in-app updates via GitHub Releases**.
+**Weather for Dominica, without the clutter. 🇩🇲**
 
-![WeatherPossum](https://img.shields.io/badge/Android-WeatherPossum-green?style=for-the-badge&logo=android)
-![Kotlin](https://img.shields.io/badge/Kotlin-1.9.23-blue?style=for-the-badge&logo=kotlin)
-![Compose](https://img.shields.io/badge/Jetpack%20Compose-2025.09.00-blue?style=for-the-badge&logo=jetpack-compose)
-![AGP](https://img.shields.io/badge/Android%20Gradle%20Plugin-8.6.0-green?style=for-the-badge)
+WeatherPossum is a native Android weather app built specifically for **Dominica**.
 
-## ✨ Features
+It takes official forecasts and meteorological information from the **Dominica Meteorological Service**, combines them with Atlantic tropical-weather information from the **U.S. National Hurricane Center**, and presents everything in a clean, friendly interface designed for quick everyday use.
 
-### 🌦️ Weather Information
-- **Real-time Weather Data** - Current conditions, forecasts, and synopsis
-- **Extended Forecasts** - Multi-day weather predictions with detailed information
-- **Weather Outlook** - Regional weather outlook for Dominica and Lesser Antilles
-- **Wind & Sea Conditions** - Marine weather information for sailors and fishermen
-- **Sun Times** - Accurate sunrise and sunset calculations
-
-### 🌙 Astronomical Features
-- **Precise Moon Phases** - Professional-grade moon phase calculations using Sun-Moon elongation
-- **Moon Illumination** - Accurate illumination percentages (e.g., "Waning Crescent 10%")
-- **Moonrise/Moonset Times** - Location-specific lunar timing
-- **Sun Information** - Comprehensive solar data and timing
-
-### 🌀 Hurricane Tracking
-- **Atlantic Tropical Weather Outlook** - Official NHC tropical weather updates
-- **Active Systems** - Current tropical storm and hurricane information
-- **Formation Chances** - Probability indicators for tropical development
-- **Eastern Tropical Atlantic** - Regional tropical weather analysis
-
-### 🔄 In-App Updates
-- **Fully Automatic** - Runs silently in background on app launch
-- **Zero Configuration** - No user setup or manual controls required
-- **Silent Operation** - Only alerts user when update is actually available
-- **Secure Downloads** - SHA256 checksum verification and certificate validation
-- **Seamless Experience** - Clean update dialog with minimal user interaction
-
-### 🎨 Modern UI/UX
-- **Dynamic Color Themes** - Greeting cards that change colors based on daylight percentage
-- **Smooth Animations** - Lottie animations for weather conditions
-- **Accessibility Compliant** - WCAG-compliant color contrast and luminance
-- **Material Design 3** - Modern Android design language
-- **Pull-to-Refresh** - Intuitive data refresh functionality
-
-### 🔧 Technical Excellence
-- **Offline Support** - Cached data for offline viewing
-- **Robust Parsing** - Flexible HTML parsing that adapts to changing weather service formats
-- **Dependency Injection** - Clean architecture with Koin DI
-- **Modern Android Stack** - Latest Android SDK, Compose, and Kotlin
-
-## 🏗️ Architecture
-
-### Tech Stack
-- **Language**: Kotlin 1.9.23
-- **UI Framework**: Jetpack Compose (BOM 2025.09.00)
-- **Architecture**: MVVM with Repository Pattern
-- **Dependency Injection**: Koin 3.5.6
-- **Networking**: Retrofit 2.11.0 + OkHttp 4.12.0
-- **HTML Parsing**: JSoup 1.17.2
-- **Astronomical Calculations**: Time4A 4.8-2021a
-- **Data Persistence**: DataStore Preferences
-- **Animations**: Lottie Compose 6.4.0
-- **JSON Parsing**: Moshi 1.15.0
-
-### Project Structure
-```
-app/src/main/java/com/weatherpossum/app/
-├── data/
-│   ├── api/              # Network API interfaces (including GitHub API)
-│   ├── model/            # Data models
-│   ├── parser/           # HTML parsing logic
-│   └── repository/       # Data repositories
-├── presentation/
-│   ├── components/       # Reusable UI components (including UpdateSheet)
-│   └── *.kt             # Screen composables
-├── ui/
-│   ├── theme/           # App theming
-│   └── viewmodel/       # ViewModels (including UpdateViewModel)
-├── util/                # Utility classes (including InAppUpdater)
-└── di/                  # Dependency injection
-```
-
-## 🚀 Getting Started
-
-### Prerequisites
-- Android Studio Hedgehog (2023.1.1) or later
-- Android SDK 31+ (Android 12+)
-- JDK 17
-
-### Installation
-
-1. **Clone the repository**
-   ```bash
-   git clone https://github.com/IzanahTech/WeatherPossum.git
-   cd WeatherPossum
-   ```
-
-2. **Open in Android Studio**
-   - Launch Android Studio
-   - Select "Open an existing project"
-   - Navigate to the WeatherPossum directory
-
-3. **Sync and Build**
-   - Android Studio will automatically sync Gradle
-   - Build the project: `Build > Make Project`
-
-4. **Run the App**
-   - Connect an Android device or start an emulator
-   - Click the "Run" button or use `Shift + F10`
-
-### Build Configuration
-- **Compile SDK**: 36 (Android 14)
-- **Target SDK**: 36
-- **Min SDK**: 31 (Android 12)
-- **Java Version**: 17
-
-## 🔄 In-App Updates
-
-WeatherPossum includes a complete in-app updater system that allows users to update the app independently of the Play Store.
-
-### How It Works
-1. **Automatic Check** - App silently checks for updates on launch (2-second delay)
-2. **Background Processing** - Runs without user awareness or performance impact
-3. **Silent Result** - No update = no user notification
-4. **Update Available** - Shows clean dialog with "Update Now" or "Later" options
-5. **Secure Installation** - Handles download, verification, and installation automatically
-
-### For Developers
-- **Release Script** - Use `./create_release.sh` to create releases with proper files
-- **Documentation** - See [IN_APP_UPDATER.md](IN_APP_UPDATER.md) for detailed implementation
-- **Repository** - Configured for `IzanahTech/WeatherPossum` repository
-
-## 📱 Screenshots
-
-<img width="1080" height="2400" alt="Screenshot_20250917_100839" src="https://github.com/user-attachments/assets/0cc7fe52-5171-40a6-94ef-84f315271fac" />
-<img width="1080" height="2400" alt="Screenshot_20250917_100852" src="https://github.com/user-attachments/assets/31a63c7d-f295-428d-9808-0d408d840e89" />
-<img width="1080" height="2400" alt="Screenshot_20250917_100906" src="https://github.com/user-attachments/assets/410a26a7-5b4a-4089-870c-c2d2281ae444" />
-<img width="1080" height="2400" alt="Screenshot_20250917_100914" src="https://github.com/user-attachments/assets/bf3b86cf-55fa-48b0-906f-20a36c485b3a" />
-
-
-## 🔧 Configuration
-
-### Weather Data Sources
-The app fetches weather data from:
-- **Dominica Meteorological Service** - Primary weather data
-- **National Hurricane Center** - Tropical weather outlooks
-
-### Location Settings
-- **Default Location**: Dominica (15.415°N, 61.371°W)
-- **Timezone**: America/Dominica
-- **Elevation**: Sea level (0m)
-
-## 🧪 Testing
-
-### Running Tests
-```bash
-# Unit tests
-./gradlew test
-
-# Instrumented tests
-./gradlew connectedAndroidTest
-
-# All tests
-./gradlew check
-```
-
-### Test Coverage
-- Repository layer testing
-- ViewModel testing
-- UI component testing
-
-## 📦 Dependencies
-
-### Core Dependencies
-- **AndroidX Core KTX** 1.12.0
-- **Lifecycle Runtime KTX** 2.7.0
-- **Activity Compose** 1.8.2
-- **Compose BOM** 2025.09.00
-
-### UI Dependencies
-- **Material3** - Modern Material Design
-- **Material Icons Extended** - Extended icon set
-- **Lottie Compose** 6.4.0 - Smooth animations
-
-### Network Dependencies
-- **Retrofit** 2.11.0 - HTTP client
-- **OkHttp** 4.12.0 - HTTP transport
-- **JSoup** 1.17.2 - HTML parsing
-- **Moshi** 1.15.0 - JSON parsing
-
-### Utility Dependencies
-- **Time4A** 4.8-2021a - Astronomical calculations
-- **DataStore Preferences** 1.0.0 - Data persistence
-- **Koin** 3.5.6 - Dependency injection
-
-## 🤝 Contributing
-
-We welcome contributions! Please follow these guidelines:
-
-### Development Setup
-1. Fork the repository
-2. Create a feature branch: `git checkout -b feature/amazing-feature`
-3. Make your changes
-4. Run tests: `./gradlew check`
-5. Commit changes: `git commit -m 'Add amazing feature'`
-6. Push to branch: `git push origin feature/amazing-feature`
-7. Open a Pull Request
-
-### Code Style
-- Follow Kotlin coding conventions
-- Use meaningful variable and function names
-- Add documentation for public APIs
-- Write unit tests for new features
-
-### Commit Messages
-Use descriptive commit messages:
-```
-feat: add moon phase calculation
-fix: resolve weather parsing issue
-docs: update README with new features
-refactor: improve UI component structure
-```
-
-## 📄 License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-## 🙏 Acknowledgments
-
-- **Dominica Meteorological Service** for providing weather data
-- **National Hurricane Center** for tropical weather information
-- **Time4A Library** for professional astronomical calculations
-- **Jetpack Compose Team** for the amazing UI framework
-- **Material Design Team** for design guidelines
-
-## 📞 Support
-
-If you encounter any issues or have questions:
-
-1. Check the [Issues](https://github.com/IzanahTech/WeatherPossum/issues) page
-2. Create a new issue with detailed information
-3. Include device information and error logs
-
-## 🔮 Roadmap
-
-### Upcoming Features
-- [ ] Weather alerts and notifications
-- [ ] Multiple location support
-- [ ] Weather widgets
-- [ ] Dark mode improvements
-- [ ] Weather radar integration
-- [ ] Historical weather data
-- [ ] Delta updates for smaller downloads
-
-### Version History
-- **v1.0.0** - Initial release with core weather features
-- **v1.1.0** - Added moon phase calculations
-- **v1.2.0** - Enhanced hurricane tracking
-- **v1.3.0** - UI/UX improvements and accessibility
-- **v1.4.0** - In-app updater with GitHub Releases integration
+WeatherPossum isn't trying to be another worldwide weather platform. It has one job: make the weather information that matters to people in Dominica easier to access, understand and use.
 
 ---
 
-**Made with ❤️ for Dominica and the Caribbean**
+## ✨ Features
 
-*Copyright 2025 Everton Frederick. All rights reserved*
+### 🌦️ Official Dominica Forecast
+
+WeatherPossum retrieves and presents forecast information published by the Dominica Meteorological Service, including:
+
+* Current official forecast
+* Meteorological synopsis
+* Weather warnings and advisories
+* Wind direction and speed
+* Sea conditions
+* Wave heights
+* High and low tides
+* Extended weather outlook
+* Weather Outlook for Dominica and the Lesser Antilles
+
+Condition-aware animations accompany the forecast while the official meteorological information remains the focus.
+
+---
+
+### ⚠️ Warnings & Advisories
+
+Warnings and advisories contained in the official forecast are displayed prominently within the app.
+
+These may include:
+
+* Small Craft Advisories
+* Flood Watches and Warnings
+* Severe weather advisories
+* Other notices published by the Dominica Meteorological Service
+
+WeatherPossum does not generate its own weather warnings.
+
+---
+
+### 🌊 Wind, Seas & Tides
+
+Marine information is given dedicated space in WeatherPossum because sea conditions matter just as much as the general forecast on an island.
+
+Depending on the current forecast, the app can display:
+
+* Wind direction
+* Wind speed
+* Gust information
+* Sea state
+* Wave heights in metres and feet
+* High tide times
+* Low tide times
+* Marine advisories
+
+---
+
+### 📆 Extended Outlook
+
+WeatherPossum presents the extended forecast published by the Dominica Meteorological Service.
+
+Individual forecast days can be expanded to show detailed information including:
+
+* Expected weather
+* Wind conditions
+* Sea state
+* Wave heights
+* Applicable advisories
+
+Each forecast period is paired with condition-aware weather artwork/animation.
+
+The title of the forecast product is preserved from the Dominica Meteorological Service.
+
+---
+
+### 🌎 Weather Outlook
+
+The app includes the longer-form **Weather Outlook for Dominica and the Lesser Antilles**.
+
+This preserves the regional meteorological discussion published by the Dominica Meteorological Service, which may contain information about:
+
+* Tropical waves
+* Pressure systems
+* Moisture and atmospheric instability
+* Saharan dust
+* Rainfall expectations
+* Regional weather patterns
+* Developing weather systems
+
+---
+
+## ☀️ Sun Information
+
+WeatherPossum includes locally calculated solar information for Dominica.
+
+The Sun card provides:
+
+* Sunrise
+* Sunset
+* Day length
+* Daylight progress
+* Solar altitude
+* Solar azimuth
+
+The main greeting card also includes an animated daylight-progress indicator showing the progression of the current day between sunrise and sunset.
+
+---
+
+## 🌙 Moon Information
+
+WeatherPossum performs local astronomical calculations to provide detailed lunar information including:
+
+* Current moon phase
+* Illumination percentage
+* Moonrise
+* Moonset
+* Next major moon phase
+* Date of the next phase
+
+Astronomical calculations are performed using **Time4A**.
+
+---
+
+## 🌀 Atlantic Tropical Weather
+
+WeatherPossum includes Atlantic tropical-weather information from the **U.S. National Hurricane Center (NHC)**.
+
+### Hurricane Outlook
+
+The Hurricane Outlook can display:
+
+* Areas being monitored for tropical development
+* Tropical disturbances
+* Formation probabilities
+* Regional tropical-weather discussions
+
+Individual areas of interest are separated for easier reading.
+
+### Active Storms
+
+When tropical cyclones are active in the Atlantic, WeatherPossum provides dedicated Active Storms information.
+
+When there are no active systems, the app clearly indicates that the Atlantic is quiet.
+
+---
+
+## 🐾 WeatherPossum Facts
+
+Weather checking doesn't have to be completely serious.
+
+WeatherPossum includes a collection of weather, climate and hurricane facts covering Dominica and the wider Caribbean.
+
+Tap the WeatherPossum Fact card to discover another one.
+
+Occasionally the possum chooses historical violence before breakfast.
+
+---
+
+## 🏠 Android Home-Screen Widget
+
+WeatherPossum includes a responsive Android home-screen widget built with **Jetpack Glance**.
+
+The widget has its own layout, text-sizing, wrapping and update logic designed to adapt to different widget sizes while providing useful forecast information without opening the full app.
+
+Background updates are handled using Android WorkManager.
+
+---
+
+## 🎨 Interface
+
+WeatherPossum uses a custom card-based interface built entirely with **Jetpack Compose**.
+
+The current interface includes:
+
+* Condition-aware animated weather icons
+* Dynamic greeting card
+* Animated daylight-progress indicator
+* Floating pill-style **Now / Extras** navigation
+* Expandable forecast cards
+* Dedicated Sun and Moon cards
+* Hurricane Outlook and Active Storm cards
+* WeatherPossum Facts
+* Pull-to-refresh
+* Loading and status indicators
+* Light and dark theme support
+* Material 3 components
+
+Cards use different visual treatments to distinguish general weather, astronomical information, tropical systems, warnings and other types of information while retaining a consistent overall design.
+
+---
+
+## 📱 Screenshots
+
+> Current screenshots coming soon.
+
+Suggested gallery:
+
+* Now / Main Forecast
+* Wind, Sea & Tides
+* Sun
+* Moon Phase
+* Extended Outlook
+* Weather Outlook
+* Hurricane Outlook
+* Active Storms
+* Home-screen widget
+
+---
+
+## 🗺️ Data Sources
+
+### Dominica Meteorological Service
+
+The Dominica Meteorological Service is WeatherPossum's primary source for local weather information.
+
+WeatherPossum retrieves and parses published Met Office information including forecasts, outlooks and marine conditions.
+
+### U.S. National Hurricane Center
+
+The National Hurricane Center provides WeatherPossum's Atlantic tropical-weather information, including areas of potential development and active tropical cyclones.
+
+WeatherPossum does not generate independent meteorological forecasts.
+
+---
+
+## 📍 Location
+
+WeatherPossum is intentionally designed for **Dominica**.
+
+It is not a multi-location or worldwide weather service.
+
+The application uses Dominica-specific location and timezone information where required for local calculations.
+
+**Timezone:** `America/Dominica`
+
+This narrow focus is deliberate: WeatherPossum exists to provide a better interface to the weather information that matters locally.
+
+---
+
+## 💾 Offline Support
+
+WeatherPossum caches retrieved weather information so previously loaded forecast data can remain available when connectivity is temporarily unavailable.
+
+This is particularly useful when mobile or internet connectivity becomes unreliable during poor weather.
+
+Pull-to-refresh allows the latest information to be requested whenever a connection is available.
+
+---
+
+## 🔄 Secure In-App Updates
+
+WeatherPossum includes its own update system using **GitHub Releases**.
+
+When the application starts, it can check for a newer WeatherPossum release. If an update is available, the user is given the option to download and install it.
+
+The updater includes:
+
+* GitHub Releases integration
+* APK downloading
+* SHA-256 checksum verification
+* APK signing-certificate verification
+* Secure FileProvider handling
+* Download progress
+* Android system installation flow
+* Release notes
+
+Downloaded APKs are checked to ensure that they are signed by the same developer certificate as the installed WeatherPossum application.
+
+See [`IN_APP_UPDATER.md`](IN_APP_UPDATER.md) for implementation details.
+
+---
+
+## 🏗️ Architecture
+
+WeatherPossum is a native Android application written in Kotlin.
+
+The codebase separates data retrieval, parsing, application/domain logic, presentation and widget functionality.
+
+```text
+app/src/main/java/com/weatherpossum/app/
+├── data/
+│   ├── api/              # Network/API access
+│   ├── model/            # Weather and application data models
+│   ├── parser/           # Met Office parsing and mapping
+│   └── repository/       # Data repositories
+│
+├── di/                   # Dependency injection
+├── domain/               # Application/domain logic
+│
+├── presentation/
+│   ├── components/       # Compose cards, animations and navigation
+│   └── ...               # Screens and presentation logic
+│
+├── ui/
+│   └── theme/            # Application theme
+│
+├── util/                 # Utilities and update infrastructure
+│
+├── widget/               # Glance home-screen widget
+│
+└── AppEntry.kt           # Application entry point
+```
+
+---
+
+## 🌦️ Forecast Parsing
+
+The Dominica Meteorological Service publishes its forecasts primarily as web content rather than through a dedicated WeatherPossum API.
+
+WeatherPossum therefore contains a dedicated parsing layer for locating, interpreting and mapping the published information into app data.
+
+Current parser components include:
+
+```text
+DMOForecastParser
+DominicaWeatherParser
+ExtendedForecastParser
+ForecastPageLocator
+TwoTextParser
+WeatherCardMapper
+```
+
+The parsing layer is designed to handle variations in the way forecast information is published while preserving the meaning of the official forecast.
+
+Because WeatherPossum depends on external source formatting, parser resilience is an important part of ongoing development.
+
+---
+
+## 🧰 Technology
+
+WeatherPossum currently uses:
+
+* **Kotlin**
+* **Jetpack Compose**
+* **Material 3**
+* **Koin**
+* **Retrofit**
+* **OkHttp**
+* **JSoup**
+* **Moshi**
+* **DataStore**
+* **Time4A**
+* **Lottie Compose**
+* **Jetpack Glance**
+* **WorkManager**
+* **Haze**
+* **AndroidX**
+
+### Current Android Configuration
+
+| Setting        | Value                   |
+| -------------- | ----------------------- |
+| Application ID | `com.weatherpossum.app` |
+| Minimum SDK    | 31                      |
+| Compile SDK    | 37                      |
+| Target SDK     | 37                      |
+| JVM Target     | 17                      |
+
+Release builds use code shrinking, resource shrinking and optimized ProGuard/R8 configuration.
+
+---
+
+## 🚀 Building WeatherPossum
+
+### Requirements
+
+* Android Studio
+* JDK 17
+* Android SDK
+* Internet connection for dependencies and live weather retrieval
+
+Clone the repository:
+
+```bash
+git clone https://github.com/IzanahTech/WeatherPossum.git
+cd WeatherPossum
+```
+
+Open the project in Android Studio and allow Gradle to synchronize.
+
+To build a debug APK from the command line:
+
+```bash
+./gradlew assembleDebug
+```
+
+To run the unit tests:
+
+```bash
+./gradlew test
+```
+
+To run the complete Gradle verification tasks:
+
+```bash
+./gradlew check
+```
+
+---
+
+## 📦 Release System
+
+WeatherPossum includes an automated release assistant:
+
+```bash
+./create_release.sh
+```
+
+The release script handles the complete WeatherPossum release workflow.
+
+It can:
+
+1. Verify that the Git working tree is clean.
+2. Select or calculate the next semantic version.
+3. Increment Android `versionCode`.
+4. Collect release notes.
+5. Update `CHANGELOG.md`.
+6. Build the signed release APK using Gradle.
+7. Verify the APK's `versionName` and `versionCode`.
+8. Verify the APK signature.
+9. Confirm that the APK is signed with the expected WeatherPossum release certificate.
+10. Generate the SHA-256 checksum.
+11. Create the release commit.
+12. Create an annotated Git tag.
+13. Atomically push the commit and tag.
+14. Create the GitHub Release.
+15. Upload the APK and checksum.
+
+### Version Bumps
+
+```bash
+./create_release.sh --patch
+./create_release.sh --minor
+./create_release.sh --major
+./create_release.sh --version 2.0.0
+```
+
+A dry run is also available:
+
+```bash
+./create_release.sh --patch --dry-run
+```
+
+### Signing
+
+Release signing is configured through a local:
+
+```text
+keystore.properties
+```
+
+The signing configuration contains the keystore location and credentials and **must not be committed to the repository**.
+
+The release script can assist with creating this local configuration.
+
+---
+
+## 🧪 Testing
+
+Run unit tests:
+
+```bash
+./gradlew test
+```
+
+Run Android instrumented tests:
+
+```bash
+./gradlew connectedAndroidTest
+```
+
+Run the project's Gradle verification tasks:
+
+```bash
+./gradlew check
+```
+
+Parser changes should be tested carefully because the reliability of WeatherPossum depends on correctly interpreting externally published meteorological information.
+
+---
+
+## 🛠️ Project Direction
+
+WeatherPossum is intentionally focused.
+
+The goal is **not** to reproduce every feature available in large commercial weather applications.
+
+Development is primarily focused on improving the information WeatherPossum already provides:
+
+* UI consistency and readability
+* Forecast presentation
+* Parser resilience
+* Widget refinement
+* Tropical-weather presentation
+* Reliability and maintenance
+
+### Planned
+
+* **Warning and advisory notifications**
+
+Notifications are intended to alert users when important warnings or advisories are issued or meaningfully changed without turning WeatherPossum into a noisy general-purpose notification service.
+
+Features such as worldwide locations, large-scale radar integration and historical weather databases are not currently part of WeatherPossum's direction.
+
+---
+
+## 🤝 Contributing
+
+Contributions, bug reports and suggestions are welcome.
+
+When contributing:
+
+1. Fork the repository.
+2. Create a focused branch for your change.
+3. Keep changes consistent with WeatherPossum's Dominica-first scope.
+4. Test your changes.
+5. Open a pull request explaining what changed and why.
+
+For forecast-parser changes in particular, avoid altering the meaning of official meteorological information when transforming it for display.
+
+---
+
+## 📄 License
+
+WeatherPossum is licensed under the **MIT License**.
+
+See [`LICENSE`](LICENSE) for details.
+
+---
+
+## ⚠️ Disclaimer
+
+WeatherPossum is an independent application.
+
+It is **not an official application of the Dominica Meteorological Service, the Government of Dominica, or the U.S. National Hurricane Center**.
+
+WeatherPossum retrieves, processes and presents information from official meteorological sources but should not be treated as a replacement for official emergency instructions.
+
+During hazardous or severe weather, always follow information and instructions issued directly by the appropriate authorities.
+
+---
+
+## 🙏 Credits
+
+WeatherPossum relies on information and open-source technology from a number of sources, including:
+
+* **Dominica Meteorological Service** — local forecasts, outlooks and marine information
+* **U.S. National Hurricane Center** — Atlantic tropical-weather information
+* **Time4A / Time4J** — astronomical calculations
+* **Jetpack Compose and AndroidX**
+* The open-source libraries used throughout the project
+
+Additional acknowledgements are available from the **Credits** section inside WeatherPossum.
+
+---
+
+## 🐾 Why WeatherPossum?
+
+Because weather apps don't all need to become enormous platforms.
+
+WeatherPossum is built around a simple idea:
+
+**Take the official weather information available for Dominica and make it pleasant, useful and easy to read.**
+
+<p align="center">
+  <strong>Made for Dominica 🇩🇲</strong>
+</p>
+
+<p align="center">
+  <em>Weather without the clutter.</em>
+</p>
