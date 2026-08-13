@@ -435,8 +435,9 @@ update_gradle_version() {
 }
 
 update_changelog() {
-    local tmp body
+    local tmp body release_date
     tmp="$(mktemp)"
+    release_date="$(date +%Y-%m-%d)"
     if [ -f "$CHANGELOG_FILE" ]; then
         body="$(awk '
             BEGIN { skip=1 }
@@ -449,7 +450,7 @@ update_changelog() {
     fi
     {
         printf '# Changelog\n\n'
-        printf '## Version %s\n\n' "$NEW_VERSION_NAME"
+        printf '## [%s] - %s\n\n' "$NEW_VERSION_NAME" "$release_date"
         printf '%s\n\n' "$RELEASE_NOTES"
         printf '---\n'
         if [ -n "$body" ]; then
@@ -526,8 +527,7 @@ EOF
     git tag -a "$TAG" -m "WeatherPossum ${NEW_VERSION_NAME}"
 
     warn "⬆️  Pushing commit and tag..."
-    git push origin HEAD
-    git push origin "refs/tags/${TAG}"
+    git push --atomic origin HEAD "refs/tags/${TAG}"
 
     local notes_tmp
     notes_tmp="$(mktemp)"
